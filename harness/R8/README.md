@@ -42,12 +42,11 @@
 
 详见 [00-rules.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/R8/00-rules.md)。摘要：
 
-1. **RN-FIRST**：动 ArkTS 前必须先读 RN 源 + 写本主链 RN 基准节
-2. **TOKEN-ONLY**：0 字面量颜色/字号/间距，全走 [Theme.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/style/Theme.ets)
-3. **NO-DEBUG-PROBE**：UI 树 0 调试 Text，需要诊断走 hilog domain `0x0666`
-4. **TRIPLE-EVIDENCE**：RN 截图 + OH 截图 + 差异说明，缺一不可
-5. **6-STEP**：S1 Read RN → S2 Diff → S3 Fix → S4 Build → S5 RunOnDevice → S6 Compare
-6. **ONE-CHAIN-AT-A-TIME**：本主链 DoD 不达标，禁止开下一条
+1. **TOKEN-ONLY**：0 字面量颜色/字号/间距，全走 [Theme.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/style/Theme.ets)
+2. **NO-DEBUG-PROBE**：UI 树 0 调试 Text，需要诊断走 hilog domain `0x0666`
+3. **REGRESSION-EVIDENCE**：OH 截图 + 变化说明，缺一不可
+4. **6-STEP**：S1 Read OH 现状 → S2 Diff → S3 Fix → S4 Build → S5 RunOnDevice → S6 Record
+5. **ONE-CHAIN-AT-A-TIME**：本主链 DoD 不达标，禁止开下一条
 
 ---
 

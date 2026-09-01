@@ -2,7 +2,7 @@
 
 > **总入口文档**：把 `hdc + hilog + 截图 + UITest` 组合成一套可维护、可复跑、可归档的全 App 场景巡检流程。
 >
-> 本流程不替代 [device-smoke.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/playbooks/device-smoke.md) 的"装机冒烟"，也不替代 [page-build-checklist.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/playbooks/page-build-checklist.md) 的"逐页 RN-FIRST 比对"，定位是**前两者之间的回归层**：在每个 RN/OH 双端对齐节点（M5/M6/M7…）跑一次，沉淀完整 12 场景截图 + hilog + layout dump，作为里程碑级"App 当前可用性"快照。
+> 本流程不替代 [device-smoke.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/playbooks/device-smoke.md) 的"装机冒烟"，也不替代 [page-build-checklist.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/playbooks/page-build-checklist.md) 的"逐页建造"，定位是**前两者之间的回归层**：在每次里程碑节点（M5/M6/M7…）跑一次，沉淀完整 12 场景截图 + hilog + layout dump，作为里程碑级"App 当前可用性"快照。
 
 ---
 
@@ -14,7 +14,7 @@
 | **可定位**：每个截图能找到对应的 hilog 切片 | hilog domain `0x0666` + `GSY_TOUR` / `FullTour` BEGIN/END 标记 |
 | **可归档**：产物结构与 M6 既有报告一致 | 复用 [reports/M6/](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/regression/reports/M6) 目录约定 `<scenario>-<ts>/{*.png,*.json,README.md,device.txt}` |
 | **可裁剪**：只跑感兴趣场景 | `SCENARIOS="login dynamic"` 环境变量过滤 |
-| **可对齐 RN**：每场景与 RN 端 Maestro / 真机截图对位 | 与 [ui-parity-with-rn.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/rules/ui-parity-with-rn.md) HARD-LAW-4 三件套约束兼容 |
+| **可追溯**：每次跑分留截图 + hilog 切片 + dump 归档 | 与 [ui-parity-with-rn.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/rules/ui-parity-with-rn.md) 截图记录约束兼容 |
 
 ---
 
@@ -95,7 +95,7 @@ open harness/regression/reports/M6/scenario-tour-*/
 
 适用：
 - 非开发机抽查（只装机不编译 ohosTest）
-- 与 RN 端 Maestro 对照截屏
+- 里程碑截图留底
 - 故障复现快照（按 `SCENARIOS="repoDetail"` 反复跑同一场景）
 
 ### 模式 B：仅 UITest（自动模式 / CI 化基准）
@@ -195,10 +195,10 @@ awk '/\[FullTour\] BEGIN scenario=repoDetail/,/\[FullTour\] END   scenario=repoD
 | 文档 | 何时用 | 与本流程关系 |
 |---|---|---|
 | [device-smoke.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/playbooks/device-smoke.md) | 一次装机后的最小冒烟 | scenario-tour 是其超集；冒烟通过后再跑全场景 |
-| [page-build-checklist.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/playbooks/page-build-checklist.md) | 逐页 RN-FIRST 7 步建造 | 单页改动后跑 scenario-tour 看是否影响其他 11 页 |
+| [page-build-checklist.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/playbooks/page-build-checklist.md) | 逐页 6 步建造 | 单页改动后跑 scenario-tour 看是否影响其他 11 页 |
 | [ai-auto-debug.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/playbooks/ai-auto-debug.md) | AI 拉 Logger 环形缓冲 + DebugDumper | 共享 hilog domain 0x0666；scenario-tour 的 hilog 切片直接作为 ai-auto-debug 的输入素材 |
 | [testing/e2e/README.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/testing/e2e/README.md) | 单页 E2E spec | scenario-tour 是 E2E 的"巡检合订本"，不替代单页深度断言 |
-| [rules/ui-parity-with-rn.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/rules/ui-parity-with-rn.md) | RN 端对照（HARD-LAW-1/4） | scenario-tour 截图作为 OH 端基准，配合 RN Maestro 截图组成 R-UI-04 三件套 |
+| [rules/ui-parity-with-rn.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/rules/ui-parity-with-rn.md) | OH 端工程纪律（调试探针 / token / @Builder 守则） | scenario-tour 截图作为 OH 端回归基准，与 R-UI-03 截图记录约束兼容 |
 
 ---
 

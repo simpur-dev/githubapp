@@ -1,9 +1,7 @@
 # SOP — 新增功能
 
-> 蓝本：[https://github.com/CarGuo/GSYGithubApp/blob/master/harness/playbooks/add-feature.md](https://github.com/CarGuo/GSYGithubApp/blob/master/harness/playbooks/add-feature.md)。
-
-## 1. 立项 / 读 RN 蓝本
-- 在 [https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/) 找到对应 Page 与 dao，理解输入 / 输出。
+## 1. 立项
+- 明确功能输入 / 输出与数据来源（GitHub REST API 端点 / 本地存储）。
 - 在 [https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/requirements/](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/requirements/) 对应域文件追加用户故事 / 验收标准。
 
 ## 2. 设计 / 写 ADR（如有重大变更）
