@@ -7,7 +7,6 @@
  * 单根 Navigation 容器。
  */
 import { AppNavigator } from '../navigation/AppNavigator';
-import { GSYColor } from '../style/Theme';
 
 @Entry
 @Component
@@ -19,6 +18,7 @@ struct Index {
     .id('app_index_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.white);
+    // 跟随系统深浅色模式：与系统启动窗口背景同资源，避免深色模式闪白
+    .backgroundColor($r('app.color.start_window_background'));
   }
 }

@@ -8,35 +8,25 @@ import { HttpManager } from '../net/HttpManager';
 import { GlobalAuthStore, APP_STORAGE_KEY_TOKEN, APP_STORAGE_KEY_USER_LOGIN, AuthUserInfo } from '../store/AuthStore';
 import { DefaultLoginUseCase, LoginOutcome } from '../auth/LoginUseCase';
 import { BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY } from '../entryability/EntryAbility';
-import { HarmonyLogoMark } from '../common/HarmonyLogoMark';
-import { GSYColor } from '../style/Theme';
-import { LoginPage } from './LoginPage';
 
-const WELCOME_DELAY_MS: number = 2200;
-const WELCOME_POSTER_PRELOAD_MS: number = 120;
-const WELCOME_STILL_MS: number = 180;
-const WELCOME_HERO_MS: number = 560;
-const WELCOME_REVEAL_MS: number = 260;
-const WELCOME_LOGO_SIZE: number = 320;
-const LOGIN_LOGO_SIZE: number = 180;
-const LOGIN_LOGO_TARGET_Y: number = -162.5;
+const WELCOME_DELAY_MS: number = 1000;
+const WELCOME_ICON_SIZE: number = 120;
 const TAG: string = 'WelcomePage';
 
+/**
+ * WelcomePage —— 系统原生启动窗口风格的欢迎页（2026-09 重构）
+ *
+ * 用户拍板：与 RN 端 welcome.png + Lottie 动画解耦，改用 HarmonyOS 系统启动窗口
+ * 同款视觉 —— 屏幕居中 app 图标 + 系统空白背景（跟随系统深浅色模式）。
+ *
+ * 深浅色跟随实现：背景色走资源引用 $r('app.color.start_window_background')，
+ * base 目录 #FFFFFF（浅色）/ dark 目录 #000000（深色）由资源限定符自动切换，
+ * 与 module.json5 startWindowBackground 指向同一资源，启动窗口→本页视觉无缝衔接。
+ */
 @Component
 export struct WelcomePage {
   @State decided: boolean = false;
-  @State heroLogoPlaying: boolean = true;
-  @State heroPosterBackingVisible: boolean = false;
-  @State showLoginLayer: boolean = false;
-  @State showWelcomeMask: boolean = true;
-  @State showHeroLayer: boolean = true;
-  @State heroProgress: number = 0;
-  @State welcomeMaskOpacity: number = 1;
   private timerId: number = -1;
-  private posterTimerId: number = -1;
-  private stillTimerId: number = -1;
-  private heroTimerId: number = -1;
-  private revealTimerId: number = -1;
 
   aboutToAppear(): void {
     this.registerIconFonts();
@@ -47,7 +37,6 @@ export struct WelcomePage {
     } catch (_e) {
     }
     if (!this.decided) {
-      this.schedulePosterPreload();
       this.timerId = setTimeout((): void => {
         this.startExitTransition();
       }, WELCOME_DELAY_MS);
@@ -58,22 +47,6 @@ export struct WelcomePage {
     if (this.timerId !== -1) {
       clearTimeout(this.timerId);
       this.timerId = -1;
-    }
-    if (this.posterTimerId !== -1) {
-      clearTimeout(this.posterTimerId);
-      this.posterTimerId = -1;
-    }
-    if (this.stillTimerId !== -1) {
-      clearTimeout(this.stillTimerId);
-      this.stillTimerId = -1;
-    }
-    if (this.heroTimerId !== -1) {
-      clearTimeout(this.heroTimerId);
-      this.heroTimerId = -1;
-    }
-    if (this.revealTimerId !== -1) {
-      clearTimeout(this.revealTimerId);
-      this.revealTimerId = -1;
     }
   }
 
@@ -99,7 +72,6 @@ export struct WelcomePage {
     if (this.decided) {
       return;
     }
-    this.schedulePosterPreload();
     if (this.timerId === -1) {
       this.timerId = setTimeout((): void => {
         this.startExitTransition();
@@ -107,11 +79,8 @@ export struct WelcomePage {
     }
   }
 
-  onPageHide(): void {
-  }
-
   private startExitTransition(): void {
-    if (this.decided || this.stillTimerId !== -1) {
+    if (this.decided) {
       return;
     }
     const welcomeHold: string | undefined = AppStorage.get<string>(BOOT_WELCOME_HOLD_KEY);
@@ -119,67 +88,6 @@ export struct WelcomePage {
       return;
     }
     this.routeByToken();
-  }
-
-  private schedulePosterPreload(): void {
-    if (this.posterTimerId !== -1 || this.heroPosterBackingVisible) {
-      return;
-    }
-    this.posterTimerId = setTimeout((): void => {
-      this.posterTimerId = -1;
-      this.heroPosterBackingVisible = true;
-    }, WELCOME_DELAY_MS - WELCOME_POSTER_PRELOAD_MS);
-  }
-
-  private startLoginHeroTransition(): void {
-    if (this.decided || this.stillTimerId !== -1) {
-      return;
-    }
-    this.decided = true;
-    this.heroPosterBackingVisible = true;
-    this.heroLogoPlaying = false;
-    this.heroProgress = 0;
-    this.welcomeMaskOpacity = 1;
-    this.showWelcomeMask = true;
-    this.showLoginLayer = true;
-    this.showHeroLayer = true;
-    this.stillTimerId = setTimeout((): void => {
-      this.stillTimerId = -1;
-      this.runLoginHeroAnimation();
-    }, WELCOME_STILL_MS);
-  }
-
-  private runLoginHeroAnimation(): void {
-    animateTo({
-      duration: WELCOME_HERO_MS,
-      curve: Curve.EaseInOut,
-    }, (): void => {
-      this.heroProgress = 1;
-    });
-    this.heroTimerId = setTimeout((): void => {
-      this.heroTimerId = -1;
-      animateTo({
-        duration: WELCOME_REVEAL_MS,
-        curve: Curve.EaseInOut,
-      }, (): void => {
-        this.welcomeMaskOpacity = 0;
-      });
-      this.revealTimerId = setTimeout((): void => {
-        this.revealTimerId = -1;
-        this.showWelcomeMask = false;
-        this.heroPosterBackingVisible = false;
-        this.heroLogoPlaying = true;
-      }, WELCOME_REVEAL_MS + 40);
-    }, WELCOME_HERO_MS + 20);
-  }
-
-  private heroScale(): number {
-    const targetScale: number = LOGIN_LOGO_SIZE / WELCOME_LOGO_SIZE;
-    return 1 - ((1 - targetScale) * this.heroProgress);
-  }
-
-  private heroTranslateY(): number {
-    return LOGIN_LOGO_TARGET_Y * this.heroProgress;
   }
 
   private async routeByToken(): Promise<void> {
@@ -193,7 +101,8 @@ export struct WelcomePage {
     const bootLogin: string | undefined = AppStorage.get<string>(BOOT_LOGIN_KEY);
     if (bootLogin !== undefined && bootLogin !== null && bootLogin.length > 0) {
       AppStorage.setOrCreate<string>(BOOT_LOGIN_KEY, '');
-      this.startLoginHeroTransition();
+      this.decided = true;
+      NavigationService.replace(RouteName.Login);
       return;
     }
     let token: string = GlobalAuthStore.token ? GlobalAuthStore.token : '';
@@ -225,7 +134,8 @@ export struct WelcomePage {
       NavigationService.replace(RouteName.Home);
       return;
     }
-    this.startLoginHeroTransition();
+    this.decided = true;
+    NavigationService.replace(RouteName.Login);
   }
 
   /**
@@ -274,68 +184,31 @@ export struct WelcomePage {
     }
   }
 
-  @Builder
-  private buildWelcomeAnimation(): void {
-    HarmonyLogoMark({
-      markSize: WELCOME_LOGO_SIZE,
-      rootId: 'welcome_harmony_mark',
-      letterId: 'welcome_harmony_letter',
-      labelId: 'welcome_harmony_label',
-      play: this.heroLogoPlaying,
-      showPosterBacking: this.heroPosterBackingVisible,
-    })
-      .scale({ x: this.heroScale(), y: this.heroScale() })
-      .translate({ x: 0, y: this.heroTranslateY(), z: 0 });
-  }
-
   build(): void {
     Stack() {
-      if (this.showLoginLayer) {
-        LoginPage({ showLogo: false });
+      Column() {
+        Image($r('app.media.app_icon'))
+          .id('welcome_image')
+          .width(WELCOME_ICON_SIZE)
+          .height(WELCOME_ICON_SIZE)
+          .objectFit(ImageFit.Contain);
+
+        // 脚本断言锚点（scenario-tour.sh 场景 24），空 Text 不渲染任何视觉内容
+        Text('')
+          .id('welcome_subtitle')
+          .width(1)
+          .height(1)
+          .opacity(0.001);
       }
-
-      if (this.showWelcomeMask) {
-        Column() {
-          Text('')
-            .id('welcome_image')
-            .width(1)
-            .height(1)
-            .opacity(0.001);
-
-          Text('')
-            .id('welcome_harmony_label')
-            .width(1)
-            .height(1)
-            .opacity(0.001);
-
-          Text('')
-            .id('welcome_subtitle')
-            .width(1)
-            .height(1)
-            .opacity(0.001);
-        }
-        .id('welcome_mask')
-        .width('100%')
-        .height('100%')
-        .backgroundColor(GSYColor.white)
-        .opacity(this.welcomeMaskOpacity);
-      }
-
-      if (this.showHeroLayer) {
-        Column() {
-          this.buildWelcomeAnimation();
-        }
-        .id('welcome_hero_layer')
-        .width('100%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .hitTestBehavior(HitTestMode.Transparent);
-      }
+      .id('welcome_inner')
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center);
     }
     .id('welcome_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.white);
+    .backgroundColor($r('app.color.start_window_background'));
   }
 }

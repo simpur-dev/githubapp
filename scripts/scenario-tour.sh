@@ -2520,37 +2520,29 @@ if should_run "loginPage"; then
 fi
 
 # =========================================================
-#   场景 31 welcomeAnimation（Compose welcome bottom animation）
+#   场景 31 welcomeHold（启动页 bootWelcomeHold 静态图标，R9 重构后无动画）
 # =========================================================
 IDX=31
-run $IDX "welcomeAnimation" "Welcome animated bottom mark"
-if should_run "welcomeAnimation"; then
+run $IDX "welcomeHold" "Welcome static icon hold"
+if should_run "welcomeHold"; then
   PADDED=$(printf "%02d" $IDX)
   hdc -t "$TARGET" shell "aa force-stop $BUNDLE" >/dev/null 2>&1
   sleep 1
   hdc -t "$TARGET" shell "aa start -a $ABILITY -b $BUNDLE$BOOT_LOCALE_ARG --ps bootWelcomeHold true" >/dev/null 2>&1
   PASS=0
-  if wait_for_id "welcome_root" 2 && wait_for_id "welcome_harmony_mark" 1; then
-    snap "${PADDED}_welcomeAnimation-a"
-    sleep 0.2
-    snap "${PADDED}_welcomeAnimation-b"
+  if wait_for_id "welcome_root" 2 && wait_for_id "welcome_image" 1; then
+    snap "${PADDED}_welcomeHold"
     PASS=1
   fi
   if [ $PASS -eq 1 ]; then
-    if assert_id_in "$OUT_DIR/${PADDED}_welcomeAnimation-a.json" \
-      "welcome_root" "welcome_image" "welcome_harmony_mark" "welcome_harmony_letter" "welcome_harmony_label" "welcome_subtitle" \
-      "welcome_harmony_mark_orbit_dot_0" "welcome_harmony_mark_orbit_dot_1" "welcome_harmony_mark_orbit_dot_2" \
-      && assert_id_in "$OUT_DIR/${PADDED}_welcomeAnimation-b.json" \
-      "welcome_root" "welcome_harmony_mark" "welcome_harmony_letter" "welcome_harmony_label" \
-      "welcome_harmony_mark_orbit_dot_0" "welcome_harmony_mark_orbit_dot_1" "welcome_harmony_mark_orbit_dot_2" \
-      && assert_text_in "$OUT_DIR/${PADDED}_welcomeAnimation-b.json" "HarmonyOS" \
-      && assert_png_different "$OUT_DIR/${PADDED}_welcomeAnimation-a.png" "$OUT_DIR/${PADDED}_welcomeAnimation-b.png" "welcome-animation"; then
-      mark_end "welcomeAnimation" "$PADDED" "ok"; OK_COUNT=$((OK_COUNT + 1))
+    if assert_id_in "$OUT_DIR/${PADDED}_welcomeHold.json" \
+      "welcome_root" "welcome_image" "welcome_subtitle"; then
+      mark_end "welcomeHold" "$PADDED" "ok"; OK_COUNT=$((OK_COUNT + 1))
     else
-      mark_end "welcomeAnimation" "$PADDED" "assert_fail"; FAIL_COUNT=$((FAIL_COUNT + 1))
+      mark_end "welcomeHold" "$PADDED" "assert_fail"; FAIL_COUNT=$((FAIL_COUNT + 1))
     fi
   else
-      mark_end "welcomeAnimation" "$PADDED" "no_welcome_animation"; FAIL_COUNT=$((FAIL_COUNT + 1))
+      mark_end "welcomeHold" "$PADDED" "no_welcome_root"; FAIL_COUNT=$((FAIL_COUNT + 1))
   fi
 fi
 
