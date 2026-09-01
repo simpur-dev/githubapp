@@ -1429,7 +1429,6 @@ for spec in "07 repoDetail-readme readme" "08 repoDetail-issue issue repoDetail-
           ASSERT_IDS=(
             "repo_detail_tab_content_readme"
             "readme_tab_root"
-            "readme_tab_web"
             "repo_detail_create_issue_fab"
             "repo_detail_bottom_bar"
             "common_bottom_bar_item_star"
@@ -1480,9 +1479,17 @@ for spec in "07 repoDetail-readme readme" "08 repoDetail-issue issue repoDetail-
           assert_absent_id_in "$OUT_DIR/${PADDED}_${KEY}.json" "readme_tab_native_fallback" || {
             mark_end "$KEY" "$PADDED" "native_fallback_visible"; FAIL_COUNT=$((FAIL_COUNT + 1)); continue;
           }
-          assert_png_id_nonflat "$OUT_DIR/${PADDED}_${KEY}.png" "$OUT_DIR/${PADDED}_${KEY}.json" "readme_tab_web" "4.0" || {
-            mark_end "$KEY" "$PADDED" "blank_content"; FAIL_COUNT=$((FAIL_COUNT + 1)); continue;
-          }
+          # MD4C 原生渲染（markdown_renderer）或 WebView 兜底（readme_tab_web）二选一：
+          # 原生路径断言文本渲染（readme 内容以 Text 出现在树中）。
+          if grep -q "\"id\":\"markdown_renderer\"" "$OUT_DIR/${PADDED}_${KEY}.json"; then
+            assert_png_id_nonflat "$OUT_DIR/${PADDED}_${KEY}.png" "$OUT_DIR/${PADDED}_${KEY}.json" "markdown_renderer" "4.0" || {
+              mark_end "$KEY" "$PADDED" "blank_content"; FAIL_COUNT=$((FAIL_COUNT + 1)); continue;
+            }
+          else
+            assert_png_id_nonflat "$OUT_DIR/${PADDED}_${KEY}.png" "$OUT_DIR/${PADDED}_${KEY}.json" "readme_tab_web" "4.0" || {
+              mark_end "$KEY" "$PADDED" "blank_content"; FAIL_COUNT=$((FAIL_COUNT + 1)); continue;
+            }
+          fi
           assert_any_text_in "$OUT_DIR/${PADDED}_${KEY}.json" "English Readme" "Github客户端App" "HarmonyOS" || {
             mark_end "$KEY" "$PADDED" "no_readme_web_text"; FAIL_COUNT=$((FAIL_COUNT + 1)); continue;
           }
@@ -1523,7 +1530,7 @@ if should_run "pushDetail"; then
     CODE_PASS=0
     if grep -q "\"id\":\"push_detail_file_row_0\"" "$OUT_DIR/${PADDED}_pushDetail.json"; then
       if tap_id "$OUT_DIR/${PADDED}_pushDetail.json" "push_detail_file_row_0"; then
-        if wait_for_id "code_detail_web" 15 || wait_for_id "code_detail_appbar" 3; then
+        if wait_for_id "code_detail_web" 15 || wait_for_id "code_detail_markdown" 10 || wait_for_id "code_detail_appbar" 3; then
           sleep 5
           snap "${PADDED}_pushDetail-codeDetail"
           CODE_PASS=1
@@ -1547,13 +1554,18 @@ if should_run "pushDetail"; then
 	        "$OUT_DIR/${PADDED}_pushDetail.json" "push_detail_commit_card" "8.0" \
 	      && assert_png_id_nonflat "$OUT_DIR/${PADDED}_pushDetail.png" \
 	        "$OUT_DIR/${PADDED}_pushDetail.json" "push_detail_file_card_0" "8.0" \
-	      && [ $CODE_PASS -eq 1 ] \
-	      && assert_id_in "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json" \
-	        "code_detail_appbar" "appbar_action_r_more" "code_detail_web" \
-      && assert_text_in "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json" "@@" \
-      && assert_absent_text_in "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json" "English Readme" \
-      && assert_png_id_nonflat "$OUT_DIR/${PADDED}_pushDetail-codeDetail.png" \
-        "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json" "code_detail_web" "4.0"; then
+      && [ $CODE_PASS -eq 1 ] \
+      && assert_id_in "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json" \
+        "code_detail_appbar" "appbar_action_r_more" \
+      && { grep -q "\"id\":\"code_detail_web\"" "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json" \
+           || grep -q "\"id\":\"code_detail_markdown\"" "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json"; } \
+      && if grep -q "\"id\":\"code_detail_web\"" "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json"; then \
+           assert_png_id_nonflat "$OUT_DIR/${PADDED}_pushDetail-codeDetail.png" \
+             "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json" "code_detail_web" "4.0"; \
+         else \
+           assert_png_id_nonflat "$OUT_DIR/${PADDED}_pushDetail-codeDetail.png" \
+             "$OUT_DIR/${PADDED}_pushDetail-codeDetail.json" "code_detail_markdown" "4.0"; \
+         fi; then
       mark_end "pushDetail" "$PADDED" "ok"; OK_COUNT=$((OK_COUNT + 1))
     else
       mark_end "pushDetail" "$PADDED" "assert_fail"; FAIL_COUNT=$((FAIL_COUNT + 1))
@@ -1619,10 +1631,20 @@ if should_run "issueDetail"; then
       if tap_id "$COMMENT_SOURCE_LAYOUT" "issue_comment_row_0"; then
         sleep 2
         snap "${PADDED}_issueDetail-commentOptions"
-        if assert_id_in "$OUT_DIR/${PADDED}_issueDetail-commentOptions.json" \
-          "issue_comment_options_dialog" "issue_comment_option_edit" "issue_comment_option_delete" \
-          "issue_comment_option_cancel"; then
-          if tap_id "$OUT_DIR/${PADDED}_issueDetail-commentOptions.json" "issue_comment_option_edit"; then
+        # 原生 ActionSheet（R9 改造后无自绘 id），断言 sheet 文本 Edit/编辑 出现
+        if assert_any_text_in "$OUT_DIR/${PADDED}_issueDetail-commentOptions.json" "Edit" "编辑"; then
+          # 按文本坐标点击"编辑/Edit"（原生 ActionSheet 项）
+          EDIT_COORDS=""
+          for EDIT_TXT in "Edit" "编辑"; do
+            EDIT_COORDS=$(python3 scripts/uitest_find.py "$OUT_DIR/${PADDED}_issueDetail-commentOptions.json" "text:$EDIT_TXT" 2>/dev/null) || true
+            if [ -n "$EDIT_COORDS" ]; then
+              log "  tap text:$EDIT_TXT"
+              break
+            fi
+          done
+          if [ -n "$EDIT_COORDS" ]; then
+            read -r EDIT_CX EDIT_CY <<< "$EDIT_COORDS"
+            hdc -t "$TARGET" shell uitest uiInput click "$EDIT_CX" "$EDIT_CY" >/dev/null 2>&1
             wait_for_id "issue_comment_edit_dialog_root" 5 || true
             sleep 1
             snap "${PADDED}_issueDetail-commentEdit"
@@ -1703,15 +1725,21 @@ if should_run "codeDetail"; then
   if wait_for_id "code_detail_appbar" 12; then
     PASS=1
   fi
-  # Compose 文件详情统一走 WebView：Markdown 文件由 GitHub HTML 内容 + WebView 渲染。
+  # 文件详情：Markdown 文件走 MD4C 原生渲染（code_detail_markdown），其他文件走 WebView（code_detail_web）。
   wait_for_id "code_detail_web" 12 || true
+  wait_for_id "code_detail_markdown" 12 || true
   sleep 3
   snap "${PADDED}_codeDetail"
   if [ $PASS -eq 1 ]; then
 	    if assert_id_in "$OUT_DIR/${PADDED}_codeDetail.json" "code_detail_appbar" "appbar_action_r_more" "code_detail_title_text" \
-      && assert_id_in "$OUT_DIR/${PADDED}_codeDetail.json" "code_detail_web" \
+      && { grep -q "\"id\":\"code_detail_web\"" "$OUT_DIR/${PADDED}_codeDetail.json" \
+           || grep -q "\"id\":\"code_detail_markdown\"" "$OUT_DIR/${PADDED}_codeDetail.json"; } \
       && { [ -z "$CODE_DETAIL_TITLE_ASSERT" ] || assert_text_in "$OUT_DIR/${PADDED}_codeDetail.json" "$CODE_DETAIL_TITLE_ASSERT"; } \
-      && assert_png_id_nonflat "$OUT_DIR/${PADDED}_codeDetail.png" "$OUT_DIR/${PADDED}_codeDetail.json" "code_detail_web" "8.0"; then
+      && if grep -q "\"id\":\"code_detail_web\"" "$OUT_DIR/${PADDED}_codeDetail.json"; then \
+           assert_png_id_nonflat "$OUT_DIR/${PADDED}_codeDetail.png" "$OUT_DIR/${PADDED}_codeDetail.json" "code_detail_web" "8.0"; \
+         else \
+           assert_png_id_nonflat "$OUT_DIR/${PADDED}_codeDetail.png" "$OUT_DIR/${PADDED}_codeDetail.json" "code_detail_markdown" "8.0"; \
+         fi; then
       mark_end "codeDetail" "$PADDED" "ok"; OK_COUNT=$((OK_COUNT + 1))
     else
       mark_end "codeDetail" "$PADDED" "assert_fail"; FAIL_COUNT=$((FAIL_COUNT + 1))

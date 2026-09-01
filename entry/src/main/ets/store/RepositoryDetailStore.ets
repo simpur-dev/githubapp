@@ -120,6 +120,7 @@ export const ISSUE_STATE_ALL: string = 'all';
 export class RepositoryDetailStore {
   detail: RepositoryDetail | null = null;
   readmeHtml: string = '';
+  readmeMarkdown: string = '';
   readmeLoading: boolean = false;
   readmeError: string = '';
   issues: RepositoryIssueItem[] = [];
@@ -165,6 +166,7 @@ export class RepositoryDetailStore {
   reset(): void {
     this.detail = null;
     this.readmeHtml = '';
+    this.readmeMarkdown = '';
     this.readmeLoading = false;
     this.readmeError = '';
     this.issues = [];
@@ -224,6 +226,10 @@ export class RepositoryDetailStore {
     this.readmeHtml = html;
     this.readmeLoading = false;
     this.readmeError = '';
+  }
+
+  setReadmeMarkdown(md: string): void {
+    this.readmeMarkdown = md;
   }
 
   startReadmeLoading(): void {

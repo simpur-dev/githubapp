@@ -337,6 +337,9 @@ export struct MyTabPage {
       onNotifyTap: (): void => {
         this.handleNotifyTap();
       },
+      onAvatarTap: (): void => {
+        NavigationService.push(RouteName.Setting);
+      },
       onFollowTap: (): void => {},
       onCounterTap: (key: string): void => {
         this.handleCounterTap(key);

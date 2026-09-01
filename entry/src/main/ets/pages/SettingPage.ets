@@ -175,19 +175,15 @@ export struct SettingPage {
   @State languageLabel: string = I18n('language');
   @State clearCacheLabel: string = I18n('clearCache');
   @State logoutLabel: string = I18n('LoginOut');
-  @State languageEventCount: number = 0;
-  @State themeEventCount: number = 0;
   @StorageProp(THEME_PALETTE_KEY) palette: ThemePalette = LIGHT_PALETTE;
   private offLanguage: (() => void) | null = null;
   private offTheme: (() => void) | null = null;
 
   aboutToAppear(): void {
     this.offLanguage = EventBus.on(EVENT_LANGUAGE_CHANGED, (): void => {
-      this.languageEventCount = this.languageEventCount + 1;
       this.refreshLabels();
     });
     this.offTheme = EventBus.on(EVENT_THEME_CHANGED, (): void => {
-      this.themeEventCount = this.themeEventCount + 1;
     });
     this.refreshLabels();
   }
@@ -295,7 +291,7 @@ export struct SettingPage {
 
           Text(this.languageLabel)
             .id('setting_language_title')
-            .fontSize(15) // TODO: 字号 15 暂无 token 映射
+            .fontSize(GSYFontSize.middleNormal)
             .fontWeight(FontWeight.Bold)
             .fontColor(GSYColor.primary)
             .width('100%')
@@ -310,15 +306,9 @@ export struct SettingPage {
           .padding({ left: 16, right: 16, bottom: 12 })
           .alignItems(VerticalAlign.Center);
 
-          Text('ok-label:' + this.okLabel)
-            .id('setting_ok_label_text')
-            .fontSize(GSYFontSize.min)
-            .fontColor(GSYColor.textSubtle)
-            .padding({ left: 16, right: 16, bottom: 8 });
-
           Text('Theme')
             .id('setting_theme_title')
-            .fontSize(15) // TODO: 字号 15 暂无 token 映射
+            .fontSize(GSYFontSize.middleNormal)
             .fontWeight(FontWeight.Bold)
             .fontColor(GSYColor.primary)
             .width('100%')
@@ -338,7 +328,7 @@ export struct SettingPage {
             .type(ButtonType.Capsule)
             .width('90%')
             .height(46)
-            .fontSize(15) // TODO: 字号 15 暂无 token 映射
+            .fontSize(GSYFontSize.middleNormal)
             .fontColor(GSYColor.white)
             .backgroundColor(GSYColor.warningOrange)
             .margin({ top: 16 })
@@ -351,23 +341,13 @@ export struct SettingPage {
             .type(ButtonType.Capsule)
             .width('90%')
             .height(46)
-            .fontSize(15) // TODO: 字号 15 暂无 token 映射
+            .fontSize(GSYFontSize.middleNormal)
             .fontColor(GSYColor.white)
             .backgroundColor(GSYColor.dangerRed)
             .margin({ top: 12, bottom: 24 })
             .onClick((): void => {
               this.runLogout();
             });
-
-          Text('language-event:' + this.languageEventCount.toString())
-            .id('setting_language_event_count')
-            .fontSize(GSYFontSize.min)
-            .fontColor(GSYColor.subText);
-          Text('theme-event:' + this.themeEventCount.toString())
-            .id('setting_theme_event_count')
-            .fontSize(GSYFontSize.min)
-            .fontColor(GSYColor.subText)
-            .margin({ bottom: 24 });
         }
         .id('setting_content')
         .width('100%')

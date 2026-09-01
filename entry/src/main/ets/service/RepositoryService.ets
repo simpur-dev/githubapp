@@ -251,6 +251,19 @@ export class RepositoryService {
     }
     // Compose ReadmeRepository：默认分支先 emit DB cache，再请求 GitHub HTML 刷新并写回 DB；
     // 非默认分支只走网络，避免把其它分支 README 覆盖到默认分支缓存。
+    // 双通道：优先 `application/vnd.github.raw` 拿 markdown 原文（原生 MarkdownRenderer 用，
+    // 无 WebView、高性能）；HTML 保留兜底（缓存/降级时 WebView 还能渲染）。
+    const rawHeaders: HttpHeaders = { 'Accept': 'application/vnd.github.raw' };
+    const rawResult: HttpResult<string> = await HttpManager.getFetch<string>(url, rawHeaders);
+    if (rawResult.result && rawResult.data !== null) {
+      const md: string = rawResult.data as string;
+      this.store.setReadmeMarkdown(md);
+      Logger.i('ReadmeFlow', `getReadme raw md len=${md.length}`);
+      if (md.length > 0) {
+        this.store.setReadmeHtml('');
+        return new RepositoryServiceResult<string>(true, rawResult.code, md, false, '');
+      }
+    }
     const headers: HttpHeaders = { 'Accept': 'application/vnd.github.html' };
     const httpResult: HttpResult<string> = await HttpManager.getFetch<string>(url, headers);
     Logger.i('ReadmeFlow',

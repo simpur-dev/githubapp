@@ -872,6 +872,7 @@ export struct RepositoryDetailPage {
                 branch: this.store.currentBranch.length > 0
                   ? this.store.currentBranch : this.resolveDefaultBranch(),
                 readmeHtml: this.store.readmeHtml,
+                readmeMarkdown: this.store.readmeMarkdown,
                 readmeLoading: this.store.readmeLoading,
                 readmeError: this.store.readmeError,
               })

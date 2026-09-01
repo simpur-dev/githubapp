@@ -249,7 +249,10 @@ export struct UserHeadItem {
               .width(GSYIconSize.large)
               .height(GSYIconSize.large)
               .borderRadius(GSYIconSize.large / 2)
-              .objectFit(ImageFit.Cover);
+              .objectFit(ImageFit.Cover)
+              .onClick((): void => {
+                this.onAvatarTap();
+              });
           } else {
             Text(this.userName.length > 0 ? this.userName.substring(0, 1).toUpperCase() : '?')
               .id('user_head_avatar_placeholder')
@@ -260,7 +263,10 @@ export struct UserHeadItem {
               .fontWeight(FontWeight.Bold)
               .fontColor(GSYColor.white)
               .backgroundColor(GSYColor.primaryDark)
-              .textAlign(TextAlign.Center);
+              .textAlign(TextAlign.Center)
+              .onClick((): void => {
+                this.onAvatarTap();
+              });
           }
 
           Column() {

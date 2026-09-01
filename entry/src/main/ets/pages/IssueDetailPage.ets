@@ -20,7 +20,7 @@ import { renderEmoji } from '../utils/EmojiText';
 import { IssuePermissionUtil } from '../utils/IssuePermissionUtil';
 import { CommonBottomBar, CommonBottomBarItem } from '../common/CommonBottomBar';
 import { CommonToast } from '../common/CommonToast';
-import { CommonModal, CommonOptionItem } from '../common/CommonModal';
+import { CommonModal, CommonOptionItem, OptionListOptions } from '../common/CommonModal';
 import { APP_STORAGE_KEY_USER_LOGIN } from '../store/AuthStore';
 import { ExternalUrlUtil } from '../utils/ExternalUrlUtil';
 import pasteboard from '@ohos.pasteboard';
@@ -179,90 +179,6 @@ struct IssueEditDialog {
   }
 }
 
-@CustomDialog
-struct IssueCommentOptionsDialog {
-  controller?: CustomDialogController;
-  editText: string = 'Edit';
-  deleteText: string = 'Delete';
-  cancelText: string = 'Cancel';
-  onEdit: () => void = (): void => {};
-  onDelete: () => void = (): void => {};
-
-  build(): void {
-    Column() {
-      Column() {
-        Row() {
-          Text(this.editText)
-            .id('issue_comment_option_edit_text')
-            .fontSize(GSYFontSize.middleWhite)
-            .fontColor(GSYColor.materialBlue)
-            .width('100%')
-            .textAlign(TextAlign.Center);
-        }
-        .id('issue_comment_option_edit')
-        .width('100%')
-        .height(48)
-        .justifyContent(FlexAlign.Center)
-        .onClick((): void => {
-          if (this.controller) {
-            this.controller.close();
-          }
-          this.onEdit();
-        });
-
-        Divider().color(GSYColor.pillDivider).strokeWidth(0.5);
-
-        Row() {
-          Text(this.deleteText)
-            .id('issue_comment_option_delete_text')
-            .fontSize(GSYFontSize.middleWhite)
-            .fontColor(GSYColor.issueClosedRed)
-            .width('100%')
-            .textAlign(TextAlign.Center);
-        }
-        .id('issue_comment_option_delete')
-        .width('100%')
-        .height(48)
-        .justifyContent(FlexAlign.Center)
-        .onClick((): void => {
-          if (this.controller) {
-            this.controller.close();
-          }
-          this.onDelete();
-        });
-      }
-      .id('issue_comment_options_panel')
-      .width('100%')
-      .backgroundColor(Color.White)
-      .borderRadius(12);
-
-      Row() {
-        Text(this.cancelText)
-          .id('issue_comment_option_cancel_text')
-          .fontSize(GSYFontSize.middleWhite)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(GSYColor.darkText)
-          .width('100%')
-          .textAlign(TextAlign.Center);
-      }
-      .id('issue_comment_option_cancel')
-      .width('100%')
-      .height(48)
-      .margin({ top: GSYSpacing.padding12 })
-      .backgroundColor(Color.White)
-      .borderRadius(12)
-      .onClick((): void => {
-        if (this.controller) {
-          this.controller.close();
-        }
-      });
-    }
-    .id('issue_comment_options_dialog')
-    .width('86%')
-    .backgroundColor(Color.Transparent);
-  }
-}
-
 interface IssueDetailRouteParam {
   fullName: string;
   number: number;
@@ -374,34 +290,6 @@ export struct IssueDetailPage {
     }),
     autoCancel: true,
     alignment: DialogAlignment.Center,
-    customStyle: true,
-  });
-
-  private commentOptionsController: CustomDialogController = new CustomDialogController({
-    builder: IssueCommentOptionsDialog({
-      editText: I18n('issueCommentEdit'),
-      deleteText: I18n('issueCommentDelete'),
-      cancelText: I18n('cancel'),
-      onEdit: (): void => {
-        Logger.i('comment/options', `edit selected cid=${this.pendingCommentId} row=${this.pendingCommentRowIndex}`);
-        this.commentEditController.open();
-      },
-      onDelete: (): void => {
-        Logger.i('comment/options', `delete selected cid=${this.pendingCommentId} row=${this.pendingCommentRowIndex}`);
-        if (this.pendingCommentId <= 0 || this.pendingCommentRowIndex < 0) {
-          return;
-        }
-        CommonModal.confirm({
-          message: I18n('issueCommentDelete'),
-          okText: I18n('ok'),
-          cancelText: I18n('cancel'),
-        }, (): void => {
-          this.runDeleteComment(this.pendingCommentId, this.pendingCommentRowIndex);
-        });
-      },
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Bottom,
     customStyle: true,
   });
 
@@ -732,7 +620,31 @@ export struct IssueDetailPage {
       return;
     }
     this.selectComment(item, index);
-    this.commentOptionsController.open();
+    // 原生系统 ActionSheet（API 26 原生弹窗），替代自绘 IssueCommentOptionsDialog
+    const opts: OptionListOptions = {
+      items: [
+        { itemName: I18n('issueCommentEdit') },
+        { itemName: I18n('issueCommentDelete'), itemTextColor: GSYColor.issueClosedRed },
+      ],
+    };
+    CommonModal.options(opts, (sel: number, _item: CommonOptionItem): void => {
+      if (sel === 0) {
+        Logger.i('comment/options', `edit selected cid=${this.pendingCommentId} row=${this.pendingCommentRowIndex}`);
+        this.commentEditController.open();
+      } else if (sel === 1) {
+        Logger.i('comment/options', `delete selected cid=${this.pendingCommentId} row=${this.pendingCommentRowIndex}`);
+        if (this.pendingCommentId <= 0 || this.pendingCommentRowIndex < 0) {
+          return;
+        }
+        CommonModal.confirm({
+          message: I18n('issueCommentDelete'),
+          okText: I18n('ok'),
+          cancelText: I18n('cancel'),
+        }, (): void => {
+          this.runDeleteComment(this.pendingCommentId, this.pendingCommentRowIndex);
+        });
+      }
+    });
   }
 
   private onCommentLongPress(item: IssueCommentModel, index: number): void {

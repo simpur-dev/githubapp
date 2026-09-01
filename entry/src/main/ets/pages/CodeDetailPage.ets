@@ -15,6 +15,7 @@ import { CodeDetailStore } from '../store/CodeDetailStore';
 import { CodeService } from '../service/CodeService';
 import { GSYColor, GSYFontSize } from '../style/Theme';
 import { Logger } from '../ai-debug/Logger';
+import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
 
 interface CodeDetailUserRouteParam {
   login: string;
@@ -427,6 +428,14 @@ export struct CodeDetailPage {
     .alignItems(HorizontalAlign.Center);
   }
 
+  private isMarkdownPath(path: string): boolean {
+    if (path === null || path === undefined || path.length === 0) {
+      return false;
+    }
+    const lower: string = path.toLowerCase();
+    return lower.endsWith('.md') || lower.endsWith('.markdown');
+  }
+
   build(): void {
     NavDestination() {
       Column() {
@@ -448,6 +457,13 @@ export struct CodeDetailPage {
           } else {
             this.buildEmpty();
           }
+        } else if (this.isMarkdownPath(this.path)) {
+          MarkdownRenderer({
+            markdown: this.store.content,
+          })
+            .id('code_detail_markdown')
+            .width('100%')
+            .layoutWeight(1);
         } else {
           Web({
             src: this.webSrc,

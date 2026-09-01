@@ -9,6 +9,7 @@ import { RouteName } from '../../navigation/Routes';
 import { GSYColor, GSYFontSize, GSYSpacing } from '../../style/Theme';
 import { Logger } from '../../ai-debug/Logger';
 import { RepositoryDetailStore } from '../../store/RepositoryDetailStore';
+import { MarkdownRenderer } from '../../markdown/MarkdownRenderer';
 
 interface ReadmeTabUserRouteParam {
   login: string;
@@ -34,10 +35,15 @@ export struct ReadmeTab {
   @Watch('onReadmeHtmlChange') @Prop readmeHtml: string = '';
   @Prop readmeLoading: boolean = false;
   @Prop readmeError: string = '';
+  @Watch('onReadmeMarkdownChange') @Prop readmeMarkdown: string = '';
   @State loadedHtml: string = '';
   @State webSrc: string = 'about:blank';
   @State controllerAttached: boolean = false;
   private webController: webview.WebviewController = new webview.WebviewController();
+
+  onReadmeMarkdownChange(): void {
+    Logger.i('ReadmeTab', `onReadmeMarkdownChange len=${this.readmeMarkdown.length}`);
+  }
 
   aboutToAppear(): void {
     if (this.readmeHtml.length > 0) {
@@ -263,10 +269,18 @@ export struct ReadmeTab {
 
   build(): void {
     Stack() {
-      Web({
-        src: this.webSrc,
-        controller: this.webController,
-      })
+      if (this.readmeMarkdown.length > 0) {
+        MarkdownRenderer({
+          markdown: this.readmeMarkdown,
+        })
+          .id('readme_markdown_renderer')
+          .width('100%')
+          .height('100%');
+      } else {
+        Web({
+          src: this.webSrc,
+          controller: this.webController,
+        })
         .id('readme_tab_web')
         .width('100%')
         .height('100%')
@@ -325,13 +339,14 @@ export struct ReadmeTab {
           }
           return this.interceptUrl(request.getRequestUrl());
         });
-      // Compose 的 GSYGeneralLoadState：内容为空且仍在请求时显示加载中，
-      // 只有请求结束并失败后才显示空/错误态，避免 Web about:blank 白屏或误报失败。
-      if (this.readmeHtml.length === 0) {
-        if (this.readmeLoading || this.readmeError.length === 0) {
-          this.buildLoading();
-        } else {
-          this.buildEmpty();
+        // Compose 的 GSYGeneralLoadState：内容为空且仍在请求时显示加载中，
+        // 只有请求结束并失败后才显示空/错误态，避免 Web about:blank 白屏或误报失败。
+        if (this.readmeHtml.length === 0) {
+          if (this.readmeLoading || this.readmeError.length === 0) {
+            this.buildLoading();
+          } else {
+            this.buildEmpty();
+          }
         }
       }
     }

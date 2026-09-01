@@ -164,6 +164,25 @@ export class CodeService {
     }
     this.store.startLoading();
 
+    // 双通道：markdown 文件优先 raw 原文（原生 MarkdownRenderer 渲染，无 WebView、高性能）；
+    // 失败再降级 GitHub HTML（WebView 兜底）。非 markdown 文件维持原逻辑。
+    if (isMarkdown) {
+      const rawContentsUrl: string = Address.getReposFileDir(owner.owner, owner.name, safePath, safeBranch);
+      const rawHeaders: HttpHeaders = {
+        'Accept': 'application/vnd.github.raw',
+      };
+      const rawResp: HttpResult<string> = await HttpManager.getFetch<string>(rawContentsUrl, rawHeaders);
+      if (rawResp.result && rawResp.data !== null) {
+        const md: string = rawResp.data as string;
+        try {
+          await this.dao.saveCodeContent(fullName, safeBranch, safePath, md);
+        } catch (_e) {
+        }
+        this.store.setContent(md, md);
+        return new CodeServiceResult<string>(true, rawResp.code, md, '');
+      }
+    }
+
     const htmlHeaders: HttpHeaders = {
       'Accept': GITHUB_HTML_ACCEPT,
     };
