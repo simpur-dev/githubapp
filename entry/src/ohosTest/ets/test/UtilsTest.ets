@@ -1,12 +1,12 @@
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium';
-import { TimeUtil } from '../../../main/ets/utils/TimeUtil';
-import { StringUtil } from '../../../main/ets/utils/StringUtil';
-import { HtmlUtil } from '../../../main/ets/utils/HtmlUtil';
-import { IssuePermissionUtil } from '../../../main/ets/utils/IssuePermissionUtil';
-import { EventActionUtil } from '../../../main/ets/utils/EventActionUtil';
-import { DynamicActor, DynamicEvent, DynamicRepo } from '../../../main/ets/store/DynamicStore';
-import { isImageOrArchiveFile } from '../../../main/ets/pages/repo/FilesTab';
-import { changeLocale } from '../../../main/ets/i18n/I18n';
+import { TimeUtil } from 'common';
+import { StringUtil } from 'common';
+import { HtmlUtil } from 'common';
+import { IssuePermissionUtil } from 'common';
+import { EventActionUtil } from 'common';
+import { DynamicActor, DynamicEvent, DynamicRepo } from 'common';
+import { isImageOrArchiveFile } from 'feature_repo';
+import { changeLocale } from 'common';
 import {
   MarkdownUtil,
   MARKDOWN_LINE_BULLET,
@@ -15,7 +15,7 @@ import {
   MARKDOWN_LINE_QUOTE,
   MARKDOWN_LINE_TABLE,
   MARKDOWN_LINE_TASK
-} from '../../../main/ets/utils/MarkdownUtil';
+} from 'common';
 
 function buildEventForComposeAction(type: string, repoName: string): DynamicEvent {
   const actor: DynamicActor = {

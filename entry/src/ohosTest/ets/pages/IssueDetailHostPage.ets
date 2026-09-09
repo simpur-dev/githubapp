@@ -3,12 +3,12 @@ import {
   HttpManager,
   HttpProvider,
   RawResponse,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, CREATED } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { IssueDetailPage } from '../../../main/ets/pages/IssueDetailPage';
-import { RouteName } from '../../../main/ets/navigation/Routes';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, CREATED } from 'common';
+import { Address } from 'common';
+import { IssueDetailPage } from 'feature_repo';
+import { RouteName } from 'common';
 
 const TARGET_OWNER: string = 'CarGuoUI';
 const TARGET_REPO: string = 'GSYTestRepo';

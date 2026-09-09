@@ -15,11 +15,11 @@ import {
   HttpManager,
   HttpProvider,
   RawResponse,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { APP_STORAGE_KEY_USER_INFO } from '../../../main/ets/store/AuthStore';
-import { MyTabPage } from '../../../main/ets/pages/tabs/MyTabPage';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
+import { APP_STORAGE_KEY_USER_INFO } from 'common';
+import { MyTabPage } from 'feature_main';
 
 const HOST_USER_BODY: string =
   '{"login":"CarGuoUI","name":"GsyUI","avatar_url":"",' +

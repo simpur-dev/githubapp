@@ -3,12 +3,12 @@ import {
   HttpManager,
   HttpProvider,
   RawResponse,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { NotifyPage } from '../../../main/ets/pages/NotifyPage';
-import { RouteName } from '../../../main/ets/navigation/Routes';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
+import { Address } from 'common';
+import { NotifyPage } from 'feature_main';
+import { RouteName } from 'common';
 
 const STATUS_NO_CONTENT: number = 204;
 const REPO_FULL: string = 'CarGuoUI/RepoZero';

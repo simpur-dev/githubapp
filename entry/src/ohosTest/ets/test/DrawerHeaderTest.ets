@@ -3,24 +3,11 @@ import router from '@ohos.router';
 import {
   AuthStore,
   AuthUserInfo,
-} from '../../../main/ets/store/AuthStore';
-import {
-  DrawerHeaderLogic,
-  DrawerHeaderTexts,
-} from '../../../main/ets/common/DrawerHeader';
-import {
-  buildDrawerMenuItems,
-  DrawerMenuItem,
-  DRAWER_MENU_KEY_HISTORY,
-  DRAWER_MENU_KEY_FEEDBACK,
-  DRAWER_MENU_KEY_PERSONAL_INFO,
-  DRAWER_MENU_KEY_LANGUAGE,
-  DRAWER_MENU_KEY_CHECK_UPDATE,
-  DRAWER_MENU_KEY_ABOUT,
-  DRAWER_MENU_KEY_LOGOUT,
-} from '../../../main/ets/common/DrawerMenu';
-import { NavigationService, RouterLike } from '../../../main/ets/navigation/NavigationService';
-import { I18n } from '../../../main/ets/i18n/I18n';
+} from 'common';
+import { DrawerHeaderLogic, DrawerHeaderTexts } from 'feature_main';
+import { buildDrawerMenuItems, DrawerMenuItem, DRAWER_MENU_KEY_HISTORY, DRAWER_MENU_KEY_FEEDBACK, DRAWER_MENU_KEY_PERSONAL_INFO, DRAWER_MENU_KEY_LANGUAGE, DRAWER_MENU_KEY_CHECK_UPDATE, DRAWER_MENU_KEY_ABOUT, DRAWER_MENU_KEY_LOGOUT } from 'feature_main';
+import { NavigationService, RouterLike } from 'common';
+import { I18n } from 'common';
 
 class CapturedRoute {
   kind: string;

@@ -7,25 +7,25 @@ import {
   LoginExpiredBus,
   DEFAULT_USER_AGENT,
   HttpMethod,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED } from '../../../main/ets/net/NetworkCode';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, UNAUTHORIZED } from 'common';
 import {
   LoginUseCase,
   PreferencesLike,
   OAuthClientConfig,
   LoginOutcome,
-} from '../../../main/ets/auth/LoginUseCase';
+} from 'common';
 import {
   OauthService,
   DEFAULT_OAUTH_REDIRECT_URI,
   DEFAULT_OAUTH_SCOPE,
-} from '../../../main/ets/auth/OauthService';
-import { AuthStore } from '../../../main/ets/store/AuthStore';
-import { Url } from '../../../main/ets/utils/Url';
-import { Address, HOST_WEB } from '../../../main/ets/net/Address';
-import { EventBus } from '../../../main/ets/utils/EventBus';
-import { AuthDeepLinkBus } from '../../../main/ets/auth/AuthDeepLinkBus';
+} from 'common';
+import { AuthStore } from 'common';
+import { Url } from 'common';
+import { Address, HOST_WEB } from 'common';
+import { EventBus } from 'common';
+import { AuthDeepLinkBus } from 'common';
 
 class ScriptedResponse {
   status: number;

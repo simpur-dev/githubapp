@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from '@ohos/hypium';
 import relationalStore from '@ohos.data.relationalStore';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
 import {
   UserDao,
   USER_TABLE_INFO,
@@ -11,13 +11,13 @@ import {
   USER_TABLE_ORGS,
   USER_TABLE_STARED,
   USER_TABLE_REPOS
-} from '../../../main/ets/dao/UserDao';
+} from 'common';
 import {
   DynamicDao,
   DYN_TABLE_RECEIVED,
   DYN_TABLE_USER_EVENT,
   DYN_TABLE_REPO_EVENT
-} from '../../../main/ets/dao/DynamicDao';
+} from 'common';
 import {
   RepositoryDao,
   REPO_TABLE_PULSE,
@@ -29,19 +29,19 @@ import {
   REPO_TABLE_DETAIL,
   REPO_TABLE_DETAIL_README,
   REPO_TABLE_COMMIT_INFO_DETAIL
-} from '../../../main/ets/dao/RepositoryDao';
+} from 'common';
 import {
   IssueDao,
   ISSUE_TABLE_REPO_ISSUE,
   ISSUE_TABLE_DETAIL,
   ISSUE_TABLE_COMMENT
-} from '../../../main/ets/dao/IssueDao';
+} from 'common';
 import {
   ReadHistoryDao,
   READ_HISTORY_TABLE,
   ReadHistoryRow
-} from '../../../main/ets/dao/ReadHistoryDao';
-import { TrendDao, TREND_TABLE } from '../../../main/ets/dao/TrendDao';
+} from 'common';
+import { TrendDao, TREND_TABLE } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

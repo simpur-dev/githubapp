@@ -6,19 +6,19 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from 'common';
+import { Address } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
 import {
   DynamicDao,
   DYN_TABLE_RECEIVED,
   DYN_TABLE_USER_EVENT,
-} from '../../../main/ets/dao/DynamicDao';
-import { DynamicService, FetchReceivedResult } from '../../../main/ets/service/DynamicService';
-import { DynamicEvent, DynamicStore } from '../../../main/ets/store/DynamicStore';
+} from 'common';
+import { DynamicService, FetchReceivedResult } from 'common';
+import { DynamicEvent, DynamicStore } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

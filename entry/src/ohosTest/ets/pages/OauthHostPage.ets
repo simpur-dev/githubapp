@@ -1,19 +1,19 @@
-import { AuthDeepLinkBus } from '../../../main/ets/auth/AuthDeepLinkBus';
+import { AuthDeepLinkBus } from 'common';
 import {
   OauthService,
   DEFAULT_OAUTH_REDIRECT_URI,
   DEFAULT_OAUTH_SCOPE,
-} from '../../../main/ets/auth/OauthService';
-import { LoginOutcome } from '../../../main/ets/auth/LoginUseCase';
-import { Url } from '../../../main/ets/utils/Url';
+} from 'common';
+import { LoginOutcome } from 'common';
+import { Url } from 'common';
 import {
   AuthStore,
   GlobalAuthStore,
   APP_STORAGE_KEY_TOKEN,
   APP_STORAGE_KEY_AUTHED,
-} from '../../../main/ets/store/AuthStore';
-import { NavigationService, RouterLike } from '../../../main/ets/navigation/NavigationService';
-import { RouteName } from '../../../main/ets/navigation/Routes';
+} from 'common';
+import { NavigationService, RouterLike } from 'common';
+import { RouteName } from 'common';
 import router from '@ohos.router';
 
 class OauthHostCapturedRoute {

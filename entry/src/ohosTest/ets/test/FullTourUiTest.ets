@@ -19,7 +19,7 @@
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium';
 import { Driver, ON, Component } from '@ohos.UiTest';
 import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
-import { Logger } from '../../../main/ets/ai-debug/Logger';
+import { Logger } from 'common';
 
 const BUNDLE: string = 'cn.gsy.githubapp';
 const ABILITY: string = 'TestAbility';

@@ -1,0 +1,9 @@
+{
+  "name": "feature_user",
+  "version": "1.0.0",
+  "description": "GSYGithubApp 用户/个人资料特性",
+  "main": "Index.ets",
+  "dependencies": {
+    "common": "file:../../common"
+  }
+}

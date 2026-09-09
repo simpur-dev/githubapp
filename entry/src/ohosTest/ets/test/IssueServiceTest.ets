@@ -6,28 +6,28 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, NETWORK_ERROR } from 'common';
+import { Address } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
 import {
   IssueDao,
   ISSUE_TABLE_DETAIL,
   ISSUE_TABLE_COMMENT,
-} from '../../../main/ets/dao/IssueDao';
+} from 'common';
 import {
   IssueService,
   IssueServiceResult,
-} from '../../../main/ets/service/IssueService';
+} from 'common';
 import {
   IssueDetailModel,
   IssueCommentModel,
   IssueDetailStore,
   ISSUE_STATE_OPEN,
   ISSUE_STATE_CLOSED,
-} from '../../../main/ets/store/IssueDetailStore';
+} from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

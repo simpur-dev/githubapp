@@ -3,13 +3,13 @@ import {
   HttpManager,
   HttpProvider,
   RawResponse,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
+import { Address } from 'common';
 import {
   PullLoadMoreController,
-} from '../../../main/ets/common/PullLoadMoreList';
+} from 'common';
 import {
   RepositoryDetailStore,
   RepositoryEventItem,
@@ -19,15 +19,15 @@ import {
   ISSUE_STATE_ALL,
   ISSUE_STATE_OPEN,
   ISSUE_STATE_CLOSED,
-} from '../../../main/ets/store/RepositoryDetailStore';
+} from 'common';
 import {
   RepositoryService,
-} from '../../../main/ets/service/RepositoryService';
-import { IssueTab } from '../../../main/ets/pages/repo/IssueTab';
-import { ActivityTab } from '../../../main/ets/pages/repo/ActivityTab';
-import { FilesTab } from '../../../main/ets/pages/repo/FilesTab';
-import { RouteName } from '../../../main/ets/navigation/Routes';
-import { NavigationService } from '../../../main/ets/navigation/NavigationService';
+} from 'common';
+import { IssueTab } from 'feature_repo';
+import { ActivityTab } from 'feature_repo';
+import { FilesTab } from 'feature_repo';
+import { RouteName } from 'common';
+import { NavigationService } from 'common';
 
 const TARGET_OWNER: string = 'CarGuoUI';
 const TARGET_REPO: string = 'GSYTabRepo';

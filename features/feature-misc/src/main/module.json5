@@ -1,0 +1,12 @@
+{
+  "module": {
+    "name": "feature_misc",
+    "type": "har",
+    "description": "$string:feature_misc_desc",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ]
+  }
+}

@@ -6,12 +6,12 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, UNAUTHORIZED } from 'common';
+import { Address } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
 import {
   RepositoryDao,
   REPO_TABLE_DETAIL,
@@ -19,19 +19,19 @@ import {
   REPO_TABLE_EVENT,
   REPO_TABLE_FILE_LIST,
   REPO_TABLE_ISSUE,
-} from '../../../main/ets/dao/RepositoryDao';
-import { IssueDao, ISSUE_TABLE_REPO_ISSUE } from '../../../main/ets/dao/IssueDao';
+} from 'common';
+import { IssueDao, ISSUE_TABLE_REPO_ISSUE } from 'common';
 import {
   RepositoryService,
   RepositoryServiceResult,
-} from '../../../main/ets/service/RepositoryService';
+} from 'common';
 import {
   RepositoryDetailStore,
   RepositoryDetail,
   RepositoryEventItem,
   RepositoryFileItem,
   RepositoryIssueItem,
-} from '../../../main/ets/store/RepositoryDetailStore';
+} from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

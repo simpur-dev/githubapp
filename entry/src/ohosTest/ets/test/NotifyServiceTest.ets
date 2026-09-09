@@ -5,17 +5,17 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from 'common';
+import { Address } from 'common';
 import {
   NotifyService,
   FetchNotifyResult,
   MarkNotifyResult,
   NotifyFilterParam,
   resolveFilterParam,
-} from '../../../main/ets/service/NotifyService';
+} from 'common';
 import {
   NotifyStore,
   NotifyThread,
@@ -24,7 +24,7 @@ import {
   NOTIFY_FILTER_UNREAD,
   NOTIFY_FILTER_PARTICIPATING,
   NOTIFY_FILTER_ALL,
-} from '../../../main/ets/store/NotifyStore';
+} from 'common';
 
 class CapturedRequest {
   url: string = '';

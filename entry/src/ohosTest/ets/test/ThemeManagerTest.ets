@@ -7,11 +7,11 @@ import {
   LIGHT_PALETTE,
   DARK_PALETTE,
   SystemColorProvider,
-} from '../../../main/ets/theme/ThemeManager';
+} from 'common';
 import {
   EventBus,
   EVENT_THEME_CHANGED,
-} from '../../../main/ets/utils/EventBus';
+} from 'common';
 
 class MockSystemProvider implements SystemColorProvider {
   dark: boolean = false;

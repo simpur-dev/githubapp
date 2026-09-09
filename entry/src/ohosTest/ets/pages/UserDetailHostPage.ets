@@ -3,12 +3,12 @@ import {
   HttpManager,
   HttpProvider,
   RawResponse,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { UserDetailPage } from '../../../main/ets/pages/UserDetailPage';
-import { RouteName } from '../../../main/ets/navigation/Routes';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
+import { Address } from 'common';
+import { UserDetailPage } from 'feature_user';
+import { RouteName } from 'common';
 
 const TARGET_LOGIN: string = 'CarGuoUI';
 const STATUS_NO_CONTENT: number = 204;

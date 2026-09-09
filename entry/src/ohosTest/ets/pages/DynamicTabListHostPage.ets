@@ -3,10 +3,10 @@ import {
   HttpManager,
   HttpProvider,
   RawResponse,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { DynamicTabPage } from '../../../main/ets/pages/tabs/DynamicTabPage';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
+import { DynamicTabPage } from 'feature_main';
 
 class ListProvider implements HttpProvider {
   callCount: number = 0;

@@ -16,15 +16,15 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
-import { DynamicDao, DYN_TABLE_RECEIVED } from '../../../main/ets/dao/DynamicDao';
-import { DynamicService, FetchReceivedResult } from '../../../main/ets/service/DynamicService';
-import { DynamicEvent, DynamicStore } from '../../../main/ets/store/DynamicStore';
-import { NetworkMonitor, NetworkProvider } from '../../../main/ets/net/NetworkMonitor';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, NETWORK_ERROR } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
+import { DynamicDao, DYN_TABLE_RECEIVED } from 'common';
+import { DynamicService, FetchReceivedResult } from 'common';
+import { DynamicEvent, DynamicStore } from 'common';
+import { NetworkMonitor, NetworkProvider } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

@@ -19,24 +19,24 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
+} from 'common';
+import { HttpHeaders } from 'common';
 import {
   SUCCESS,
   UNAUTHORIZED,
   NETWORK_ERROR,
-} from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
-import { UserDao, USER_TABLE_INFO } from '../../../main/ets/dao/UserDao';
+} from 'common';
+import { Address } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
+import { UserDao, USER_TABLE_INFO } from 'common';
 import {
   AuthStore,
   AuthUserInfo,
   APP_STORAGE_KEY_USER_INFO,
-} from '../../../main/ets/store/AuthStore';
-import { MyStore } from '../../../main/ets/store/MyStore';
-import { MyService, RefreshMeResult, FetchUnReadResult, FetchUserOrgsResult, FetchStarredCountResult, MyOrgItem } from '../../../main/ets/service/MyService';
+} from 'common';
+import { MyStore } from 'common';
+import { MyService, RefreshMeResult, FetchUnReadResult, FetchUserOrgsResult, FetchStarredCountResult, MyOrgItem } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

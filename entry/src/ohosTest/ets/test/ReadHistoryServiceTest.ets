@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from '@ohos/hypium';
 import relationalStore from '@ohos.data.relationalStore';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
 import {
   ReadHistoryService,
   ReadHistoryAddParam,
@@ -11,13 +11,13 @@ import {
   isValidReadHistoryType,
   ReadHistoryDataPayload,
   READ_HISTORY_PAGE_SIZE
-} from '../../../main/ets/service/ReadHistoryService';
+} from 'common';
 import {
   ReadHistoryStore,
   ReadHistoryItem,
   READ_HISTORY_TYPE_REPO,
   READ_HISTORY_TYPE_USER
-} from '../../../main/ets/store/ReadHistoryStore';
+} from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

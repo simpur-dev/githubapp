@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from '@ohos/hypium';
-import { Logger, LOGGER_RING_CAPACITY, LogEntry } from '../../../main/ets/ai-debug/Logger';
-import { HttpRecorder, HTTP_RECORDER_CAPACITY, HttpRecord } from '../../../main/ets/ai-debug/HttpRecorder';
-import { NavigationService } from '../../../main/ets/navigation/NavigationService';
-import { RouteName, ROUTE_NAMES, isKnownRoute } from '../../../main/ets/navigation/Routes';
-import { DebugDumper, DumpPayload, StoreLike } from '../../../main/ets/ai-debug/DebugDumper';
-import { EventActionDispatcher } from '../../../main/ets/utils/EventActionDispatcher';
-import { DynamicActor, DynamicEvent, DynamicRepo } from '../../../main/ets/store/DynamicStore';
+import { Logger, LOGGER_RING_CAPACITY, LogEntry } from 'common';
+import { HttpRecorder, HTTP_RECORDER_CAPACITY, HttpRecord } from '../testability/debug/HttpRecorder';
+import { NavigationService } from 'common';
+import { RouteName, ROUTE_NAMES, isKnownRoute } from 'common';
+import { DebugDumper, DumpPayload, StoreLike } from '../testability/debug/DebugDumper';
+import { EventActionDispatcher } from 'common';
+import { DynamicActor, DynamicEvent, DynamicRepo } from 'common';
 
 class DemoStorePayload {
   k: number = 1;

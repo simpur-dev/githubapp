@@ -9,35 +9,35 @@
  *
  * 注：每个页面 struct 必须 export，且不再使用 @Entry。
  */
-import { NavigationService } from './NavigationService';
-import { RouteName } from './Routes';
+import { NavigationService } from 'common';
+import { RouteName } from 'common';
 
-import { WelcomePage } from '../pages/WelcomePage';
-import { LoginPage } from '../pages/LoginPage';
-import { LoginWebPage } from '../pages/LoginWebPage';
-import { HomePage } from '../pages/HomePage';
-import { SearchPage } from '../pages/SearchPage';
-import { SettingPage } from '../pages/SettingPage';
-import { AboutPage } from '../pages/AboutPage';
-import { CustomPage } from '../pages/CustomPage';
-import { HonorPage } from '../pages/HonorPage';
-import { NotifyPage } from '../pages/NotifyPage';
-import { ReadHistoryPage } from '../pages/ReadHistoryPage';
-import { UserDetailPage } from '../pages/UserDetailPage';
-import { RepositoryDetailPage } from '../pages/RepositoryDetailPage';
-import { IssueDetailPage } from '../pages/IssueDetailPage';
-import { CodeDetailPage } from '../pages/CodeDetailPage';
-import { PushDetailPage } from '../pages/PushDetailPage';
-import { UserFollowedPage } from '../pages/UserFollowedPage';
-import { UserFollowerPage } from '../pages/UserFollowerPage';
-import { RepositoryStarPage } from '../pages/RepositoryStarPage';
-import { RepositoryWatcherPage } from '../pages/RepositoryWatcherPage';
-import { RepositoryForkPage } from '../pages/RepositoryForkPage';
-import { PersonInfoPage } from '../pages/PersonInfoPage';
-import { ReleasePage } from '../pages/ReleasePage';
-import { PhotoPage } from '../pages/PhotoPage';
-import { WebPage } from '../pages/WebPage';
-import { CommonListPage } from '../pages/CommonListPage';
+import { WelcomePage } from 'feature_auth';
+import { LoginPage } from 'feature_auth';
+import { LoginWebPage } from 'feature_auth';
+import { HomePage } from 'feature_main';
+import { SearchPage } from 'feature_main';
+import { SettingPage } from 'feature_misc';
+import { AboutPage } from 'feature_misc';
+import { CustomPage } from 'feature_misc';
+import { HonorPage } from 'feature_misc';
+import { NotifyPage } from 'feature_main';
+import { ReadHistoryPage } from 'feature_main';
+import { UserDetailPage } from 'feature_user';
+import { RepositoryDetailPage } from 'feature_repo';
+import { IssueDetailPage } from 'feature_repo';
+import { CodeDetailPage } from 'feature_repo';
+import { PushDetailPage } from 'feature_repo';
+import { UserFollowedPage } from 'feature_user';
+import { UserFollowerPage } from 'feature_user';
+import { RepositoryStarPage } from 'feature_repo';
+import { RepositoryWatcherPage } from 'feature_repo';
+import { RepositoryForkPage } from 'feature_repo';
+import { PersonInfoPage } from 'feature_user';
+import { ReleasePage } from 'feature_repo';
+import { PhotoPage } from 'feature_misc';
+import { WebPage } from 'feature_misc';
+import { CommonListPage } from 'feature_repo';
 
 @Component
 export struct AppNavigator {

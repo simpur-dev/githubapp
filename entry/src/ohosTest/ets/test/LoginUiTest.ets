@@ -7,18 +7,18 @@ import {
   LoginOutcome,
   PreferencesLike,
   OAuthClientConfig,
-} from '../../../main/ets/auth/LoginUseCase';
-import { HttpResult } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED } from '../../../main/ets/net/NetworkCode';
-import { AuthUserInfo, AuthStore, GlobalAuthStore } from '../../../main/ets/store/AuthStore';
-import { LoginPageDeps } from '../../../main/ets/pages/LoginPage';
+} from 'common';
+import { HttpResult } from 'common';
+import { SUCCESS, UNAUTHORIZED } from 'common';
+import { AuthUserInfo, AuthStore, GlobalAuthStore } from 'common';
+import { LoginPageDeps } from 'feature_auth';
 import {
   SettingPageDeps,
   PreferencesPort,
-} from '../../../main/ets/pages/SettingPage';
-import { KEY_LANGUAGE_SELECT } from '../../../main/ets/dao/db/Preferences';
-import { NavigationService, RouterLike } from '../../../main/ets/navigation/NavigationService';
-import { EventBus, EVENT_USER_LOGGED_IN } from '../../../main/ets/utils/EventBus';
+} from 'feature_misc';
+import { KEY_LANGUAGE_SELECT } from 'common';
+import { NavigationService, RouterLike } from 'common';
+import { EventBus, EVENT_USER_LOGGED_IN } from 'common';
 
 const BUNDLE: string = 'cn.gsy.githubapp';
 const ABILITY: string = 'TestAbility';

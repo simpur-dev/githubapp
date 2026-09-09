@@ -1,0 +1,12 @@
+{
+  "module": {
+    "name": "feature_auth",
+    "type": "har",
+    "description": "$string:feature_auth_desc",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ]
+  }
+}

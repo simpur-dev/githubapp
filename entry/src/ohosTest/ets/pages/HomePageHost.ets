@@ -11,16 +11,16 @@
  *   - 不订阅 LoginExpiredBus / NetworkMonitor，避免测试中跨页副作用
  *   - search action onAction 留空（不实际跳转）
  */
-import { AppBar, AppBarAction } from '../../../main/ets/common/AppBar';
-import { DrawerHeader } from '../../../main/ets/common/DrawerHeader';
-import { DrawerMenu } from '../../../main/ets/common/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP } from '../../../main/ets/utils/EventBus';
-import { I18n } from '../../../main/ets/i18n/I18n';
-import { GSYColor, GSYSpacing } from '../../../main/ets/style/Theme';
-import { TabIcon, TabIconKey } from '../../../main/ets/widget/TabIcon';
-import { DynamicTabPage } from '../../../main/ets/pages/tabs/DynamicTabPage';
-import { TrendTabPage } from '../../../main/ets/pages/tabs/TrendTabPage';
-import { MyTabPage } from '../../../main/ets/pages/tabs/MyTabPage';
+import { AppBar, AppBarAction } from 'common';
+import { DrawerHeader } from 'feature_main';
+import { DrawerMenu } from 'feature_main';
+import { EventBus, EVENT_TAB_DOUBLE_TAP } from 'common';
+import { I18n } from 'common';
+import { GSYColor, GSYSpacing } from 'common';
+import { TabIcon, TabIconKey } from 'feature_main';
+import { DynamicTabPage } from 'feature_main';
+import { TrendTabPage } from 'feature_main';
+import { MyTabPage } from 'feature_main';
 
 interface HomeTabItem {
   key: string;

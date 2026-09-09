@@ -6,18 +6,18 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, NETWORK_ERROR } from 'common';
+import { Address } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
 import {
   UserDao,
   USER_TABLE_INFO,
   USER_TABLE_ORG_MEMBER,
   USER_TABLE_REPOS
-} from '../../../main/ets/dao/UserDao';
+} from 'common';
 import {
   UserService,
   FetchUserResult,
@@ -26,13 +26,13 @@ import {
   FetchFollowResult,
   FetchStarredCountResult,
   UpdateUserResult
-} from '../../../main/ets/service/UserService';
+} from 'common';
 import {
   UserDetail,
   UserDetailStore,
   UserRepoItem
-} from '../../../main/ets/store/UserDetailStore';
-import { SubUserItem } from '../../../main/ets/service/RepositoryService';
+} from 'common';
+import { SubUserItem } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

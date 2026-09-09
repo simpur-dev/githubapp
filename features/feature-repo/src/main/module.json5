@@ -1,0 +1,12 @@
+{
+  "module": {
+    "name": "feature_repo",
+    "type": "har",
+    "description": "$string:feature_repo_desc",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ]
+  }
+}

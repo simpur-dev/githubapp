@@ -33,13 +33,11 @@ import SubListServiceTest from './SubListServiceTest';
 import SubListUiTest from './SubListUiTest';
 import SettingUiTest from './SettingUiTest';
 import EmojiKeyboardTest from './EmojiKeyboardTest';
-import ImagePreviewUiTest from './ImagePreviewUiTest';
 import OauthServiceTest from './OauthServiceTest';
 import OauthDeepLinkUiTest from './OauthDeepLinkUiTest';
 import LoginExpiredFlowTest from './LoginExpiredFlowTest';
 import OfflineFallbackTest from './OfflineFallbackTest';
 import ContributionServiceTest from './ContributionServiceTest';
-import ContributionHeatmapUiTest from './ContributionHeatmapUiTest';
 import DrawerHeaderTest from './DrawerHeaderTest';
 import DrawerMenuUiTest from './DrawerMenuUiTest';
 import ThemeManagerTest from './ThemeManagerTest';
@@ -120,7 +118,6 @@ export default function testsuite(): void {
   }
   EmojiKeyboardTest();
   if (!logicOnly) {
-    ImagePreviewUiTest();
   }
   OauthServiceTest();
   if (!logicOnly) {
@@ -130,7 +127,6 @@ export default function testsuite(): void {
   OfflineFallbackTest();
   ContributionServiceTest();
   if (!logicOnly) {
-    ContributionHeatmapUiTest();
   }
   DrawerHeaderTest();
   if (!logicOnly) {

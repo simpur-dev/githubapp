@@ -6,14 +6,14 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
-import { TrendDao, TREND_TABLE } from '../../../main/ets/dao/TrendDao';
-import { TrendService, FetchTrendingResult } from '../../../main/ets/service/TrendService';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from 'common';
+import { Address } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
+import { TrendDao, TREND_TABLE } from 'common';
+import { TrendService, FetchTrendingResult } from 'common';
 import {
   TrendRepo,
   TrendStore,
@@ -21,7 +21,7 @@ import {
   TREND_SINCE_DAILY,
   TREND_SINCE_WEEKLY,
   TREND_LANGUAGE_ALL,
-} from '../../../main/ets/store/TrendStore';
+} from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

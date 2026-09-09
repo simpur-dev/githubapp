@@ -1,0 +1,9 @@
+{
+  "name": "feature_misc",
+  "version": "1.0.0",
+  "description": "GSYGithubApp 设置/关于/荣耀/图片/网页特性",
+  "main": "Index.ets",
+  "dependencies": {
+    "common": "file:../../common"
+  }
+}

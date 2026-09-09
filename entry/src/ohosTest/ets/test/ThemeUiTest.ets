@@ -5,21 +5,21 @@ import {
   SettingPageDeps,
   PreferencesPort,
   RdbPort,
-} from '../../../main/ets/pages/SettingPage';
+} from 'feature_misc';
 import {
   LoginUseCase,
   LoginOutcome,
   PreferencesLike,
-} from '../../../main/ets/auth/LoginUseCase';
-import { HttpResult } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { AuthUserInfo, AuthStore } from '../../../main/ets/store/AuthStore';
+} from 'common';
+import { HttpResult } from 'common';
+import { SUCCESS } from 'common';
+import { AuthUserInfo, AuthStore } from 'common';
 import {
   ThemeManager,
   DARK_PALETTE,
   LIGHT_PALETTE,
-} from '../../../main/ets/theme/ThemeManager';
-import { EventBus } from '../../../main/ets/utils/EventBus';
+} from 'common';
+import { EventBus } from 'common';
 
 const BUNDLE: string = 'cn.gsy.githubapp';
 const ABILITY: string = 'TestAbility';

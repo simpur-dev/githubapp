@@ -1,0 +1,9 @@
+{
+  "name": "feature_auth",
+  "version": "1.0.0",
+  "description": "GSYGithubApp 登录/授权特性",
+  "main": "Index.ets",
+  "dependencies": {
+    "common": "file:../../common"
+  }
+}

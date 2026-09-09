@@ -26,8 +26,8 @@ import {
   AuthUserInfo,
   AuthStore,
   APP_STORAGE_KEY_USER_INFO,
-} from '../../../main/ets/store/AuthStore';
-import { MyStore, GlobalMyStore } from '../../../main/ets/store/MyStore';
+} from 'common';
+import { MyStore, GlobalMyStore } from 'common';
 import {
   MyService,
   RefreshMeResult,
@@ -35,13 +35,13 @@ import {
   FetchUserOrgsResult,
   FetchStarredCountResult,
   MyOrgItem,
-} from '../../../main/ets/service/MyService';
-import { MyTabPageDeps } from '../../../main/ets/pages/tabs/MyTabPage';
-import { DynamicService, FetchReceivedResult } from '../../../main/ets/service/DynamicService';
-import { DynamicStore } from '../../../main/ets/store/DynamicStore';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { LoginUseCase } from '../../../main/ets/auth/LoginUseCase';
-import { NavigationService, RouterLike } from '../../../main/ets/navigation/NavigationService';
+} from 'common';
+import { MyTabPageDeps } from 'feature_main';
+import { DynamicService, FetchReceivedResult } from 'common';
+import { DynamicStore } from 'common';
+import { SUCCESS } from 'common';
+import { LoginUseCase } from 'common';
+import { NavigationService, RouterLike } from 'common';
 
 const BUNDLE: string = 'cn.gsy.githubapp';
 const ABILITY: string = 'TestAbility';

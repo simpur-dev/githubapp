@@ -6,21 +6,21 @@ import {
   SettingPageDeps,
   PreferencesPort,
   RdbPort,
-} from '../../../main/ets/pages/SettingPage';
+} from 'feature_misc';
 import {
   LoginUseCase,
   LoginOutcome,
   PreferencesLike,
-} from '../../../main/ets/auth/LoginUseCase';
-import { HttpResult } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { AuthUserInfo, AuthStore } from '../../../main/ets/store/AuthStore';
-import { I18n, changeLocale } from '../../../main/ets/i18n/I18n';
-import { NavigationService, RouterLike } from '../../../main/ets/navigation/NavigationService';
+} from 'common';
+import { HttpResult } from 'common';
+import { SUCCESS } from 'common';
+import { AuthUserInfo, AuthStore } from 'common';
+import { I18n, changeLocale } from 'common';
+import { NavigationService, RouterLike } from 'common';
 import {
   EventBus,
   EVENT_LANGUAGE_CHANGED,
-} from '../../../main/ets/utils/EventBus';
+} from 'common';
 
 const BUNDLE: string = 'cn.gsy.githubapp';
 const ABILITY: string = 'TestAbility';

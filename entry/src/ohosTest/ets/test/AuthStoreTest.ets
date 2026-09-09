@@ -26,12 +26,12 @@ import {
   LoginExpiredBus,
   DEFAULT_USER_AGENT,
   HttpMethod,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, CREATED, UNAUTHORIZED } from '../../../main/ets/net/NetworkCode';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
-import { UserDao, USER_TABLE_INFO } from '../../../main/ets/dao/UserDao';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, CREATED, UNAUTHORIZED } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
+import { UserDao, USER_TABLE_INFO } from 'common';
 import {
   AuthStore,
   AuthUserInfo,
@@ -41,24 +41,24 @@ import {
   APP_STORAGE_KEY_TOKEN,
   APP_STORAGE_KEY_USER_LOGIN,
   APP_STORAGE_KEY_USER_INFO,
-} from '../../../main/ets/store/AuthStore';
+} from 'common';
 import {
   LoginUseCase,
   PreferencesLike,
   OAuthClientConfig,
   LoginOutcome,
-} from '../../../main/ets/auth/LoginUseCase';
+} from 'common';
 import {
   KEY_USER_TOKEN,
   KEY_USER_BASIC,
   KEY_USER_NAME,
   KEY_USER_PASSWORD,
-} from '../../../main/ets/dao/db/Preferences';
+} from 'common';
 import {
   EventBus,
   EVENT_USER_LOGGED_IN,
   EVENT_USER_LOGGED_OUT,
-} from '../../../main/ets/utils/EventBus';
+} from 'common';
 
 class ScriptedResponse {
   status: number;

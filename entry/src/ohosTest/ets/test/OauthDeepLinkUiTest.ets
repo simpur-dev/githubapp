@@ -9,26 +9,26 @@ import {
   LoginExpiredBus,
   DEFAULT_USER_AGENT,
   HttpMethod,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED } from '../../../main/ets/net/NetworkCode';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, UNAUTHORIZED } from 'common';
 import {
   LoginUseCase,
   PreferencesLike,
   OAuthClientConfig,
   LoginOutcome,
-} from '../../../main/ets/auth/LoginUseCase';
-import { OauthService } from '../../../main/ets/auth/OauthService';
-import { AuthDeepLinkBus } from '../../../main/ets/auth/AuthDeepLinkBus';
+} from 'common';
+import { OauthService } from 'common';
+import { AuthDeepLinkBus } from 'common';
 import {
   AuthStore,
   GlobalAuthStore,
   APP_STORAGE_KEY_TOKEN,
   APP_STORAGE_KEY_AUTHED,
-} from '../../../main/ets/store/AuthStore';
+} from 'common';
 import { OauthHostBridge } from '../pages/OauthHostPage';
-import { EventBus } from '../../../main/ets/utils/EventBus';
-import { NavigationService } from '../../../main/ets/navigation/NavigationService';
+import { EventBus } from 'common';
+import { NavigationService } from 'common';
 
 const BUNDLE: string = 'cn.gsy.githubapp';
 const ABILITY: string = 'TestAbility';

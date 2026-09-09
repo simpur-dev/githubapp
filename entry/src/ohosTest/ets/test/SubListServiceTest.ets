@@ -6,35 +6,35 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { ValueType, ValuesBucket } from '../../../main/ets/dao/db/RdbStore';
-import { RdbStoreLike } from '../../../main/ets/dao/DaoBase';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
+import { Address } from 'common';
+import { ValueType, ValuesBucket } from 'common';
+import { RdbStoreLike } from 'common';
 import {
   RepositoryDao,
   REPO_TABLE_STAR,
   REPO_TABLE_FORK,
   REPO_TABLE_WATCHER,
-} from '../../../main/ets/dao/RepositoryDao';
+} from 'common';
 import {
   UserDao,
   USER_TABLE_FOLLOWER,
   USER_TABLE_FOLLOWED,
-} from '../../../main/ets/dao/UserDao';
+} from 'common';
 import {
   RepositoryService,
   SubUserItem,
   SubRepositoryItem,
   SubListResult,
-} from '../../../main/ets/service/RepositoryService';
+} from 'common';
 import {
   UserService,
   FetchSubUserListResult,
-} from '../../../main/ets/service/UserService';
-import { RepositoryDetailStore } from '../../../main/ets/store/RepositoryDetailStore';
-import { UserDetailStore } from '../../../main/ets/store/UserDetailStore';
+} from 'common';
+import { RepositoryDetailStore } from 'common';
+import { UserDetailStore } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 

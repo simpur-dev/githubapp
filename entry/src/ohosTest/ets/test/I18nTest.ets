@@ -7,7 +7,7 @@ import {
   translations,
   LocaleKey,
   TranslationMap,
-} from '../../../main/ets/i18n/I18n';
+} from 'common';
 
 export default function I18nTest() {
   describe('I18nTest', () => {

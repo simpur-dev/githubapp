@@ -1,6 +1,6 @@
-import { DrawerHeader } from '../../../main/ets/common/DrawerHeader';
-import { DrawerMenu } from '../../../main/ets/common/DrawerMenu';
-import { APP_STORAGE_KEY_USER_INFO } from '../../../main/ets/store/AuthStore';
+import { DrawerHeader } from 'feature_main';
+import { DrawerMenu } from 'feature_main';
+import { APP_STORAGE_KEY_USER_INFO } from 'common';
 
 const DRAWER_HOST_USER_BODY: string =
   '{"login":"DrawerLogin","name":"DrawerName","avatar_url":"",' +

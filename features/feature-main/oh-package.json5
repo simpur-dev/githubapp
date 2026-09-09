@@ -1,0 +1,9 @@
+{
+  "name": "feature_main",
+  "version": "1.0.0",
+  "description": "GSYGithubApp 主页框架/动态/趋势/我的/搜索/通知/历史",
+  "main": "Index.ets",
+  "dependencies": {
+    "common": "file:../../common"
+  }
+}

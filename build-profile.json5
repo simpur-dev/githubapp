@@ -27,6 +27,17 @@
           }
         },
         "targetSdkVersion": "26.0.0"
+      },
+      {
+        "name": "unsigned",
+        "compatibleSdkVersion": "6.1.0(23)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "useNormalizedOHMUrl": true
+          }
+        },
+        "targetSdkVersion": "26.0.0"
       }
     ],
     "buildModeSet": [
@@ -46,7 +57,86 @@
         {
           "name": "default",
           "applyToProducts": [
-            "default"
+            "default",
+            "unsigned"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "common",
+      "srcPath": "./common",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "unsigned"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "feature_auth",
+      "srcPath": "./features/feature-auth",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "unsigned"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "feature_main",
+      "srcPath": "./features/feature-main",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "unsigned"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "feature_repo",
+      "srcPath": "./features/feature-repo",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "unsigned"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "feature_user",
+      "srcPath": "./features/feature-user",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "unsigned"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "feature_misc",
+      "srcPath": "./features/feature-misc",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "unsigned"
           ]
         }
       ]

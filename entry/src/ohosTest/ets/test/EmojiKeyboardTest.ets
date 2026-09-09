@@ -1,6 +1,6 @@
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium';
-import { renderEmoji, buildEmojiToken } from '../../../main/ets/utils/EmojiText';
-import { GITHUB_EMOJI_MAP, lookupEmoji, emojiNames } from '../../../main/ets/utils/EmojiMap';
+import { renderEmoji, buildEmojiToken } from 'common';
+import { GITHUB_EMOJI_MAP, lookupEmoji, emojiNames } from 'common';
 
 export default function EmojiKeyboardTest(): void {
   describe('EmojiKeyboardTest', (): void => {

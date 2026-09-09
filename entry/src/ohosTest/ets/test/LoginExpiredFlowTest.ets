@@ -17,12 +17,12 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { UNAUTHORIZED } from '../../../main/ets/net/NetworkCode';
-import { AuthStore, AuthUserInfo } from '../../../main/ets/store/AuthStore';
-import { NavigationService, RouterLike } from '../../../main/ets/navigation/NavigationService';
-import { RouteName } from '../../../main/ets/navigation/Routes';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { UNAUTHORIZED } from 'common';
+import { AuthStore, AuthUserInfo } from 'common';
+import { NavigationService, RouterLike } from 'common';
+import { RouteName } from 'common';
 
 class CapturedRoute {
   kind: string;

@@ -5,26 +5,26 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, NETWORK_ERROR } from 'common';
+import { Address } from 'common';
 import {
   CommitService,
   CommitServiceResult,
   COMMIT_DIFF_ACCEPT,
   CommitCacheDao,
-} from '../../../main/ets/service/CommitService';
+} from 'common';
 import {
   CommitDetail,
   PushDetailStore,
-} from '../../../main/ets/store/PushDetailStore';
+} from 'common';
 import {
   CodeService,
   CodeServiceResult,
-} from '../../../main/ets/service/CodeService';
-import { CodeDetailStore } from '../../../main/ets/store/CodeDetailStore';
-import { ReadResult } from '../../../main/ets/dao/DaoBase';
+} from 'common';
+import { CodeDetailStore } from 'common';
+import { ReadResult } from 'common';
 
 class CapturedRequest {
   url: string = '';

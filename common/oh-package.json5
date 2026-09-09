@@ -1,0 +1,7 @@
+{
+  "name": "common",
+  "version": "1.0.0",
+  "description": "GSYGithubApp 公共能力层：网络/存储/数据模型/通用UI组件/主题token",
+  "main": "Index.ets",
+  "dependencies": {}
+}

@@ -2,15 +2,15 @@ import { describe, beforeAll, afterAll, beforeEach, it, expect } from '@ohos/hyp
 import { Driver, ON, Component } from '@ohos.UiTest';
 import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
 import router from '@ohos.router';
-import { LoginUseCase, PreferencesLike } from '../../../main/ets/auth/LoginUseCase';
+import { LoginUseCase, PreferencesLike } from 'common';
 import {
   AuthStore,
   AuthUserInfo,
   APP_STORAGE_KEY_USER_INFO,
-} from '../../../main/ets/store/AuthStore';
-import { DrawerMenuDeps } from '../../../main/ets/common/DrawerMenu';
-import { DrawerHeaderDeps } from '../../../main/ets/common/DrawerHeader';
-import { NavigationService, RouterLike } from '../../../main/ets/navigation/NavigationService';
+} from 'common';
+import { DrawerMenuDeps } from 'feature_main';
+import { DrawerHeaderDeps } from 'feature_main';
+import { NavigationService, RouterLike } from 'common';
 
 const BUNDLE: string = 'cn.gsy.githubapp';
 const ABILITY: string = 'TestAbility';

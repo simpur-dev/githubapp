@@ -3,13 +3,13 @@ import {
   HttpManager,
   HttpProvider,
   RawResponse,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { RepositoryStarPage } from '../../../main/ets/pages/RepositoryStarPage';
-import { UserDetailPage } from '../../../main/ets/pages/UserDetailPage';
-import { RouteName } from '../../../main/ets/navigation/Routes';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
+import { Address } from 'common';
+import { RepositoryStarPage } from 'feature_repo';
+import { UserDetailPage } from 'feature_user';
+import { RouteName } from 'common';
 
 const HOST_OWNER: string = 'CarGuoUI';
 const HOST_NAME: string = 'GSYGithubAppOH';

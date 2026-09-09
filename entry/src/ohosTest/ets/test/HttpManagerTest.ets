@@ -21,9 +21,9 @@ import {
   DEFAULT_USER_AGENT,
   CONTENT_TYPE_JSON,
   CONTENT_TYPE_FORM,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { NETWORK_TIMEOUT, UNAUTHORIZED, SUCCESS, CREATED } from '../../../main/ets/net/NetworkCode';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { NETWORK_TIMEOUT, UNAUTHORIZED, SUCCESS, CREATED } from 'common';
 
 class CapturedRequest {
   url: string = '';

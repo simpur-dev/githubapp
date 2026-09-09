@@ -3,16 +3,16 @@ import hilog from '@ohos.hilog';
 import window from '@ohos.window';
 import Want from '@ohos.app.ability.Want';
 import AbilityConstant from '@ohos.app.ability.AbilityConstant';
-import { AuthDeepLinkBus } from '../auth/AuthDeepLinkBus';
-import { Url, DeepLinkInfo } from '../utils/Url';
-import { Preferences, KEY_USER_TOKEN, PREF_NAME } from '../dao/db/Preferences';
-import { RdbStore } from '../dao/db/RdbStore';
-import { HttpManager } from '../net/HttpManager';
-import { GlobalAuthStore } from '../store/AuthStore';
-import { enableImmersive } from '../utils/SafeAreaInsets';
-import { Logger } from '../ai-debug/Logger';
-import { changeLocale, LocaleKey } from '../i18n/I18n';
-import { KEY_SEARCH_HISTORY } from '../utils/SearchHistory';
+import { AuthDeepLinkBus } from 'common';
+import { Url, DeepLinkInfo } from 'common';
+import { Preferences, KEY_USER_TOKEN, PREF_NAME } from 'common';
+import { RdbStore } from 'common';
+import { HttpManager } from 'common';
+import { GlobalAuthStore } from 'common';
+import { enableImmersive } from 'common';
+import { Logger } from 'common';
+import { changeLocale, LocaleKey } from 'common';
+import { KEY_SEARCH_HISTORY, BOOT_TAB_KEY, BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_NOTIFY_ISSUE_KEY, BOOT_COMMON_LIST_KEY } from 'common';
 
 const TAG: string = 'EntryAbility';
 const AUTH_SCHEME: string = 'gsygithubapp';
@@ -32,18 +32,6 @@ const PARAM_BOOT_COMMON_LIST: string = 'bootCommonList';
 const PARAM_BOOT_LOCALE: string = 'bootLocale';
 const PARAM_BOOT_NOTIFY_ISSUE: string = 'bootNotifyIssue';
 const PARAM_BOOT_SEARCH_HISTORY: string = 'bootSearchHistory';
-export const BOOT_TAB_KEY: string = 'gsy_boot_tab';
-export const BOOT_LOGIN_KEY: string = 'gsy_boot_login';
-export const BOOT_WELCOME_HOLD_KEY: string = 'gsy_boot_welcome_hold';
-export const BOOT_REPO_KEY: string = 'gsy_boot_repo';
-export const BOOT_PUSH_KEY: string = 'gsy_boot_push';
-export const BOOT_ISSUE_KEY: string = 'gsy_boot_issue';
-export const BOOT_CODE_KEY: string = 'gsy_boot_code';
-export const BOOT_USER_KEY: string = 'gsy_boot_user';
-export const BOOT_PHOTO_KEY: string = 'gsy_boot_photo';
-export const BOOT_WEB_KEY: string = 'gsy_boot_web';
-export const BOOT_NOTIFY_ISSUE_KEY: string = 'gsy_boot_notify_issue';
-export const BOOT_COMMON_LIST_KEY: string = 'gsy_boot_common_list';
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, _launchParam: AbilityConstant.LaunchParam): void {

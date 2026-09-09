@@ -4,12 +4,12 @@ import common from '@ohos.app.ability.common';
 import {
   RdbStore,
   ValuesBucket
-} from '../../../main/ets/dao/db/RdbStore';
+} from 'common';
 import {
   Preferences,
   KEY_LANGUAGE_SELECT,
   KEY_LANGUAGE_SELECT_NAME
-} from '../../../main/ets/dao/db/Preferences';
+} from 'common';
 import {
   DB_NAME,
   DB_VERSION,
@@ -19,12 +19,12 @@ import {
   TABLE_READ_HISTORY,
   TABLE_TREND_REPOSITORY_V2,
   TABLE_ISSUE_COMMENT
-} from '../../../main/ets/dao/db/Schema';
+} from 'common';
 import {
   EventBus,
   EVENT_LANGUAGE_CHANGED,
   EVENT_USER_LOGGED_IN
-} from '../../../main/ets/utils/EventBus';
+} from 'common';
 import relationalStore from '@ohos.data.relationalStore';
 
 async function detectRdbCrudAvailable(): Promise<boolean> {

@@ -5,12 +5,12 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
-import { RecommendService, FetchRecommendResult } from '../../../main/ets/service/RecommendService';
-import { RecommendRepo, RecommendStore } from '../../../main/ets/store/RecommendStore';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from 'common';
+import { Address } from 'common';
+import { RecommendService, FetchRecommendResult } from 'common';
+import { RecommendRepo, RecommendStore } from 'common';
 
 class CapturedRequest {
   url: string = '';

@@ -1,12 +1,12 @@
-import { ReadHistoryPage, setReadHistoryServiceFactory } from '../../../main/ets/pages/ReadHistoryPage';
-import { RepositoryDetailPage } from '../../../main/ets/pages/RepositoryDetailPage';
-import { UserDetailPage } from '../../../main/ets/pages/UserDetailPage';
-import { ReadHistoryService, ReadHistoryAddParam, ReadHistoryServiceResult } from '../../../main/ets/service/ReadHistoryService';
-import { ReadHistoryStore, ReadHistoryItem, READ_HISTORY_TYPE_REPO, READ_HISTORY_TYPE_USER } from '../../../main/ets/store/ReadHistoryStore';
-import { RouteName } from '../../../main/ets/navigation/Routes';
-import { HttpManager, HttpProvider, RawResponse } from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
+import { ReadHistoryPage, setReadHistoryServiceFactory } from 'feature_main';
+import { RepositoryDetailPage } from 'feature_repo';
+import { UserDetailPage } from 'feature_user';
+import { ReadHistoryService, ReadHistoryAddParam, ReadHistoryServiceResult } from 'common';
+import { ReadHistoryStore, ReadHistoryItem, READ_HISTORY_TYPE_REPO, READ_HISTORY_TYPE_USER } from 'common';
+import { RouteName } from 'common';
+import { HttpManager, HttpProvider, RawResponse } from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
 import http from '@ohos.net.http';
 
 const STATUS_NO_CONTENT: number = 204;

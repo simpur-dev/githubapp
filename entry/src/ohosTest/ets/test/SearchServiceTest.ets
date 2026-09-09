@@ -5,16 +5,16 @@ import {
   RawResponse,
   TokenStorage,
   LoginExpiredBus,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from '../../../main/ets/net/NetworkCode';
-import { Address } from '../../../main/ets/net/Address';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS, UNAUTHORIZED, NETWORK_ERROR } from 'common';
+import { Address } from 'common';
 import {
   SearchService,
   SearchRepoResult,
   SearchUserResult,
   SearchIssueResult,
-} from '../../../main/ets/service/SearchService';
+} from 'common';
 import {
   SearchStore,
   SearchUserItem,
@@ -22,13 +22,13 @@ import {
   SEARCH_TAB_REPO,
   SEARCH_TAB_USER,
   SEARCH_TAB_ISSUE,
-} from '../../../main/ets/store/SearchStore';
-import { RecommendOwner, RecommendRepo } from '../../../main/ets/store/RecommendStore';
+} from 'common';
+import { RecommendOwner, RecommendRepo } from 'common';
 import {
   SearchHistoryManager,
   SearchHistoryStorage,
   KEY_SEARCH_HISTORY,
-} from '../../../main/ets/utils/SearchHistory';
+} from 'common';
 
 class CapturedRequest {
   url: string = '';

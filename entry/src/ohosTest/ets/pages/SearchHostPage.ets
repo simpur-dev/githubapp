@@ -3,17 +3,17 @@ import {
   HttpManager,
   HttpProvider,
   RawResponse,
-} from '../../../main/ets/net/HttpManager';
-import { HttpHeaders } from '../../../main/ets/net/Result';
-import { SUCCESS } from '../../../main/ets/net/NetworkCode';
-import { SearchPage, SearchPageDeps } from '../../../main/ets/pages/SearchPage';
-import { SearchStore } from '../../../main/ets/store/SearchStore';
-import { SearchService } from '../../../main/ets/service/SearchService';
+} from 'common';
+import { HttpHeaders } from 'common';
+import { SUCCESS } from 'common';
+import { SearchPage, SearchPageDeps } from 'feature_main';
+import { SearchStore } from 'common';
+import { SearchService } from 'common';
 import {
   SearchHistoryManager,
   SearchHistoryStorage,
   KEY_SEARCH_HISTORY,
-} from '../../../main/ets/utils/SearchHistory';
+} from 'common';
 
 class HostStubProvider implements HttpProvider {
   callCount: number = 0;

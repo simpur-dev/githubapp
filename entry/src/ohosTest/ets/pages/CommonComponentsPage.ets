@@ -1,16 +1,56 @@
-import { AppBar, AppBarAction } from '../../../main/ets/common/AppBar';
-import { CommonToast } from '../../../main/ets/common/CommonToast';
-import { LoadingModal } from '../../../main/ets/common/LoadingModal';
-import { CommonModal, CommonOptionItem, PromptDialog } from '../../../main/ets/common/CommonModal';
+import { AppBar, AppBarAction } from 'common';
+import { CommonToast } from 'common';
+import { LoadingModal } from 'common';
+import { CommonModal, CommonOptionItem } from 'common';
 import {
   PullLoadMoreList,
   PullLoadMoreController,
   PullLoadMoreFooterState,
-} from '../../../main/ets/common/PullLoadMoreList';
+} from 'common';
 
 interface DemoItem {
   id: number;
   text: string;
+}
+
+// 生产侧 PromptDialog 已删除（R9 阶段0）：输入弹窗 V2 时代统一走 bindSheet。
+// 测试演示页自持一个最小 @CustomDialog，演示 component-scope controller 范式（KI-046）。
+@CustomDialog
+struct DemoInputDialog {
+  controller?: CustomDialogController;
+  onConfirm: (text: string) => void = (): void => {};
+  @State current: string = '';
+
+  build(): void {
+    Column() {
+      TextInput({ text: this.current, placeholder: 'something' })
+        .height(44)
+        .onChange((value: string): void => {
+          this.current = value;
+        });
+      Row() {
+        Button('Cancel').layoutWeight(1).onClick((): void => {
+          if (this.controller) {
+            this.controller.close();
+          }
+        });
+        Button('OK').layoutWeight(1).onClick((): void => {
+          const value: string = this.current;
+          if (this.controller) {
+            this.controller.close();
+          }
+          this.onConfirm(value);
+        });
+      }
+      .width('100%')
+      .height(44)
+      .margin({ top: 12 });
+    }
+    .padding(20)
+    .borderRadius(8)
+    .width(300)
+    .backgroundColor(Color.White);
+  }
 }
 
 @Entry
@@ -23,14 +63,10 @@ struct CommonComponentsPage {
   ];
   @State plmController: PullLoadMoreController = new PullLoadMoreController();
 
-  // PromptDialog 必须在 @Component 实例 build 上下文里 new CustomDialogController 才能弹。
+  // 输入弹窗必须在 @Component 实例 build 上下文里 new CustomDialogController 才能弹。
   // 不能在 static 函数内 new（KI-046 已暴露过 → KI-047 收尾把 CommonModal.prompt 删掉）。
   private promptController: CustomDialogController = new CustomDialogController({
-    builder: PromptDialog({
-      title: 'Input',
-      placeholder: 'something',
-      okText: 'OK',
-      cancelText: 'Cancel',
+    builder: DemoInputDialog({
       onConfirm: (text: string): void => {
         CommonToast.showShort(text);
       },

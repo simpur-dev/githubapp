@@ -1,0 +1,9 @@
+{
+  "name": "feature_repo",
+  "version": "1.0.0",
+  "description": "GSYGithubApp 仓库/Issue/提交/代码/发布特性",
+  "main": "Index.ets",
+  "dependencies": {
+    "common": "file:../../common"
+  }
+}

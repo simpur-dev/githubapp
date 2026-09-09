@@ -5,7 +5,14 @@
   "main": "",
   "author": "guoshuyu",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "common": "file:../common",
+    "feature_auth": "file:../features/feature-auth",
+    "feature_main": "file:../features/feature-main",
+    "feature_repo": "file:../features/feature-repo",
+    "feature_user": "file:../features/feature-user",
+    "feature_misc": "file:../features/feature-misc"
+  },
   "devDependencies": {
     "@ohos/hypium": "1.0.21"
   }
