@@ -1,17 +1,21 @@
 import { GSYColor, GSYFontSize } from 'common';
 
-@Component
+/**
+ * HarmonyLogoMark —— 纯展示组件（R9 V2 + MVVM 试点：@ComponentV2 + @Param，无 ViewModel）。
+ * 全部入参只读（@Param），phase 变化由父组件（V2 @Param 单向同步）驱动重绘。
+ */
+@ComponentV2
 export struct HarmonyLogoMark {
-  @Prop phase: number = 0;
-  @Prop markSize: number = 180;
-  @Prop rootId: string = 'harmony_logo';
-  @Prop letterId: string = 'harmony_logo_letter';
-  @Prop labelId: string = '';
-  @Prop labelText: string = '';
-  @Prop darkSurface: boolean = false;
-  @Prop contained: boolean = false;
-  @Prop play: boolean = true;
-  @Prop showPosterBacking: boolean = false;
+  @Param phase: number = 0;
+  @Param markSize: number = 180;
+  @Param rootId: string = 'harmony_logo';
+  @Param letterId: string = 'harmony_logo_letter';
+  @Param labelId: string = '';
+  @Param labelText: string = '';
+  @Param darkSurface: boolean = false;
+  @Param contained: boolean = false;
+  @Param play: boolean = true;
+  @Param showPosterBacking: boolean = false;
 
   private imageHeight(): number {
     return this.markSize * 0.75;

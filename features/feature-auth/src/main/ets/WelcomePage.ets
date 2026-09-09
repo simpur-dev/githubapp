@@ -1,20 +1,14 @@
 import common from '@ohos.app.ability.common';
 import font from '@ohos.font';
 import hilog from '@ohos.hilog';
-import { NavigationService } from 'common';
-import { RouteName } from 'common';
-import { Preferences, KEY_USER_TOKEN, KEY_USER_INFO, PREF_NAME } from 'common';
-import { HttpManager } from 'common';
-import { GlobalAuthStore, AuthUserInfo } from 'common';
-import { DefaultLoginUseCase, LoginOutcome } from 'common';
-import { BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BootChannel } from 'common';
+import { Preferences, PREF_NAME } from 'common';
+import { WelcomeViewModel } from './viewmodel/WelcomeViewModel';
 
-const WELCOME_DELAY_MS: number = 1000;
 const WELCOME_ICON_SIZE: number = 120;
 const TAG: string = 'WelcomePage';
 
 /**
- * WelcomePage —— 系统原生启动窗口风格的欢迎页（2026-09 重构）
+ * WelcomePage —— 系统原生启动窗口风格的欢迎页（2026-09 重构；R9 V2 + MVVM 试点 View 层）
  *
  * 用户拍板：与 RN 端 welcome.png + Lottie 动画解耦，改用 HarmonyOS 系统启动窗口
  * 同款视觉 —— 屏幕居中 app 图标 + 系统空白背景（跟随系统深浅色模式）。
@@ -22,32 +16,27 @@ const TAG: string = 'WelcomePage';
  * 深浅色跟随实现：背景色走资源引用 $r('app.color.start_window_background')，
  * base 目录 #FFFFFF（浅色）/ dark 目录 #000000（深色）由资源限定符自动切换，
  * 与 module.json5 startWindowBackground 指向同一资源，启动窗口→本页视觉无缝衔接。
+ *
+ * token 检查 / 路由决策 / BOOT 兜底全部在 WelcomeViewModel（@ObservedV2 + @Trace）。
  */
-@Component
+@ComponentV2
 export struct WelcomePage {
-  @State decided: boolean = false;
-  private timerId: number = -1;
+  @Local vm: WelcomeViewModel = new WelcomeViewModel();
 
   aboutToAppear(): void {
     this.registerIconFonts();
+    let ctx: common.UIAbilityContext | null = null;
     try {
-      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      ctx = getContext(this) as common.UIAbilityContext;
       Preferences.init(ctx, PREF_NAME).catch((): void => {
       });
     } catch (_e) {
     }
-    if (!this.decided) {
-      this.timerId = setTimeout((): void => {
-        this.startExitTransition();
-      }, WELCOME_DELAY_MS);
-    }
+    this.vm.scheduleExit(ctx);
   }
 
   aboutToDisappear(): void {
-    if (this.timerId !== -1) {
-      clearTimeout(this.timerId);
-      this.timerId = -1;
-    }
+    this.vm.cancelTimer();
   }
 
   /**
@@ -69,111 +58,7 @@ export struct WelcomePage {
   }
 
   onPageShow(): void {
-    if (this.decided) {
-      return;
-    }
-    if (this.timerId === -1) {
-      this.timerId = setTimeout((): void => {
-        this.startExitTransition();
-      }, WELCOME_DELAY_MS);
-    }
-  }
-
-  private startExitTransition(): void {
-    if (this.decided) {
-      return;
-    }
-    const welcomeHold: string = BootChannel.get(BOOT_WELCOME_HOLD_KEY);
-    if (welcomeHold.length > 0) {
-      return;
-    }
-    this.routeByToken();
-  }
-
-  private async routeByToken(): Promise<void> {
-    if (this.decided) {
-      return;
-    }
-    const welcomeHold: string = BootChannel.get(BOOT_WELCOME_HOLD_KEY);
-    if (welcomeHold.length > 0) {
-      return;
-    }
-    const bootLogin: string = BootChannel.get(BOOT_LOGIN_KEY);
-    if (bootLogin.length > 0) {
-      BootChannel.set(BOOT_LOGIN_KEY, '');
-      this.decided = true;
-      NavigationService.replace(RouteName.Login);
-      return;
-    }
-    // token 直读 GlobalAuthStore 单例（原 auth.token 镜像通道已移除）。
-    let token: string = GlobalAuthStore.token ? GlobalAuthStore.token : '';
-    if (!token) {
-      try {
-        if (!Preferences.isReady()) {
-          const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
-          await Preferences.init(ctx, PREF_NAME);
-        }
-        token = await Preferences.getString(KEY_USER_TOKEN, '');
-      } catch (_e) {
-        token = '';
-      }
-    }
-    if (token && token.length > 0) {
-      this.decided = true;
-      GlobalAuthStore.token = token;
-      HttpManager.setAuthorization(token);
-      await this.restoreUserInfo(token);
-      NavigationService.replace(RouteName.Home);
-      return;
-    }
-    this.decided = true;
-    NavigationService.replace(RouteName.Login);
-  }
-
-  /**
-   * 冷启 token 路径下补恢复 user 信息（KI-051 修法）：
-   * 对齐 RN 端 [user.js initUserInfo](https://github.com/CarGuo/GSYGithubApp/blob/master/app/store/actions/user.js)
-   * 把 AsyncStorage[USER_INFO] 解出来后 dispatch USER.USER_INFO 的语义。
-   * 读 Preferences[KEY_USER_INFO] → AuthUserInfo.fromJson → GlobalAuthStore.setUser，
-   * 让 GlobalAuthStore.userInfo 直接恢复，
-   * 修复 IssueDetailPage / 其他 owner 判定页面在冷启 bootToken 路径下 owner=false 的问题。
-   */
-  private async restoreUserInfo(token: string): Promise<void> {
-    try {
-      if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined
-        && GlobalAuthStore.userInfo.login.length > 0) {
-        return;
-      }
-      if (!Preferences.isReady()) {
-        try {
-          const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
-          await Preferences.init(ctx, PREF_NAME);
-        } catch (_e) {
-          return;
-        }
-      }
-      const json: string = await Preferences.getString(KEY_USER_INFO, '');
-      if (json && json.length > 0) {
-        const user: AuthUserInfo | null = AuthUserInfo.fromJson(json);
-        if (user !== null && user.login.length > 0) {
-          GlobalAuthStore.setUser(token, user);
-          hilog.info(0x0000, TAG, 'restoreUserInfo from cache ok login=%{public}s', user.login);
-          return;
-        }
-      }
-      // 本地没有 user 缓存（典型场景：bootToken 测试通道首次注入 PAT），
-      // 调一次 GET /user 拉回用户信息并写 Preferences；语义对齐 RN 端
-      // [login.js doTokenLogin](https://github.com/CarGuo/GSYGithubApp/blob/master/app/store/actions/login.js)。
-      const outcome: LoginOutcome = await DefaultLoginUseCase.loginWithPersonalAccessToken(token);
-      if (outcome.result && outcome.data !== null) {
-        hilog.info(0x0000, TAG, 'restoreUserInfo via /user ok login=%{public}s', outcome.data.login);
-      } else {
-        hilog.warn(0x0000, TAG, 'restoreUserInfo via /user fail code=%{public}d', outcome.code);
-      }
-    } catch (e) {
-      const err = e as Error;
-      hilog.warn(0x0000, TAG, 'restoreUserInfo fail %{public}s', err.message);
-    }
+    this.vm.scheduleExit(null);
   }
 
   build(): void {
