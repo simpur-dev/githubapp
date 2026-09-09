@@ -67,7 +67,7 @@ export { RecommendOwner, RecommendRepo, RecommendSearchResponse, RecommendStore 
 export { ISSUE_STATE_ALL, RepositoryCommitAuthor, RepositoryCommitDetail, RepositoryCommitItem, RepositoryCommitUser, RepositoryDetail, RepositoryDetailStore, RepositoryEventActor, RepositoryEventItem, RepositoryEventRepo, RepositoryFileItem, RepositoryIssueItem, RepositoryIssueUser, RepositoryLicense, RepositoryOwner, RepositoryParent, RepositoryPulseData } from './src/main/ets/model/store/RepositoryDetailStore';
 export { SEARCH_TAB_ISSUE, SEARCH_TAB_REPO, SEARCH_TAB_USER, SearchIssueItem, SearchIssueSearchResponse, SearchStore, SearchTab, SearchUserItem, SearchUserSearchResponse } from './src/main/ets/model/store/SearchStore';
 export { TREND_LANGUAGE_ALL, TREND_SINCE_DAILY, TREND_SINCE_MONTHLY, TREND_SINCE_WEEKLY, TrendBuiltBy, TrendRepo, TrendSince, TrendStore, fullNameOf } from './src/main/ets/model/store/TrendStore';
-export { UserDetail, UserDetailStore, UserOrgItem, UserRepoItem, emptyUserDetail, sanitizeUserDetail } from './src/main/ets/model/store/UserDetailStore';
+export { UserDetail, UserOrgItem, UserRepoItem, emptyUserDetail, sanitizeUserDetail } from './src/main/ets/model/store/UserDetailStore';
 export { AppBar, AppBarAction } from './src/main/ets/ui/components/AppBar';
 export { CommonBottomBar, CommonBottomBarItem } from './src/main/ets/ui/components/CommonBottomBar';
 export { CommonIconButton } from './src/main/ets/ui/components/CommonIconButton';

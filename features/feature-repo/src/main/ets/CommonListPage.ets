@@ -23,7 +23,7 @@ import {
   FetchSubUserListResult,
   FetchUserReposResult
 } from 'common';
-import { UserDetailStore, UserRepoItem } from 'common';
+import { UserRepoItem } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { SubListView, SubListMode } from 'common';
@@ -97,14 +97,12 @@ export struct CommonListPage {
   @State plmLoadingMore: boolean = false;
   @State plmNoMore: boolean = false;
   private localData: SubRepositoryItem[] = [];
-  private userStore: UserDetailStore = new UserDetailStore();
   private repoStore: RepositoryDetailStore = new RepositoryDetailStore();
-  private userService: UserService = new UserService(this.userStore);
+  private userService: UserService = new UserService();
   private repoService: RepositoryService = new RepositoryService(this.repoStore);
   private pageSize: number = 30;
 
   aboutToAppear(): void {
-    this.userService = new UserService(this.userStore);
     this.repoService = new RepositoryService(this.repoStore);
     this.pageSize = this.userService.getPageSize();
     if (this.initialParam !== null) {

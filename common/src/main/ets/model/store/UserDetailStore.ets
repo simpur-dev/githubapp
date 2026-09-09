@@ -102,88 +102,10 @@ export function sanitizeUserDetail(user: UserDetail | null | undefined): UserDet
   return safe;
 }
 
-@Observed
-export class UserDetailStore {
-  user: UserDetail = emptyUserDetail();
-  repos: UserRepoItem[] = [];
-  orgsList: UserOrgItem[] = [];
-  starredCount: number = 0;
-  beStaredCount: number = 0;
-  followed: boolean = false;
-  loading: boolean = false;
-  page: number = 1;
-  hasMore: boolean = true;
-  error: string = '';
-
-  reset(): void {
-    this.user = emptyUserDetail();
-    this.repos = [];
-    this.orgsList = [];
-    this.starredCount = 0;
-    this.beStaredCount = 0;
-    this.followed = false;
-    this.loading = false;
-    this.page = 1;
-    this.hasMore = true;
-    this.error = '';
-  }
-
-  startLoading(): void {
-    this.loading = true;
-    this.error = '';
-  }
-
-  finishLoading(): void {
-    this.loading = false;
-  }
-
-  setError(msg: string): void {
-    this.error = msg;
-    this.loading = false;
-  }
-
-  applyUser(user: UserDetail): void {
-    this.user = sanitizeUserDetail(user);
-    const n: number = Number.parseInt(this.user.starred, 10);
-    this.starredCount = Number.isNaN(n) ? 0 : n;
-    this.error = '';
-  }
-
-  applyStarredCount(count: number): void {
-    this.starredCount = count > 0 ? count : 0;
-    const next: UserDetail = sanitizeUserDetail(this.user);
-    next.starred = this.starredCount.toString();
-    this.user = next;
-  }
-
-  applyFollowed(followed: boolean): void {
-    this.followed = followed;
-  }
-
-  applyReposRefresh(repos: UserRepoItem[], pageSize: number): void {
-    this.repos = repos.slice();
-    this.page = 1;
-    this.hasMore = repos.length >= pageSize;
-    this.loading = false;
-    this.error = '';
-  }
-
-  applyReposAppend(repos: UserRepoItem[], page: number, pageSize: number): void {
-    const merged: UserRepoItem[] = this.repos.slice();
-    for (let i = 0; i < repos.length; i++) {
-      merged.push(repos[i]);
-    }
-    this.repos = merged;
-    this.page = page;
-    this.hasMore = repos.length >= pageSize;
-    this.loading = false;
-    this.error = '';
-  }
-
-  applyReposCachedFallback(repos: UserRepoItem[]): void {
-    this.repos = repos.slice();
-    this.page = 1;
-    this.hasMore = false;
-    this.loading = false;
-  }
-}
+/**
+ * UserDetailStore —— V1 时代的 @Observed UI 状态容器已在 R9 V2 + MVVM 改造中删除
+ * （UserService 无状态化后无人写入，用户详情页 UI 状态改由
+ * feature-user 的 UserDetailViewModel @Trace 字段承载）。
+ * 本文件仅保留数据实体（UserDetail / UserOrgItem / UserRepoItem）与归一化工具，
+ * 供 UserService 与各页面继续引用，导出路径不变。
+ */

@@ -9,17 +9,17 @@
  *
  * OH 端：
  *   - 使用 GSYCardItem 同款 16/8 外边距、8 圆角、1px outline、2dp 近似 elevation
- *   - CustomDialog 内联 TextInput，对齐 Compose InfoScreen 的 AlertDialog + TextField 编辑流。
- *   - 走 [UserService.updateUser](../service/UserService.ets) PATCH /user
+ *   - R9 V2：原 @CustomDialog PersonInfoEditDialog + CustomDialogController 在
+ *     @ComponentV2 中不可用，内容结构原样迁为 @ComponentV2 PersonInfoEditSheet +
+ *     bindSheet 呈现，person_info_edit_dialog_* 全部测试 id 原样保留。
+ *   - 走 [UserService.updateUser](../../../common/src/main/ets/model/service/UserService.ets) PATCH /user
  *
  * HARD-LAW 自检：
- *   - HARD-LAW-1 RN-FIRST：✅ 已读 RN 230 行
- *   - HARD-LAW-2 TOKEN-ONLY：✅ 仅引 GSYColor/GSYFontSize/GSYSpacing
- *   - HARD-LAW-3 NO-DEBUG-PROBE：✅ 无 *-count Text；调试走 Logger.i('person/info/...')
+ *   - HARD-LAW-1 TOKEN-ONLY：仅引 GSYColor/GSYFontSize/GSYSpacing/GSYShadow
+ *   - HARD-LAW-2 NO-DEBUG-PROBE：无 *-count Text；调试走 Logger.i('person/info/...')
  */
 
 import { AppBar } from 'common';
-import { CommonToast } from 'common';
 import { PullLoadMoreList } from 'common';
 import {
   IconFont,
@@ -31,54 +31,53 @@ import {
   FA_COMMENT,
 } from 'common';
 import { I18n } from 'common';
-import { Logger } from 'common';
 import { NavigationService } from 'common';
+import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
 import {
-  AuthUserInfo,
-  GlobalAuthStore,
-} from 'common';
-import {
-  UserService,
-  UpdateUserResult,
-} from 'common';
-import {
-  MyService,
-  RefreshMeResult,
-} from 'common';
-import { UserDao } from 'common';
-import { GlobalMyStore } from 'common';
-import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from 'common';
+  PersonInfoViewModel,
+  PERSON_INFO_FIELD_NAME,
+  PERSON_INFO_FIELD_EMAIL,
+  PERSON_INFO_FIELD_BLOG,
+  PERSON_INFO_FIELD_COMPANY,
+  PERSON_INFO_FIELD_LOCATION,
+  PERSON_INFO_FIELD_BIO,
+} from './viewmodel/PersonInfoViewModel';
 
 const PERSON_INFO_PLACEHOLDER: string = '---';
-const PERSON_INFO_FIELD_NAME: string = 'name';
-const PERSON_INFO_FIELD_EMAIL: string = 'email';
-const PERSON_INFO_FIELD_BLOG: string = 'blog';
-const PERSON_INFO_FIELD_COMPANY: string = 'company';
-const PERSON_INFO_FIELD_LOCATION: string = 'location';
-const PERSON_INFO_FIELD_BIO: string = 'bio';
 
 class PersonInfoListItem {
   key: string = 'person_info';
 }
 
-@CustomDialog
-struct PersonInfoEditDialog {
-  controller?: CustomDialogController;
-  title: string = '';
-  defaultValue: string = '';
-  placeholder: string = '';
-  okText: string = '';
-  cancelText: string = '';
-  onConfirm: (text: string) => void = (_text: string): void => {};
-  @State current: string = '';
+/**
+ * 编辑弹层内容（V2）。旧版经 @CustomDialog PersonInfoEditDialog +
+ * CustomDialogController 呈现（V2 组件不可用），内容结构原样迁为
+ * @ComponentV2 + bindSheet，person_info_edit_dialog_* 测试 id 全部原样保留。
+ */
+@ComponentV2
+struct PersonInfoEditSheet {
+  @Param dialogTitle: string = '';
+  @Param defaultValue: string = '';
+  @Param placeholder: string = '';
+  @Param okText: string = '';
+  @Param cancelText: string = '';
+  @Event onConfirm: (text: string) => void = (_text: string): void => {};
+  @Event onCancel: () => void = (): void => {};
+  @Local current: string = '';
 
   aboutToAppear(): void {
     this.current = this.defaultValue;
   }
 
+  // 每次打开弹层前 View 层会更新 defaultValue，同步草稿值（等价旧弹窗每次 open 重建）。
+  @Monitor('defaultValue')
+  onDefaultChange(): void {
+    this.current = this.defaultValue;
+  }
+
   build(): void {
     Column() {
-      Text(this.title)
+      Text(this.dialogTitle)
         .id('person_info_edit_dialog_title')
         .fontSize(GSYFontSize.middleWhite)
         .fontWeight(FontWeight.Bold)
@@ -108,9 +107,7 @@ struct PersonInfoEditDialog {
           .backgroundColor(Color.Transparent)
           .fontColor(GSYColor.mediumText)
           .onClick((): void => {
-            if (this.controller) {
-              this.controller.close();
-            }
+            this.onCancel();
           });
         Divider().vertical(true).height(20).color(GSYColor.pillDivider);
         Button(this.okText)
@@ -120,9 +117,6 @@ struct PersonInfoEditDialog {
           .fontColor(GSYColor.materialBlue)
           .onClick((): void => {
             const value: string = this.current;
-            if (this.controller) {
-              this.controller.close();
-            }
             this.onConfirm(value);
           });
       }
@@ -133,90 +127,22 @@ struct PersonInfoEditDialog {
       .alignItems(VerticalAlign.Center);
     }
     .id('person_info_edit_dialog_root')
-    .padding(20)
+    .padding(2 * GSYSpacing.normalEdge)
     .borderRadius(8)
-    .width(300)
+    .width('90%')
     .backgroundColor(Color.White);
   }
 }
 
-@Component
+@ComponentV2
 export struct PersonInfoPage {
-  @State name: string = '';
-  @State email: string = '';
-  @State blog: string = '';
-  @State company: string = '';
-  @State location: string = '';
-  @State bio: string = '';
-  @State busyField: string = '';
-  @State editField: string = '';
-  @State editLabel: string = '';
-  @State editValue: string = '';
-  @State infoData: PersonInfoListItem[] = [new PersonInfoListItem()];
-  @State plmRefreshing: boolean = false;
-  @State plmLoadingMore: boolean = false;
-  @State plmNoMore: boolean = false;
-  private userDao: UserDao = new UserDao();
-  private myService: MyService = new MyService(GlobalMyStore, GlobalAuthStore, this.userDao);
-  private editDialogController: CustomDialogController = new CustomDialogController({
-    builder: PersonInfoEditDialog({
-      title: I18n('editField', { 'option1': this.editLabel }),
-      defaultValue: this.editValue,
-      placeholder: this.editLabel,
-      okText: I18n('ok'),
-      cancelText: I18n('cancel'),
-      onConfirm: (text: string): void => {
-        this.submitField(this.editField, text);
-      },
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center,
-    customStyle: true,
-  });
+  @Local vm: PersonInfoViewModel = new PersonInfoViewModel();
+  @Local infoData: PersonInfoListItem[] = [new PersonInfoListItem()];
+  // bindSheet 开合状态（@Local 双向绑定；弹层参数在 ViewModel @Trace 字段）。
+  @Local editSheetOpen: boolean = false;
 
   aboutToAppear(): void {
-    this.applyUserToState();
-  }
-
-  /**
-   * 登录用户直读 GlobalAuthStore 单例（原 auth.userInfo 镜像通道已移除）。
-   */
-  private parseUser(): AuthUserInfo | null {
-    if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined) {
-      return GlobalAuthStore.userInfo;
-    }
-    return null;
-  }
-
-  private applyUserToState(): void {
-    const user: AuthUserInfo | null = this.parseUser();
-    if (user === null) {
-      return;
-    }
-    this.name = user.name;
-    this.blog = user.blog;
-    this.company = user.company;
-    this.location = user.location;
-    this.bio = user.bio;
-    // GitHub /user 接口的 email 字段 AuthUserInfo 暂未持有 → 从 raw json 直读，回退空串
-    this.email = PersonInfoPage.readEmailFromRaw(user.raw);
-  }
-
-  private static readEmailFromRaw(raw: string): string {
-    if (raw === undefined || raw === null || raw.length === 0) {
-      return '';
-    }
-    try {
-      const obj: Object = JSON.parse(raw) as Object;
-      const rec: Record<string, Object> = obj as Record<string, Object>;
-      const v: Object | undefined = rec['email'];
-      if (v === undefined || v === null) {
-        return '';
-      }
-      return String(v);
-    } catch (_e) {
-      return '';
-    }
+    this.vm.init();
   }
 
   private displayValue(value: string): string {
@@ -225,35 +151,32 @@ export struct PersonInfoPage {
       : PERSON_INFO_PLACEHOLDER;
   }
 
-  private async dispatchEdit(field: string, oldValue: string, label: string): Promise<void> {
-    Logger.i('person/info/edit', 'field=' + field + ' oldLen=' + oldValue.length);
-    if (this.busyField.length > 0) {
-      return;
+  private dispatchEdit(field: string, oldValue: string, label: string): void {
+    if (this.vm.openEdit(field, oldValue, label)) {
+      this.editSheetOpen = true;
     }
-    this.editField = field;
-    this.editLabel = label;
-    this.editValue = oldValue;
-    this.editDialogController.open();
   }
 
-  private async triggerRefresh(): Promise<void> {
-    this.plmRefreshing = true;
-    this.plmLoadingMore = false;
-    this.plmNoMore = false;;
-    const result: RefreshMeResult = await this.myService.refreshMe();
-    if (result.result && result.data !== null) {
-      this.applyUserToState();
-      this.plmRefreshing = false;
-    this.plmLoadingMore = false;
-    this.plmNoMore = !(false);
-      return;
-    }
-    this.plmRefreshing = false;
-    this.plmLoadingMore = false;
-    this.plmNoMore = !(false);
-    if (result.msg.length > 0) {
-      CommonToast.showShort(result.msg);
-    }
+  private closeEditSheet(): void {
+    this.editSheetOpen = false;
+  }
+
+  @Builder
+  private editSheetBuilder(): void {
+    PersonInfoEditSheet({
+      dialogTitle: I18n('editField', { 'option1': this.vm.editLabel }),
+      defaultValue: this.vm.editValue,
+      placeholder: this.vm.editLabel,
+      okText: I18n('ok'),
+      cancelText: I18n('cancel'),
+      onConfirm: (text: string): void => {
+        this.closeEditSheet();
+        this.vm.submitEdit(text);
+      },
+      onCancel: (): void => {
+        this.closeEditSheet();
+      },
+    });
   }
 
   @Builder
@@ -291,10 +214,10 @@ export struct PersonInfoPage {
     .width('100%')
     .constraintSize({ minHeight: 56 })
     .padding({
-      left: 15,
-      right: 15,
-      top: 14,
-      bottom: 14,
+      left: GSYSpacing.composeCardPaddingHorizontal,
+      right: GSYSpacing.composeCardPaddingHorizontal,
+      top: GSYSpacing.composeCardPaddingVertical,
+      bottom: GSYSpacing.composeCardPaddingVertical,
     })
     .backgroundColor(GSYColor.cardBackground)
     .borderRadius(8)
@@ -304,7 +227,7 @@ export struct PersonInfoPage {
     })
     .shadow({
       radius: 6,
-      color: '#14000000',
+      color: GSYShadow.cardShadowAlpha,
       offsetX: 0,
       offsetY: 2,
     })
@@ -313,81 +236,28 @@ export struct PersonInfoPage {
       this.dispatchEdit(field, rawValue, label);
     })
     .margin({
-      left: 16,
-      right: 16,
-      top: 8,
-      bottom: 8,
+      left: GSYSpacing.composeCardHorizontal,
+      right: GSYSpacing.composeCardHorizontal,
+      top: GSYSpacing.composeCardVertical,
+      bottom: GSYSpacing.composeCardVertical,
     });
-  }
-
-  /**
-   * 真实 PATCH（保留接口，便于后续 CustomDialog 接入后直接调用）。
-   */
-  async submitField(field: string, newValue: string): Promise<boolean> {
-    if (this.busyField.length > 0) {
-      return false;
-    }
-    this.busyField = field;
-    const result: UpdateUserResult = await UserService.updateUser(field, newValue, this.userDao);
-    Logger.i('person/info/patch',
-      'field=' + field + ' code=' + result.code + ' result=' + result.result);
-    if (result.result) {
-      if (field === PERSON_INFO_FIELD_NAME) {
-        this.name = newValue;
-      } else if (field === PERSON_INFO_FIELD_EMAIL) {
-        this.email = newValue;
-      } else if (field === PERSON_INFO_FIELD_BLOG) {
-        this.blog = newValue;
-      } else if (field === PERSON_INFO_FIELD_COMPANY) {
-        this.company = newValue;
-      } else if (field === PERSON_INFO_FIELD_LOCATION) {
-        this.location = newValue;
-      } else if (field === PERSON_INFO_FIELD_BIO) {
-        this.bio = newValue;
-      }
-      this.syncAuthUserField(field, newValue);
-      CommonToast.showShort(I18n('userInfoUpdateSuccess'));
-    } else {
-      CommonToast.showShort(result.msg.length > 0 ? result.msg : I18n('userInfoUpdateFail'));
-    }
-    this.busyField = '';
-    return result.result;
-  }
-
-  private syncAuthUserField(field: string, value: string): void {
-    const current: AuthUserInfo | null = this.parseUser();
-    if (current === null || current.raw.length === 0) {
-      return;
-    }
-    try {
-      const rawObj: Record<string, Object> = JSON.parse(current.raw) as Record<string, Object>;
-      rawObj[field] = value;
-      const raw: string = JSON.stringify(rawObj);
-      const updated: AuthUserInfo | null = AuthUserInfo.fromJson(raw);
-      if (updated !== null) {
-        // setUser 写单例后由 EVENT_AUTH_STATE_CHANGED 驱动 DrawerHeader 等消费方刷新，
-        // 无需再同步任何镜像键。
-        GlobalAuthStore.setUser(GlobalAuthStore.token, updated);
-      }
-    } catch (_e) {
-    }
   }
 
   @Builder
   private buildInfoContent(): void {
     Column() {
       this.buildInfoRow('person_info_row_name', FA_INFO_CIRCLE, I18n('infoName'),
-        this.displayValue(this.name), PERSON_INFO_FIELD_NAME, this.name);
+        this.displayValue(this.vm.name), PERSON_INFO_FIELD_NAME, this.vm.name);
       this.buildInfoRow('person_info_row_email', FA_ENVELOPE, I18n('infoEmail'),
-        this.displayValue(this.email), PERSON_INFO_FIELD_EMAIL, this.email);
+        this.displayValue(this.vm.email), PERSON_INFO_FIELD_EMAIL, this.vm.email);
       this.buildInfoRow('person_info_row_blog', FA_LINK, I18n('infoBlog'),
-        this.displayValue(this.blog), PERSON_INFO_FIELD_BLOG, this.blog);
+        this.displayValue(this.vm.blog), PERSON_INFO_FIELD_BLOG, this.vm.blog);
       this.buildInfoRow('person_info_row_company', FA_GROUP, I18n('infoCompany'),
-        this.displayValue(this.company), PERSON_INFO_FIELD_COMPANY, this.company);
+        this.displayValue(this.vm.company), PERSON_INFO_FIELD_COMPANY, this.vm.company);
       this.buildInfoRow('person_info_row_location', FA_LOCATION, I18n('infoLocation'),
-        this.displayValue(this.location), PERSON_INFO_FIELD_LOCATION, this.location);
+        this.displayValue(this.vm.location), PERSON_INFO_FIELD_LOCATION, this.vm.location);
       this.buildInfoRow('person_info_row_bio', FA_COMMENT, I18n('infoBio'),
-        this.displayValue(this.bio), PERSON_INFO_FIELD_BIO, this.bio);
+        this.displayValue(this.vm.bio), PERSON_INFO_FIELD_BIO, this.vm.bio);
       Text(I18n('loadMoreEnd'))
         .id('person_info_no_more')
         .fontSize(GSYFontSize.middleWhite)
@@ -395,7 +265,7 @@ export struct PersonInfoPage {
         .width('100%')
         .height(50)
         .textAlign(TextAlign.Center)
-        .margin({ top: 12 });
+        .margin({ top: GSYSpacing.padding12 });
     }
     .id('person_info_content')
     .width('100%')
@@ -426,17 +296,16 @@ export struct PersonInfoPage {
       });
       PullLoadMoreList({
         dataSource: this.infoData,
-        refreshing: this.plmRefreshing,
-        loadingMore: this.plmLoadingMore,
-        noMore: this.plmNoMore,
+        refreshing: this.vm.refreshing,
+        loadingMore: this.vm.loadingMore,
+        noMore: this.vm.noMore,
         renderHeader: (): void => this.buildPullHeader(),
         renderRow: (_item: Object, _index: number): void => this.buildInfoContent(),
         onRefresh: (): void => {
-          this.triggerRefresh();
+          this.vm.refresh();
         },
         onLoadMore: (): void => {
-          this.plmLoadingMore = false;
-    this.plmNoMore = !(false);
+          this.vm.loadMore();
         },
         refreshingText: I18n('refreshing'),
         loadingMoreText: I18n('loadMoreing'),
@@ -449,6 +318,12 @@ export struct PersonInfoPage {
     .id('person_info_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.mainBackground);
+    .backgroundColor(GSYColor.mainBackground)
+    .bindSheet(this.editSheetOpen, this.editSheetBuilder(), {
+      height: 260,
+      dragBar: false,
+      showClose: false,
+      backgroundColor: GSYColor.white,
+    });
   }
 }

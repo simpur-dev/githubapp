@@ -150,6 +150,9 @@ export class GSYSpacing {
   static readonly padding12: number = 12;
   static readonly composeCardHorizontal: number = 16;
   static readonly composeCardVertical: number = 8;
+  // Compose 卡片内边距（PersonInfoPage 信息行，对齐 InfoScreen 15/14）
+  static readonly composeCardPaddingHorizontal: number = 15;
+  static readonly composeCardPaddingVertical: number = 14;
   static readonly tabBarHeight: number = 56;
   static readonly hdsFloatingTabSideMargin: number = 16;
   static readonly hdsFloatingTabBottomMargin: number = 12;

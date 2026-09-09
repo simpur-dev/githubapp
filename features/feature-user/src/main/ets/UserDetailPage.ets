@@ -2,41 +2,25 @@ import { I18n } from 'common';
 import pasteboard from '@ohos.pasteboard';
 import common from '@ohos.app.ability.common';
 import Want from '@ohos.app.ability.Want';
-import hilog from '@ohos.hilog';
 import { PullLoadMoreList } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
 import { AppBar, AppBarAction } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import { CommonToast } from 'common';
 import { Logger } from 'common';
-import {
-  UserDetailStore,
-  UserDetail,
-  UserRepoItem,
-  sanitizeUserDetail,
-} from 'common';
-import { DynamicStore, DynamicEvent } from 'common';
-import {
-  UserService,
-  FetchUserResult,
-  FetchUserReposResult,
-  FetchFollowResult,
-  FetchSubUserListResult
-} from 'common';
+import { UserRepoItem } from 'common';
 import { SubUserItem } from 'common';
-import { DynamicService, FetchReceivedResult } from 'common';
+import { DynamicEvent } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RouteParamStore } from 'common';
-import { ReadHistoryService, ReadHistoryAddParam } from 'common';
-import { READ_HISTORY_TYPE_USER } from 'common';
 import { BOOT_USER_KEY, BootChannel } from 'common';
 import { IconTextItem } from 'common';
 import { EventItem } from 'common';
 import { IconFont, FA_CHECK, FA_GROUP, FA_MAP_MARKER, FA_USER_PLUS } from 'common';
-import { TimeUtil } from 'common';
 import { EventActionUtil } from 'common';
 import { EventActionDispatcher } from 'common';
+import { UserDetailViewModel } from './viewmodel/UserDetailViewModel';
 
 interface UserDetailRouteParam {
   login: string;
@@ -63,35 +47,14 @@ const COMMON_LIST_DATA_TYPE_USER_STAR: string = 'user_star';
 const COMMON_LIST_SHOW_TYPE_USER: string = 'user';
 const COMMON_LIST_SHOW_TYPE_REPOSITORY: string = 'repository';
 
-/**
- * 安全字符串：把 null/undefined 兜底成 ''，避免对 null 调 .length 直接崩。
- * GitHub API 对 description / language / full_name / bio / name 经常返回 null。
- */
-function safeStr(v: string | null | undefined): string {
-  return (v === null || v === undefined) ? '' : v;
-}
-
-@Component
+@ComponentV2
 export struct UserDetailPage {
-  @State login: string = FALLBACK_LOGIN;
-  @State store: UserDetailStore = new UserDetailStore();
-  @State dynamicStore: DynamicStore = new DynamicStore();
-  @State orgMembers: SubUserItem[] = [];
-  @State orgMemberPage: number = 1;
-  @State orgMemberHasMore: boolean = true;
-  @State plmRefreshing: boolean = false;
-  @State plmLoadingMore: boolean = false;
-  @State plmNoMore: boolean = false;
-  private service: UserService = new UserService(this.store);
-  private dynamicService: DynamicService = new DynamicService();
-  private readHistoryService: ReadHistoryService = new ReadHistoryService();
+  @Local vm: UserDetailViewModel = new UserDetailViewModel();
   private pathStack: NavPathStack = new NavPathStack();
 
   aboutToAppear(): void {
-    this.service = new UserService(this.store);
-    this.dynamicService = new DynamicService();
     this.tryAdoptRouteParam();
-    if (this.login.length === 0) {
+    if (this.vm.login.length === 0) {
       this.tryAdoptBootUser();
     }
   }
@@ -108,7 +71,7 @@ export struct UserDetailPage {
     const obj: UserDetailRouteParam = raw as UserDetailRouteParam;
     const login: string = obj.login !== undefined && obj.login !== null ? obj.login : '';
     if (login.length > 0) {
-      this.login = login;
+      this.vm.setLogin(login);
       Logger.i('user/route', `UserDetailPage.tryAdoptRouteParam adopted login=${login} t=${Date.now()}`);
     }
   }
@@ -123,7 +86,7 @@ export struct UserDetailPage {
     if (raw.length === 0) {
       return;
     }
-    this.login = raw;
+    this.vm.setLogin(raw);
     BootChannel.set(BOOT_USER_KEY, '');
     Logger.i('user/boot', `UserDetailPage.tryAdoptBootUser adopted login=${raw} t=${Date.now()}`);
   }
@@ -152,159 +115,12 @@ export struct UserDetailPage {
     }
   }
 
-  private async loadAll(): Promise<void> {
-    if (this.login.length === 0) {
-      return;
-    }
-    this.plmRefreshing = true;
-    this.plmLoadingMore = false;
-    this.plmNoMore = false;;
-    const userRes: FetchUserResult = await this.service.getUser(this.login);
-    if (userRes.result && userRes.fromCache && safeStr(this.store.user.starred).length === 0) {
-      // Old local user rows may not include the Compose `starred` field yet.
-      // Refresh it when we are showing a cache fallback.
-      await this.service.getUserStarredCount(this.login);
-    }
-    await this.service.getFollowStatus(this.login);
-    if (userRes.result && this.isOrganizationProfile()) {
-      const orgRes: FetchSubUserListResult = await this.service.getOrgMembers(this.login, 1,
-        (items: SubUserItem[]): void => {
-          this.orgMembers = items.slice();
-          this.orgMemberPage = 1;
-          this.orgMemberHasMore = items.length >= this.service.getPageSize();
-        });
-      if (orgRes.result) {
-        this.orgMembers = orgRes.data.slice();
-        this.orgMemberPage = 1;
-        this.orgMemberHasMore = orgRes.data.length >= this.service.getPageSize();
-      } else {
-        this.orgMembers = [];
-        this.orgMemberHasMore = false;
-      }
-      this.dynamicStore.list = [];
-      this.plmRefreshing = false;
-    this.plmLoadingMore = false;
-    this.plmNoMore = !(this.orgMemberHasMore);
-    } else {
-      this.orgMembers = [];
-      await this.dynamicService.fetchUserEvents(this.login, 1);
-      this.plmRefreshing = false;
-    this.plmLoadingMore = false;
-    this.plmNoMore = !(this.dynamicStore.hasMore);
-    }
-    await this.writeReadHistory();
-    if (!userRes.result) {
-      return;
-    }
-  }
-
-  /**
-   * DynamicService 无状态化适配：把取数结果写入页面级 DynamicStore
-   * （等价旧 service 直写 store 的 refresh/append 语义；失败时携带首页缓存则兜底展示）。
-   */
-  private applyDynamicResult(res: FetchReceivedResult, append: boolean): void {
-    if (res.result) {
-      if (append) {
-        const merged: DynamicEvent[] = this.dynamicStore.list.slice();
-        for (let i: number = 0; i < res.data.length; i++) {
-          merged.push(res.data[i]);
-        }
-        this.dynamicStore.list = merged;
-      } else {
-        this.dynamicStore.list = res.data.slice();
-      }
-      this.dynamicStore.page = res.page;
-      this.dynamicStore.hasMore = res.hasMore;
-    } else if (this.dynamicStore.list.length === 0 && res.data.length > 0) {
-      this.dynamicStore.list = res.data.slice();
-      this.dynamicStore.page = res.page;
-      this.dynamicStore.hasMore = res.hasMore;
-    }
-  }
-
-  private async writeReadHistory(): Promise<void> {
-    if (this.login.length === 0) {
-      return;
-    }
-    // 第二道防线：哪怕 store.user 万一出现 null 字段，这里再 sanitize 一次。
-    const user: UserDetail = sanitizeUserDetail(this.store.user);
-    const safeName: string = safeStr(user.name);
-    const safeBio: string = safeStr(user.bio);
-    const title: string = safeName.length > 0 ? safeName : this.login;
-    const subtitle: string = safeBio.length > 0 ? safeBio : this.login;
-    const avatar: string = safeStr(user.avatar_url);
-    const payloadJson: string = JSON.stringify(user);
-    const param: ReadHistoryAddParam = {
-      'type': READ_HISTORY_TYPE_USER,
-      'key': this.login,
-      'title': title,
-      'subtitle': subtitle,
-      'avatar': avatar,
-      'payloadJson': payloadJson,
-      'time': Date.now(),
-    } as ReadHistoryAddParam;
-    await this.readHistoryService.add(param);
-  }
-
-  private async triggerLoadMore(): Promise<void> {
-    if (this.isOrganizationProfile()) {
-      if (!this.orgMemberHasMore) {
-        this.plmLoadingMore = false;
-    this.plmNoMore = !(false);
-        return;
-      }
-      const next: number = this.orgMemberPage + 1;
-      const res: FetchSubUserListResult = await this.service.getOrgMembers(this.login, next);
-      if (res.result) {
-        const merged: SubUserItem[] = this.orgMembers.slice();
-        for (let i: number = 0; i < res.data.length; i++) {
-          merged.push(res.data[i]);
-        }
-        this.orgMembers = merged;
-        this.orgMemberPage = next;
-        this.orgMemberHasMore = res.data.length >= this.service.getPageSize();
-      } else {
-        this.orgMemberHasMore = false;
-      }
-      this.plmLoadingMore = false;
-    this.plmNoMore = !(this.orgMemberHasMore);
-      return;
-    }
-    if (!this.dynamicStore.hasMore) {
-      this.plmLoadingMore = false;
-    this.plmNoMore = !(false);
-      return;
-    }
-    const next: number = this.dynamicStore.page + 1;
-    await this.dynamicService.fetchUserEvents(this.login, next);
-    this.plmLoadingMore = false;
-    this.plmNoMore = !(this.dynamicStore.hasMore);
-  }
-
-  private async toggleFollow(): Promise<void> {
-    if (this.login.length === 0) {
-      return;
-    }
-    let res: FetchFollowResult;
-    if (this.store.followed) {
-      res = await this.service.unfollow(this.login);
-    } else {
-      res = await this.service.follow(this.login);
-    }
-    if (res.result) {
-      const userRes: FetchUserResult = await this.service.getUser(this.login);
-      if (userRes.result) {
-        return;
-      }
-    }
-  }
-
   private openRepository(item: UserRepoItem): void {
-    const ownerLogin: string = safeStr(item.owner_login);
+    const ownerLogin: string = item.owner_login;
     const param: RepositoryDetailRouteParam = {
-      'owner': ownerLogin.length > 0 ? ownerLogin : this.login,
-      'name': safeStr(item.name),
-      'fullName': safeStr(item.full_name),
+      'owner': ownerLogin.length > 0 ? ownerLogin : this.vm.login,
+      'name': item.name,
+      'fullName': item.full_name,
     } as RepositoryDetailRouteParam;
     NavigationService.push(RouteName.RepositoryDetail, param as Object);
   }
@@ -314,7 +130,7 @@ export struct UserDetailPage {
     Column() {
       // ── Row 1：头像 + 名字/login + group/location 三行 ─────────────────────
       Row() {
-        Image(safeStr(this.store.user.avatar_url))
+        Image(this.vm.user.avatar_url)
           .id('user_detail_avatar')
           .width(GSYIconSize.large)
           .height(GSYIconSize.large)
@@ -323,21 +139,21 @@ export struct UserDetailPage {
           .margin({ top: GSYSpacing.halfEdge });
 
         Column() {
-          Text(safeStr(this.store.user.name).length > 0 ? safeStr(this.store.user.name) : safeStr(this.store.user.login))
+          Text(this.vm.displayName())
             .id('user_detail_name')
             .fontSize(GSYFontSize.large)
             .fontWeight(FontWeight.Bold)
             .fontColor(GSYColor.white);
 
-          Text(safeStr(this.store.user.login))
+          Text(this.vm.user.login)
             .id('user_detail_login')
             .fontSize(GSYFontSize.small)
             .fontColor(GSYColor.subLightText)
             .margin({ top: GSYSpacing.halfEdge });
 
-          if (safeStr(this.store.user.company).length > 0) {
+          if (this.vm.user.company.length > 0) {
             IconTextItem({
-              text: safeStr(this.store.user.company),
+              text: this.vm.user.company,
               iconChar: FA_GROUP,
               iconColor: GSYColor.miWhite,
               textColor: GSYColor.miWhite,
@@ -347,9 +163,9 @@ export struct UserDetailPage {
             });
           }
 
-          if (safeStr(this.store.user.location).length > 0) {
+          if (this.vm.user.location.length > 0) {
             IconTextItem({
-              text: safeStr(this.store.user.location),
+              text: this.vm.user.location,
               iconChar: FA_MAP_MARKER,
               iconColor: GSYColor.miWhite,
               textColor: GSYColor.miWhite,
@@ -368,28 +184,130 @@ export struct UserDetailPage {
       .width('100%')
       .alignItems(VerticalAlign.Top);
 
-      if (safeStr(this.store.user.bio).length > 0) {
-        Text(safeStr(this.store.user.bio))
+      if (this.vm.user.bio.length > 0) {
+        Text(this.vm.user.bio)
           .id('user_detail_bio')
           .fontSize(GSYFontSize.small)
           .fontColor(GSYColor.subLightText)
           .margin({ top: GSYSpacing.normalEdge });
       }
 
-      if (this.buildJoinedText().length > 0) {
-        Text(this.buildJoinedText())
+      if (this.vm.joinedText().length > 0) {
+        Text(this.vm.joinedText())
           .id('user_detail_joined')
           .fontSize(GSYFontSize.small)
           .fontColor(GSYColor.subLightText)
           .margin({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.normalEdge });
       }
 
-      UserCountsRow({
-        store: this.store,
-        login: this.login,
-        onJump: (dataType: string, showType: string, title: string): void => {
-          this.openCommonList(dataType, showType, title);
-        },
+      // ── 计数行：直接读 ViewModel @Trace 计数字段 inline 求值 ───────────────
+      // 旧 UserCountsRow（@ObjectLink store + @Builder 值参）已删除，
+      // 消除 KI-043/044/048 一类的 @Builder 值参不刷新坑；测试 id 全部原样保留。
+      Row() {
+        Column() {
+          Text(this.fmtCount(this.vm.reposCount))
+            .id('user_detail_repos_count')
+            .fontSize(GSYFontSize.middleWhite)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(GSYColor.white);
+          Text(I18n('repositoryText'))
+            .id('user_detail_repos_label')
+            .fontSize(GSYFontSize.min)
+            .fontColor(GSYColor.miWhite)
+            .margin({ top: GSYSpacing.halfEdge / 2 });
+        }
+        .id('user_detail_repos_block')
+        .layoutWeight(1)
+        .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge })
+        .alignItems(HorizontalAlign.Center)
+        .onClick((): void => {
+          Logger.i('user/count/click', 'idPrefix=user_detail_repos dataType=' + COMMON_LIST_DATA_TYPE_REPOSITORIES + ' login=' + this.vm.login);
+          if (this.vm.login.length === 0) {
+            return;
+          }
+          this.openCommonList(COMMON_LIST_DATA_TYPE_REPOSITORIES, COMMON_LIST_SHOW_TYPE_REPOSITORY, I18n('repositoryText'));
+        });
+
+        Column() {
+          Text(this.fmtCount(this.vm.followersCount))
+            .id('user_detail_followers_count')
+            .fontSize(GSYFontSize.middleWhite)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(GSYColor.white);
+          Text(I18n('FollowersText'))
+            .id('user_detail_followers_label')
+            .fontSize(GSYFontSize.min)
+            .fontColor(GSYColor.miWhite)
+            .margin({ top: GSYSpacing.halfEdge / 2 });
+        }
+        .id('user_detail_followers_block')
+        .layoutWeight(1)
+        .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge })
+        .alignItems(HorizontalAlign.Center)
+        .border({ width: { left: 1 }, color: { left: GSYColor.primaryLight } })
+        .onClick((): void => {
+          Logger.i('user/count/click', 'idPrefix=user_detail_followers dataType=' + COMMON_LIST_DATA_TYPE_FOLLOWER + ' login=' + this.vm.login);
+          if (this.vm.login.length === 0) {
+            return;
+          }
+          this.openCommonList(COMMON_LIST_DATA_TYPE_FOLLOWER, COMMON_LIST_SHOW_TYPE_USER, I18n('FollowersText'));
+        });
+
+        Column() {
+          Text(this.fmtCount(this.vm.followingCount))
+            .id('user_detail_following_count')
+            .fontSize(GSYFontSize.middleWhite)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(GSYColor.white);
+          Text(I18n('FollowedText'))
+            .id('user_detail_following_label')
+            .fontSize(GSYFontSize.min)
+            .fontColor(GSYColor.miWhite)
+            .margin({ top: GSYSpacing.halfEdge / 2 });
+        }
+        .id('user_detail_following_block')
+        .layoutWeight(1)
+        .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge })
+        .alignItems(HorizontalAlign.Center)
+        .border({ width: { left: 1 }, color: { left: GSYColor.primaryLight } })
+        .onClick((): void => {
+          Logger.i('user/count/click', 'idPrefix=user_detail_following dataType=' + COMMON_LIST_DATA_TYPE_FOLLOWING + ' login=' + this.vm.login);
+          if (this.vm.login.length === 0) {
+            return;
+          }
+          this.openCommonList(COMMON_LIST_DATA_TYPE_FOLLOWING, COMMON_LIST_SHOW_TYPE_USER, I18n('FollowedText'));
+        });
+
+        Column() {
+          Text(this.fmtCount(this.vm.starredCount))
+            .id('user_detail_stared_count')
+            .fontSize(GSYFontSize.middleWhite)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(GSYColor.white);
+          Text(I18n('staredText'))
+            .id('user_detail_stared_label')
+            .fontSize(GSYFontSize.min)
+            .fontColor(GSYColor.miWhite)
+            .margin({ top: GSYSpacing.halfEdge / 2 });
+        }
+        .id('user_detail_stared_block')
+        .layoutWeight(1)
+        .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge })
+        .alignItems(HorizontalAlign.Center)
+        .border({ width: { left: 1 }, color: { left: GSYColor.primaryLight } })
+        .onClick((): void => {
+          Logger.i('user/count/click', 'idPrefix=user_detail_stared dataType=' + COMMON_LIST_DATA_TYPE_USER_STAR + ' login=' + this.vm.login);
+          if (this.vm.login.length === 0) {
+            return;
+          }
+          this.openCommonList(COMMON_LIST_DATA_TYPE_USER_STAR, COMMON_LIST_SHOW_TYPE_REPOSITORY, I18n('staredText'));
+        });
+      }
+      .id('user_detail_counts_row')
+      .width('100%')
+      .border({
+        width: { top: 1 },
+        color: { top: GSYColor.primaryLight },
       });
 
       Row() {
@@ -425,11 +343,11 @@ export struct UserDetailPage {
   buildFollowFab(): void {
     Row() {
       IconFont({
-        char: this.store.followed ? FA_CHECK : FA_USER_PLUS,
+        char: this.vm.followed ? FA_CHECK : FA_USER_PLUS,
         glyphSize: GSYFontSize.middleWhite,
         glyphColor: GSYColor.miWhite,
       })
-        .id(this.store.followed ? 'user_detail_follow_fab_icon_following' : 'user_detail_follow_fab_icon_add');
+        .id(this.vm.followed ? 'user_detail_follow_fab_icon_following' : 'user_detail_follow_fab_icon_add');
     }
     .id('user_detail_follow_fab')
     .width(GSYSpacing.tabBarHeight)
@@ -443,35 +361,12 @@ export struct UserDetailPage {
       bottom: GSYSpacing.normalEdge,
     })
     .onClick((): void => {
-      this.toggleFollow();
+      this.vm.toggleFollow();
     });
   }
 
-  private buildJoinedText(): string {
-    const created: string = safeStr(this.store.user.created_at);
-    if (created.length === 0) {
-      return '';
-    }
-    return I18n('userCreate') + TimeUtil.resolveTime(created);
-  }
-
-  private shouldShowFollow(): boolean {
-    if (this.login.length === 0) {
-      return false;
-    }
-    const userType: string = safeStr(this.store.user.type);
-    return userType !== 'Organization';
-  }
-
-  private isOrganizationProfile(): boolean {
-    return safeStr(this.store.user.type) === 'Organization';
-  }
-
-  private currentDataSource(): Object[] {
-    if (this.isOrganizationProfile()) {
-      return this.orgMembers as Object[];
-    }
-    return this.dynamicStore.list as Object[];
+  private fmtCount(n: number): string {
+    return n >= 0 ? n.toString() : '---';
   }
 
   @Builder
@@ -553,13 +448,8 @@ export struct UserDetailPage {
     .justifyContent(FlexAlign.Center);
   }
 
-  private buildAppBarTitle(): string {
-    const login: string = this.login.length > 0 ? this.login : safeStr(this.store.user.login);
-    return login.length > 0 ? login : '';
-  }
-
   private openCommonList(dataType: string, showType: string, title: string): void {
-    const login: string = this.login.length > 0 ? this.login : safeStr(this.store.user.login);
+    const login: string = this.vm.currentLogin();
     if (login.length === 0) {
       return;
     }
@@ -571,17 +461,6 @@ export struct UserDetailPage {
     };
     Logger.i('user/count/click', 'CommonList dataType=' + dataType + ' showType=' + showType + ' login=' + login);
     NavigationService.push(RouteName.CommonList, param as Object);
-  }
-
-  private resolveHtmlUrl(): string {
-    const user: UserDetail = this.store.user;
-    const login: string = this.login.length > 0
-      ? this.login
-      : (user !== null && user !== undefined ? safeStr(user.login) : '');
-    if (login.length === 0) {
-      return '';
-    }
-    return 'https://github.com/' + login;
   }
 
   private copyToPasteboard(text: string): void {
@@ -599,15 +478,15 @@ export struct UserDetailPage {
   }
 
   private showMoreMenu(): void {
-    const htmlUrl: string = this.resolveHtmlUrl();
-    Logger.i('UserDetailPage', 'headerRight more tapped, login=' + this.login + ' url=' + htmlUrl);
+    const htmlUrl: string = this.vm.htmlUrl();
+    Logger.i('UserDetailPage', 'headerRight more tapped, login=' + this.vm.login + ' url=' + htmlUrl);
     const items: CommonOptionItem[] = [
       { itemName: I18n('browserOpen') } as CommonOptionItem,
       { itemName: I18n('copy') } as CommonOptionItem,
       { itemName: I18n('share') } as CommonOptionItem,
     ];
     CommonModal.options(
-      { title: this.login, items: items },
+      { title: this.vm.login, items: items },
       (index: number, _item: CommonOptionItem): void => {
         if (htmlUrl.length === 0) {
           Logger.w('UserDetailPage', 'more menu skipped, html_url empty');
@@ -669,7 +548,7 @@ export struct UserDetailPage {
       Stack({ alignContent: Alignment.BottomEnd }) {
         Column() {
           AppBar({
-            title: this.buildAppBarTitle(),
+            title: this.vm.headerTitle(),
             titleStart: true,
             showBack: true,
             onBack: (): void => {
@@ -678,12 +557,14 @@ export struct UserDetailPage {
             rightActions: this.buildRightActions(),
           });
           PullLoadMoreList({
-            dataSource: this.currentDataSource(),
-            refreshing: this.plmRefreshing,
-        loadingMore: this.plmLoadingMore,
-        noMore: this.plmNoMore,
+            dataSource: this.vm.isOrganizationProfile()
+              ? this.vm.orgMembers as Object[]
+              : this.vm.events as Object[],
+            refreshing: this.vm.refreshing,
+            loadingMore: this.vm.loadingMore,
+            noMore: !this.vm.hasMore,
             renderRow: (item: Object, index: number): void => {
-              if (this.isOrganizationProfile()) {
+              if (this.vm.isOrganizationProfile()) {
                 this.orgMemberRowBuilder(item as SubUserItem, index);
               } else {
                 this.rowBuilder(item as DynamicEvent, index);
@@ -692,10 +573,10 @@ export struct UserDetailPage {
             renderHeader: (): void => this.buildHeader(),
             renderEmpty: (): void => this.emptyBuilder(),
             onRefresh: (): void => {
-              this.loadAll();
+              this.vm.refresh();
             },
             onLoadMore: (): void => {
-              this.triggerLoadMore();
+              this.vm.loadMore();
             },
           })
             .id('user_detail_pull_list')
@@ -704,7 +585,7 @@ export struct UserDetailPage {
         .width('100%')
         .height('100%');
 
-        if (this.shouldShowFollow()) {
+        if (this.vm.shouldShowFollow()) {
           this.buildFollowFab();
         }
       }
@@ -745,133 +626,12 @@ export struct UserDetailPage {
           resolved = bootLogin;
         }
       }
-      if (resolved.length > 0 && resolved !== this.login) {
-        this.login = resolved;
-        this.loadAll();
-      } else if (this.login.length > 0) {
-        this.loadAll();
+      if (resolved.length > 0 && resolved !== this.vm.login) {
+        this.vm.setLogin(resolved);
+        this.vm.refresh();
+      } else if (this.vm.login.length > 0) {
+        this.vm.refresh();
       }
-    });
-  }
-}
-
-@Component
-struct UserCountsRow {
-  @ObjectLink store: UserDetailStore;
-  login: string = '';
-  onJump: (dataType: string, showType: string, title: string) => void =
-    (_dataType: string, _showType: string, _title: string): void => {};
-
-  private fmt(n: number): string {
-    return n >= 0 ? n.toString() : '---';
-  }
-
-  build(): void {
-    Row() {
-      Column() {
-        Text(this.fmt(this.store.user.public_repos))
-          .id('user_detail_repos_count')
-          .fontSize(GSYFontSize.middleWhite)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.white);
-        Text(I18n('repositoryText'))
-          .id('user_detail_repos_label')
-          .fontSize(GSYFontSize.min)
-          .fontColor(GSYColor.miWhite)
-          .margin({ top: GSYSpacing.halfEdge / 2 });
-      }
-      .id('user_detail_repos_block')
-      .layoutWeight(1)
-      .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge })
-      .alignItems(HorizontalAlign.Center)
-      .onClick((): void => {
-        Logger.i('user/count/click', 'idPrefix=user_detail_repos dataType=' + COMMON_LIST_DATA_TYPE_REPOSITORIES + ' login=' + this.login);
-        if (this.login.length === 0) {
-          return;
-        }
-        this.onJump(COMMON_LIST_DATA_TYPE_REPOSITORIES, COMMON_LIST_SHOW_TYPE_REPOSITORY, I18n('repositoryText'));
-      });
-
-      Column() {
-        Text(this.fmt(this.store.user.followers))
-          .id('user_detail_followers_count')
-          .fontSize(GSYFontSize.middleWhite)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.white);
-        Text(I18n('FollowersText'))
-          .id('user_detail_followers_label')
-          .fontSize(GSYFontSize.min)
-          .fontColor(GSYColor.miWhite)
-          .margin({ top: GSYSpacing.halfEdge / 2 });
-      }
-      .id('user_detail_followers_block')
-      .layoutWeight(1)
-      .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge })
-      .alignItems(HorizontalAlign.Center)
-      .border({ width: { left: 1 }, color: { left: GSYColor.primaryLight } })
-      .onClick((): void => {
-        Logger.i('user/count/click', 'idPrefix=user_detail_followers dataType=' + COMMON_LIST_DATA_TYPE_FOLLOWER + ' login=' + this.login);
-        if (this.login.length === 0) {
-          return;
-        }
-        this.onJump(COMMON_LIST_DATA_TYPE_FOLLOWER, COMMON_LIST_SHOW_TYPE_USER, I18n('FollowersText'));
-      });
-
-      Column() {
-        Text(this.fmt(this.store.user.following))
-          .id('user_detail_following_count')
-          .fontSize(GSYFontSize.middleWhite)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.white);
-        Text(I18n('FollowedText'))
-          .id('user_detail_following_label')
-          .fontSize(GSYFontSize.min)
-          .fontColor(GSYColor.miWhite)
-          .margin({ top: GSYSpacing.halfEdge / 2 });
-      }
-      .id('user_detail_following_block')
-      .layoutWeight(1)
-      .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge })
-      .alignItems(HorizontalAlign.Center)
-      .border({ width: { left: 1 }, color: { left: GSYColor.primaryLight } })
-      .onClick((): void => {
-        Logger.i('user/count/click', 'idPrefix=user_detail_following dataType=' + COMMON_LIST_DATA_TYPE_FOLLOWING + ' login=' + this.login);
-        if (this.login.length === 0) {
-          return;
-        }
-        this.onJump(COMMON_LIST_DATA_TYPE_FOLLOWING, COMMON_LIST_SHOW_TYPE_USER, I18n('FollowedText'));
-      });
-
-      Column() {
-        Text(this.fmt(this.store.starredCount))
-          .id('user_detail_stared_count')
-          .fontSize(GSYFontSize.middleWhite)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.white);
-        Text(I18n('staredText'))
-          .id('user_detail_stared_label')
-          .fontSize(GSYFontSize.min)
-          .fontColor(GSYColor.miWhite)
-          .margin({ top: GSYSpacing.halfEdge / 2 });
-      }
-      .id('user_detail_stared_block')
-      .layoutWeight(1)
-      .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge })
-      .alignItems(HorizontalAlign.Center)
-      .border({ width: { left: 1 }, color: { left: GSYColor.primaryLight } })
-      .onClick((): void => {
-        Logger.i('user/count/click', 'idPrefix=user_detail_stared dataType=' + COMMON_LIST_DATA_TYPE_USER_STAR + ' login=' + this.login);
-        if (this.login.length === 0) {
-          return;
-        }
-        this.onJump(COMMON_LIST_DATA_TYPE_USER_STAR, COMMON_LIST_SHOW_TYPE_REPOSITORY, I18n('staredText'));
-      });
-    }
-    .id('user_detail_counts_row')
-    .width('100%')
-    .border({
-      width: { top: 1 },
-      color: { top: GSYColor.primaryLight },
     });
   }
 }

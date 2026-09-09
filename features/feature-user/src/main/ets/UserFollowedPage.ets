@@ -6,7 +6,6 @@ import {
   UserService,
   FetchSubUserListResult
 } from 'common';
-import { UserDetailStore } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { SubListView, SubListMode } from 'common';
@@ -21,22 +20,23 @@ interface UserDetailRouteParam {
 
 const FALLBACK_LOGIN: string = '';
 
-@Component
+/**
+ * Following 列表薄壳页（R9 V2）：@ComponentV2 + @Local 受控状态，
+ * 列表渲染/分页交互全部在 common 的 SubListView（V2 受控组件）。
+ */
+@ComponentV2
 export struct UserFollowedPage {
-  @State login: string = FALLBACK_LOGIN;
-  @State items: SubUserItem[] = [];
-  @State page: number = 1;
-  @State hasMore: boolean = true;
-  @State error: string = '';
-  @State plmRefreshing: boolean = false;
-  @State plmLoadingMore: boolean = false;
-  @State plmNoMore: boolean = false;
-  private store: UserDetailStore = new UserDetailStore();
-  private service: UserService = new UserService(this.store);
+  @Local login: string = FALLBACK_LOGIN;
+  @Local items: SubUserItem[] = [];
+  @Local page: number = 1;
+  @Local hasMore: boolean = true;
+  @Local error: string = '';
+  @Local refreshing: boolean = false;
+  @Local loadingMore: boolean = false;
+  private service: UserService = new UserService();
   private pageSize: number = 30;
 
   aboutToAppear(): void {
-    this.service = new UserService(this.store);
     this.pageSize = this.service.getPageSize();
   }
 
@@ -57,9 +57,9 @@ export struct UserFollowedPage {
     if (this.login.length === 0) {
       return;
     }
-    this.plmRefreshing = true;
-    this.plmLoadingMore = false;
-    this.plmNoMore = false;;
+    this.refreshing = true;
+    this.loadingMore = false;
+    this.hasMore = true;
     const res: FetchSubUserListResult = await this.service.getUserFollowed(this.login, 1);
     if (res.result) {
       this.items = res.data.slice();
@@ -69,17 +69,15 @@ export struct UserFollowedPage {
     } else {
       this.error = res.msg;
     }
-    this.plmRefreshing = false;
-    this.plmLoadingMore = false;
-    this.plmNoMore = !(this.hasMore);
+    this.refreshing = false;
+    this.loadingMore = false;
   }
 
   private async loadMoreList(): Promise<void> {
-    if (!this.hasMore) {
-      this.plmLoadingMore = false;
-    this.plmNoMore = !(false);
+    if (!this.hasMore || this.loadingMore) {
       return;
     }
+    this.loadingMore = true;
     const next: number = this.page + 1;
     const res: FetchSubUserListResult = await this.service.getUserFollowed(this.login, next);
     if (res.result) {
@@ -91,8 +89,7 @@ export struct UserFollowedPage {
       this.page = next;
       this.hasMore = res.data.length >= this.pageSize;
     }
-    this.plmLoadingMore = false;
-    this.plmNoMore = !(this.hasMore);
+    this.loadingMore = false;
   }
 
   private openUser(item: SubUserItem): void {
@@ -115,9 +112,9 @@ export struct UserFollowedPage {
           mode: SubListMode.USER,
           users: this.items,
           repos: [],
-          refreshing: this.plmRefreshing,
-        loadingMore: this.plmLoadingMore,
-        noMore: this.plmNoMore,
+          refreshing: this.refreshing,
+          loadingMore: this.loadingMore,
+          noMore: !this.hasMore,
           idPrefix: 'user_followed',
           refresh: (): void => {
             this.refreshList();

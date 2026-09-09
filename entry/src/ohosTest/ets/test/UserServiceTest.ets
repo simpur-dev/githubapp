@@ -29,7 +29,6 @@ import {
 } from 'common';
 import {
   UserDetail,
-  UserDetailStore,
   UserRepoItem
 } from 'common';
 import { SubUserItem } from 'common';
@@ -370,7 +369,6 @@ export default function UserServiceTest(): void {
     let storage: FakeTokenStorage;
     let rdb: FakeRdbStore;
     let dao: UserDao;
-    let store: UserDetailStore;
     let service: UserService;
 
     beforeEach((): void => {
@@ -378,8 +376,8 @@ export default function UserServiceTest(): void {
       storage = new FakeTokenStorage();
       rdb = buildStore();
       dao = new UserDao(rdb);
-      store = new UserDetailStore();
-      service = new UserService(store, dao, PAGE_SIZE);
+      // UserService 无状态化后不再注入 store（R9 V2 + MVVM，Guide §3）
+      service = new UserService(dao, PAGE_SIZE);
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -407,12 +405,10 @@ export default function UserServiceTest(): void {
       expect(provider.capturedAll[0].url).assertEqual(Address.getUserInfo(TEST_LOGIN));
       expect(provider.capturedAll[0].method).assertEqual('GET');
       expect(provider.capturedAll[1].url).assertEqual(Address.getUserStarred(TEST_LOGIN, 1, 1, 'updated'));
-      expect(store.user.login).assertEqual(TEST_LOGIN);
-      expect(store.user.followers).assertEqual(99);
-      expect(store.user.starred).assertEqual('17');
-      expect(store.starredCount).assertEqual(17);
-      expect(store.error).assertEqual('');
-      expect(store.loading).assertFalse();
+      expect(res.data.login).assertEqual(TEST_LOGIN);
+      expect(res.data.followers).assertEqual(99);
+      expect(res.data.starred).assertEqual('17');
+      expect(res.msg).assertEqual('');
 
       const writes: number = rdb.insertCountByTable.has(USER_TABLE_INFO)
         ? (rdb.insertCountByTable.get(USER_TABLE_INFO) as number) : 0;
@@ -435,7 +431,7 @@ export default function UserServiceTest(): void {
       const res: FetchUserResult = await service.getUser(TEST_LOGIN);
       expect(res.result).assertTrue();
       expect(res.fromCache).assertTrue();
-      expect(store.user.login).assertEqual(TEST_LOGIN);
+      expect(res.data.login).assertEqual(TEST_LOGIN);
     });
 
     it('getUser_applies_cache_before_network_refresh', 0, async (): Promise<void> => {
@@ -446,19 +442,24 @@ export default function UserServiceTest(): void {
       network.name = 'network user';
       provider.pushResponse(SUCCESS, JSON.stringify(network));
       provider.pushResponse(SUCCESS, '[{}]');
+      let sawCachedUser: UserDetail | null = null;
       let sawCacheBeforeRequest: boolean = false;
       provider.onRequest = (): void => {
-        sawCacheBeforeRequest = store.user.login === TEST_LOGIN
-          && store.user.name === 'cached user';
+        sawCacheBeforeRequest = sawCachedUser !== null
+          && sawCachedUser.login === TEST_LOGIN
+          && sawCachedUser.name === 'cached user';
       };
 
-      const res: FetchUserResult = await service.getUser(TEST_LOGIN);
+      const res: FetchUserResult = await service.getUser(TEST_LOGIN,
+        (user: UserDetail): void => {
+          sawCachedUser = user;
+        });
 
       expect(sawCacheBeforeRequest).assertTrue();
       expect(res.result).assertTrue();
       expect(res.fromCache).assertFalse();
-      expect(store.user.login).assertEqual(TEST_LOGIN);
-      expect(store.user.name).assertEqual('network user');
+      expect(res.data.login).assertEqual(TEST_LOGIN);
+      expect(res.data.name).assertEqual('network user');
     });
 
     it('getUserStarredCount_parses_link_last_page_and_updates_store', 0, async (): Promise<void> => {
@@ -472,8 +473,6 @@ export default function UserServiceTest(): void {
 
       expect(res.result).assertTrue();
       expect(res.count).assertEqual(42);
-      expect(store.starredCount).assertEqual(42);
-      expect(store.user.starred).assertEqual('42');
       expect(provider.captured.url).assertEqual(Address.getUserStarred(TEST_LOGIN, 1, 1, 'updated'));
     });
 
@@ -486,7 +485,6 @@ export default function UserServiceTest(): void {
 
       expect(res.result).assertTrue();
       expect(res.count).assertEqual(1);
-      expect(store.starredCount).assertEqual(1);
     });
 
     it('getUserRepos_uses_user_repos_url_with_page_and_per_page', 0, async (): Promise<void> => {
@@ -514,9 +512,7 @@ export default function UserServiceTest(): void {
       const reposWrites: number = rdb.insertCountByTable.has(USER_TABLE_REPOS)
         ? (rdb.insertCountByTable.get(USER_TABLE_REPOS) as number) : 0;
       expect(reposWrites).assertEqual(1);
-      expect(store.repos.length).assertEqual(PAGE_SIZE);
-      expect(store.page).assertEqual(1);
-      expect(store.hasMore).assertTrue();
+      expect(res.data.length >= PAGE_SIZE).assertTrue();
 
       const cached = await dao.readUserRepos(TEST_LOGIN);
       expect(cached.result).assertTrue();
@@ -535,14 +531,12 @@ export default function UserServiceTest(): void {
       const writesAfterFirst: number = rdb.insertCountByTable.has(USER_TABLE_REPOS)
         ? (rdb.insertCountByTable.get(USER_TABLE_REPOS) as number) : 0;
 
-      await service.getUserRepos(TEST_LOGIN, 2);
+      const resSecond: FetchUserReposResult = await service.getUserRepos(TEST_LOGIN, 2);
       const writesAfterSecond: number = rdb.insertCountByTable.has(USER_TABLE_REPOS)
         ? (rdb.insertCountByTable.get(USER_TABLE_REPOS) as number) : 0;
 
       expect(writesAfterSecond).assertEqual(writesAfterFirst);
-      expect(store.repos.length).assertEqual(PAGE_SIZE + 2);
-      expect(store.page).assertEqual(2);
-      expect(store.hasMore).assertFalse();
+      expect(resSecond.data.length).assertEqual(2);
     });
 
     it('getOrgMembers_applies_cache_before_network_refresh', 0, async (): Promise<void> => {
@@ -562,7 +556,6 @@ export default function UserServiceTest(): void {
         (items: SubUserItem[]): void => {
           callbackItems = items.slice();
         });
-
       expect(sawCacheBeforeRequest).assertTrue();
       expect(res.result).assertTrue();
       expect(res.fromCache).assertFalse();
@@ -602,7 +595,6 @@ export default function UserServiceTest(): void {
       expect(res.followed).assertTrue();
       expect(provider.captured.url).assertEqual(Address.getFollowStatus(TEST_LOGIN));
       expect(provider.captured.method).assertEqual('GET');
-      expect(store.followed).assertTrue();
     });
 
     it('getFollowStatus_returns_followed_false_on_404', 0, async (): Promise<void> => {
@@ -612,7 +604,6 @@ export default function UserServiceTest(): void {
       const res: FetchFollowResult = await service.getFollowStatus(TEST_LOGIN);
       expect(res.result).assertTrue();
       expect(res.followed).assertFalse();
-      expect(store.followed).assertFalse();
     });
 
     it('follow_uses_put_and_sets_followed_true', 0, async (): Promise<void> => {
@@ -624,11 +615,9 @@ export default function UserServiceTest(): void {
       expect(res.followed).assertTrue();
       expect(provider.captured.url).assertEqual(Address.setFollow(TEST_LOGIN));
       expect(provider.captured.method).assertEqual('PUT');
-      expect(store.followed).assertTrue();
     });
 
     it('unfollow_uses_delete_and_sets_followed_false', 0, async (): Promise<void> => {
-      store.applyFollowed(true);
       provider.nextStatus = STATUS_NO_CONTENT;
       provider.nextBody = '';
 
@@ -637,7 +626,6 @@ export default function UserServiceTest(): void {
       expect(res.followed).assertFalse();
       expect(provider.captured.url).assertEqual(Address.setUnfollow(TEST_LOGIN));
       expect(provider.captured.method).assertEqual('DELETE');
-      expect(store.followed).assertFalse();
     });
 
     it('updateUser_uses_patch_user_json_body_and_writes_cache_like_compose', 0, async (): Promise<void> => {

@@ -34,7 +34,6 @@ import {
   FetchSubUserListResult,
 } from 'common';
 import { RepositoryDetailStore } from 'common';
-import { UserDetailStore } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 
@@ -411,8 +410,8 @@ export default function SubListServiceTest(): void {
       async (): Promise<void> => {
         const rdb: FakeRdbStore = buildUserStore();
         const dao: UserDao = new UserDao(rdb);
-        const store: UserDetailStore = new UserDetailStore();
-        const service: UserService = new UserService(store, dao, PAGE_SIZE);
+        // UserService 无状态化后不再注入 store（R9 V2 + MVVM，Guide §3）
+        const service: UserService = new UserService(dao, PAGE_SIZE);
         const users: SubUserItem[] = buildUsers(PAGE_SIZE);
         provider.nextStatus = SUCCESS;
         provider.nextBody = JSON.stringify(users);
@@ -431,8 +430,8 @@ export default function SubListServiceTest(): void {
       async (): Promise<void> => {
         const rdb: FakeRdbStore = buildUserStore();
         const dao: UserDao = new UserDao(rdb);
-        const store: UserDetailStore = new UserDetailStore();
-        const service: UserService = new UserService(store, dao, PAGE_SIZE);
+        // UserService 无状态化后不再注入 store（R9 V2 + MVVM，Guide §3）
+        const service: UserService = new UserService(dao, PAGE_SIZE);
         const users: SubUserItem[] = buildUsers(PAGE_SIZE);
         provider.nextStatus = SUCCESS;
         provider.nextBody = JSON.stringify(users);
@@ -450,8 +449,8 @@ export default function SubListServiceTest(): void {
       async (): Promise<void> => {
         const rdb: FakeRdbStore = buildUserStore();
         const dao: UserDao = new UserDao(rdb);
-        const store: UserDetailStore = new UserDetailStore();
-        const service: UserService = new UserService(store, dao, PAGE_SIZE);
+        // UserService 无状态化后不再注入 store（R9 V2 + MVVM，Guide §3）
+        const service: UserService = new UserService(dao, PAGE_SIZE);
         const users: SubUserItem[] = buildUsers(PAGE_SIZE);
         provider.nextStatus = SUCCESS;
         provider.nextBody = JSON.stringify(users);

@@ -6,11 +6,11 @@ import { UserDao } from '../../base/dao/UserDao';
 import { ReadResult } from '../../base/dao/DaoBase';
 import {
   UserDetail,
-  UserDetailStore,
   UserRepoItem,
   emptyUserDetail
 } from '../store/UserDetailStore';
 import { SubUserItem } from './RepositoryService';
+import { FetchStarredCountResult } from './MyService';
 
 const STATUS_NO_CONTENT: number = 204;
 const STATUS_NOT_FOUND: number = 404;
@@ -80,19 +80,8 @@ export class FetchFollowResult {
   }
 }
 
-export class FetchStarredCountResult {
-  result: boolean;
-  code: number;
-  count: number;
-  msg: string;
-
-  constructor(result: boolean, code: number, count: number, msg: string) {
-    this.result = result;
-    this.code = code;
-    this.count = count;
-    this.msg = msg;
-  }
-}
+// FetchStarredCountResult 与 MyService 重复定义，统一收敛到 MyService（Guide §3.4），
+// 本文件从 ./MyService import 使用。
 
 function parseLinkLastPage(link: string): number {
   if (!link || link.length === 0) {
@@ -136,43 +125,40 @@ function readLinkHeader(headers: Object | null): string {
   return '';
 }
 
+/**
+ * UserService —— 用户域无状态仓库（R9 V2 + MVVM，Guide §3）。
+ * 构造函数不再注入 UserDetailStore，方法只做取数 / 缓存读写并 return 数据，
+ * UI 状态（user / 计数 / followed / loading / 分页）由调用方 ViewModel 的 @Trace 字段承载。
+ * 首页缓存渐进渲染语义通过可选 onCache 回调保留（与 getOrgMembers 的 onCache 同款）。
+ */
 export class UserService {
-  private store: UserDetailStore;
   private dao: UserDao;
   private pageSize: number;
 
-  constructor(store: UserDetailStore, dao?: UserDao, pageSize?: number) {
-    this.store = store;
+  constructor(dao?: UserDao, pageSize?: number) {
     this.dao = dao !== undefined ? dao : new UserDao();
     this.pageSize = pageSize !== undefined && pageSize > 0 ? pageSize : Address.getUserReposPageSize();
-  }
-
-  getStore(): UserDetailStore {
-    return this.store;
   }
 
   getPageSize(): number {
     return this.pageSize;
   }
 
-  async getUser(login: string): Promise<FetchUserResult> {
+  async getUser(login: string, onCache?: (user: UserDetail) => void): Promise<FetchUserResult> {
     if (!login || login.length === 0) {
-      const empty: FetchUserResult = new FetchUserResult(false, 0, emptyUserDetail(), false, 'empty login');
-      this.store.setError(empty.msg);
-      return empty;
+      return new FetchUserResult(false, 0, emptyUserDetail(), false, 'empty login');
     }
 
     const cachedUser: UserDetail | null = await this.readCachedUser(login);
-    if (cachedUser !== null) {
-      this.store.applyUser(cachedUser);
+    if (cachedUser !== null && onCache !== undefined) {
+      onCache(cachedUser);
     }
-    this.store.startLoading();
     const url: string = Address.getUserInfo(login);
     const httpResult: HttpResult<UserDetail> = await HttpManager.getFetch<UserDetail>(url);
 
     if (httpResult.result && httpResult.data !== null) {
       const user: UserDetail = httpResult.data as UserDetail;
-      const starredRes: FetchStarredCountResult = await this.getUserStarredCount(login, false);
+      const starredRes: FetchStarredCountResult = await this.getUserStarredCount(login);
       const userRecord: Record<string, Object> = user as Object as Record<string, Object>;
       if (starredRes.result) {
         userRecord['starred'] = starredRes.count.toString();
@@ -186,37 +172,31 @@ export class UserService {
         await this.dao.saveUserInfo(login, JSON.stringify(user));
       } catch (_e) {
       }
-      this.store.applyUser(user);
-      this.store.finishLoading();
       return new FetchUserResult(true, httpResult.code, user, false, '');
     }
 
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
       return new FetchUserResult(false, UNAUTHORIZED, emptyUserDetail(), false, msg);
     }
 
     if (cachedUser !== null) {
-      this.store.applyUser(cachedUser);
-      this.store.finishLoading();
       return new FetchUserResult(true, httpResult.code, cachedUser, true,
         httpResult.msg !== null ? httpResult.msg : '');
     }
 
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
     return new FetchUserResult(false, httpResult.code, emptyUserDetail(), false, failMsg);
   }
 
-  async getUserStarredCount(login: string, applyToStore: boolean = true): Promise<FetchStarredCountResult> {
+  async getUserStarredCount(login: string): Promise<FetchStarredCountResult> {
     if (!login || login.length === 0) {
-      return new FetchStarredCountResult(false, 0, 0, 'empty login');
+      return new FetchStarredCountResult(false, 0, 'empty login');
     }
     const url: string = Address.getUserStarred(login, 1, 1, 'updated');
     const httpResult: HttpResult<Object[]> = await HttpManager.getFetch<Object[]>(url);
     if (!httpResult.result) {
-      return new FetchStarredCountResult(false, httpResult.code, 0,
+      return new FetchStarredCountResult(false, 0,
         httpResult.msg !== null ? httpResult.msg : 'fetch starred failed');
     }
     const link: string = readLinkHeader(httpResult.headers as Object | null);
@@ -230,21 +210,15 @@ export class UserService {
         count = (dataObj as Object[]).length;
       }
     }
-    if (applyToStore) {
-      this.store.applyStarredCount(count);
-    }
-    return new FetchStarredCountResult(true, httpResult.code, count, '');
+    return new FetchStarredCountResult(true, count, '');
   }
 
   async getUserRepos(login: string, page: number): Promise<FetchUserReposResult> {
     if (!login || login.length === 0) {
-      const empty: FetchUserReposResult = new FetchUserReposResult(false, 0, [], false, 'empty login');
-      this.store.setError(empty.msg);
-      return empty;
+      return new FetchUserReposResult(false, 0, [], false, 'empty login');
     }
 
     const finalPage: number = page > 0 ? page : 1;
-    this.store.startLoading();
 
     const url: string = Address.getUserRepos(login, finalPage, null, this.pageSize);
     const httpResult: HttpResult<UserRepoItem[]> = await HttpManager.getFetch<UserRepoItem[]>(url);
@@ -256,30 +230,24 @@ export class UserService {
           await this.dao.saveUserRepos(login, JSON.stringify(repos));
         } catch (_e) {
         }
-        this.store.applyReposRefresh(repos, this.pageSize);
-      } else {
-        this.store.applyReposAppend(repos, finalPage, this.pageSize);
       }
       return new FetchUserReposResult(true, httpResult.code, repos, false, '');
     }
 
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
       return new FetchUserReposResult(false, UNAUTHORIZED, [], false, msg);
     }
 
     if (finalPage === 1) {
       const cached: UserRepoItem[] = await this.readCachedRepos(login);
       if (cached.length > 0) {
-        this.store.applyReposCachedFallback(cached);
         return new FetchUserReposResult(true, httpResult.code, cached, true,
           httpResult.msg !== null ? httpResult.msg : '');
       }
     }
 
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
     return new FetchUserReposResult(false, httpResult.code, [], false, failMsg);
   }
 
@@ -290,15 +258,12 @@ export class UserService {
     const url: string = Address.getFollowStatus(login);
     const httpResult: HttpResult<Object> = await HttpManager.getFetch<Object>(url);
     if (httpResult.result) {
-      this.store.applyFollowed(true);
       return new FetchFollowResult(true, httpResult.code, true, '');
     }
     if (httpResult.code === STATUS_NO_CONTENT) {
-      this.store.applyFollowed(true);
       return new FetchFollowResult(true, httpResult.code, true, '');
     }
     if (httpResult.code === STATUS_NOT_FOUND) {
-      this.store.applyFollowed(false);
       return new FetchFollowResult(true, httpResult.code, false, '');
     }
     const msg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
@@ -312,11 +277,10 @@ export class UserService {
     const url: string = Address.setFollow(login);
     const httpResult: HttpResult<Object> = await HttpManager.netFetch<Object>(url, 'PUT', null, false, null);
     if (httpResult.result || httpResult.code === STATUS_NO_CONTENT) {
-      this.store.applyFollowed(true);
       return new FetchFollowResult(true, httpResult.code, true, '');
     }
     const msg: string = httpResult.msg !== null ? httpResult.msg : 'follow failed';
-    return new FetchFollowResult(false, httpResult.code, this.store.followed, msg);
+    return new FetchFollowResult(false, httpResult.code, false, msg);
   }
 
   async unfollow(login: string): Promise<FetchFollowResult> {
@@ -326,11 +290,10 @@ export class UserService {
     const url: string = Address.setUnfollow(login);
     const httpResult: HttpResult<Object> = await HttpManager.netFetch<Object>(url, 'DELETE', null, false, null);
     if (httpResult.result || httpResult.code === STATUS_NO_CONTENT) {
-      this.store.applyFollowed(false);
       return new FetchFollowResult(true, httpResult.code, false, '');
     }
     const msg: string = httpResult.msg !== null ? httpResult.msg : 'unfollow failed';
-    return new FetchFollowResult(false, httpResult.code, this.store.followed, msg);
+    return new FetchFollowResult(false, httpResult.code, false, msg);
   }
 
   private async readCachedUser(login: string): Promise<UserDetail | null> {

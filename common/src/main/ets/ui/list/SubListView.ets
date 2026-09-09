@@ -4,6 +4,9 @@
  * RN [UserItem.js](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/widget/UserItem.js) +
  * RN [RepositoryItem.js](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/widget/RepositoryItem.js)
  * HARD-LAW-2 token-only：所有字面量 fontSize/padding/iconSize/borderRadius 已迁移至 Theme.ets
+ *
+ * R9 V2：@ComponentV2 + @Param/@Event（内部 PullLoadMoreList 已是 V2 受控组件，
+ * 列表状态由调用方 ViewModel/@State 驱动；V1 页面按值传入同样兼容）。
  */
 import { PullLoadMoreList } from '../components/PullLoadMoreList';
 import { SubUserItem, SubRepositoryItem } from '../../model/service/RepositoryService';
@@ -16,21 +19,21 @@ export enum SubListMode {
   REPO = 1,
 }
 
-@Component
+@ComponentV2
 export struct SubListView {
-  @Prop title: string = '';
-  @Prop mode: SubListMode = SubListMode.USER;
-  @Prop users: SubUserItem[] = [];
-  @Prop repos: SubRepositoryItem[] = [];
-  // 受控列表状态（R9 V2 契约）：旧 PullLoadMoreController 已删除，由调用方 @State 驱动。
-  @Prop refreshing: boolean = false;
-  @Prop loadingMore: boolean = false;
-  @Prop noMore: boolean = false;
-  @Prop idPrefix: string = 'sub_list';
-  refresh: () => void = (): void => {};
-  loadMore: () => void = (): void => {};
-  onUserClick: (item: SubUserItem) => void = (_item: SubUserItem): void => {};
-  onRepoClick: (item: SubRepositoryItem) => void = (_item: SubRepositoryItem): void => {};
+  @Param title: string = '';
+  @Param mode: SubListMode = SubListMode.USER;
+  @Param users: SubUserItem[] = [];
+  @Param repos: SubRepositoryItem[] = [];
+  // 受控列表状态（R9 V2 契约）：由调用方 ViewModel 的 @Trace 字段（或 V1 页面 @State）驱动。
+  @Param refreshing: boolean = false;
+  @Param loadingMore: boolean = false;
+  @Param noMore: boolean = false;
+  @Param idPrefix: string = 'sub_list';
+  @Event refresh: () => void = (): void => {};
+  @Event loadMore: () => void = (): void => {};
+  @Event onUserClick: (item: SubUserItem) => void = (_item: SubUserItem): void => {};
+  @Event onRepoClick: (item: SubRepositoryItem) => void = (_item: SubRepositoryItem): void => {};
 
   @Builder
   buildHeader(): void {
