@@ -16,81 +16,29 @@
  *   - 入口参数：{ uri: string }（与 RN 字段对齐）
  *   - boot 通道：want.parameters.bootWeb=<url>（KI-042 / KI-045 同款 BOOT_*_KEY 范式）
  *
+ * R9 V2 + MVVM：uri/标题/host 状态、取参（含 BOOT 兜底语义）与拦截编排
+ * 移入 WebViewModel（@ObservedV2 + @Trace）；本页仅保留 WebviewController、
+ * 重载动作与 UI 组装。测试 id（web_page_*）一字不动。
+ *
  * HARD-LAW 自检：
  *   - LAW-1 RN-FIRST：抽源 ui-parity/WebPage.md §1
  *   - LAW-2 token-only：颜色/字号/间距全走 GSYColor / GSYFontSize / GSYSpacing
  *   - LAW-3 NO-DEBUG-PROBE：UI 树仅 AppBar + Web；3 个 hilog tag [web/page]/[web/anchor]/[web/intercept]
- *   - R-UI-05：无 @Builder 值参；onLoadIntercept 内 inline 求值
  */
 import webview from '@ohos.web.webview';
 import hilog from '@ohos.hilog';
 import { NavigationService } from 'common';
-import { RouteParamStore } from 'common';
-import { RouteName } from 'common';
-import { BOOT_WEB_KEY, BootChannel } from 'common';
 import { AppBar, AppBarAction } from 'common';
-import { CommonToast } from 'common';
-import { I18n } from 'common';
 import { GSYColor } from 'common';
-import { Logger } from 'common';
+import { WebViewModel } from './viewmodel/WebViewModel';
 
-const TAG: string = 'WebPage';
 const DOMAIN: number = 0x0666;
+const TAG: string = 'WebPage';
 
-interface WebPageRouteParam {
-  uri: string;
-}
-
-@Component
+@ComponentV2
 export struct WebPage {
-  @State uri: string = '';
-  @State pageTitle: string = '';
-  @State pageHost: string = '';
+  @Local vm: WebViewModel = new WebViewModel();
   private controller: webview.WebviewController = new webview.WebviewController();
-
-  private adoptUri(initial: string): void {
-    let candidate: string = initial;
-    if (candidate.length === 0) {
-      const fallback: string = BootChannel.get(BOOT_WEB_KEY);
-      if (fallback.length > 0) {
-        candidate = fallback;
-        Logger.i('boot/ts', `WebPage adopt BOOT_WEB_KEY fallback uri=${candidate}`);
-      }
-    }
-    this.uri = WebPage.resolveUrl(candidate);
-    this.pageHost = WebPage.parseHost(this.uri);
-    hilog.info(DOMAIN, TAG, '[web/page] init uri=%{public}s', this.uri);
-  }
-
-  private static resolveUrl(raw: string): string {
-    if (raw.length === 0) {
-      return '';
-    }
-    if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(raw)) {
-      return raw;
-    }
-    return 'http://' + raw;
-  }
-
-  private static parseHost(url: string): string {
-    if (url.length === 0) {
-      return '';
-    }
-    const schemeEnd: number = url.indexOf('://');
-    if (schemeEnd < 0) {
-      return url;
-    }
-    const rest: string = url.substring(schemeEnd + 3);
-    const slash: number = rest.indexOf('/');
-    return slash < 0 ? rest : rest.substring(0, slash);
-  }
-
-  private resolveTitle(): string {
-    if (this.pageTitle.length > 0) {
-      return this.pageTitle;
-    }
-    return this.pageHost.length > 0 ? this.pageHost : 'WebPage';
-  }
 
   private onReload(): void {
     hilog.info(DOMAIN, TAG, '[web/page] reload');
@@ -102,27 +50,11 @@ export struct WebPage {
     }
   }
 
-  private onInterceptUrl(url: string): boolean {
-    if (url.length === 0) {
-      return false;
-    }
-    if (url.indexOf('gsygithub://') === 0) {
-      hilog.info(DOMAIN, TAG, '[web/anchor] gsygithub anchor url=%{public}s', url);
-      CommonToast.showShort(I18n('webRelativeLinkNeedRepoContext'));
-      return true;
-    }
-    if (url.indexOf('https://github.com/') === 0 || url.indexOf('http://github.com/') === 0) {
-      hilog.info(DOMAIN, TAG, '[web/intercept] github candidate url=%{public}s', url);
-      return false;
-    }
-    return false;
-  }
-
   build(): void {
     NavDestination() {
       Column() {
         AppBar({
-          title: this.resolveTitle(),
+          title: this.vm.displayTitle(),
           titleStart: true,
           showBack: true,
           onBack: (): void => {
@@ -139,8 +71,8 @@ export struct WebPage {
         })
           .id('web_page_appbar');
 
-        if (this.uri.length > 0) {
-          Web({ src: this.uri, controller: this.controller })
+        if (this.vm.uri.length > 0) {
+          Web({ src: this.vm.uri, controller: this.controller })
             .id('web_page_view')
             .domStorageAccess(true)
             .javaScriptAccess(true)
@@ -148,16 +80,15 @@ export struct WebPage {
             .zoomAccess(true)
             .layoutWeight(1)
             .onTitleReceive((event: OnTitleReceiveEvent): void => {
-              this.pageTitle = event.title;
+              this.vm.onTitleReceived(event.title);
             })
             .onPageEnd((event: OnPageEndEvent): void => {
-              this.pageHost = WebPage.parseHost(event.url);
-              hilog.info(DOMAIN, TAG, '[web/page] onPageEnd url=%{public}s', event.url);
+              this.vm.onPageFinished(event.url);
             })
             .onLoadIntercept((event: OnLoadInterceptEvent): boolean => {
               const request: WebResourceRequest = event.data;
               const url: string = request.getRequestUrl();
-              return this.onInterceptUrl(url);
+              return this.vm.interceptUrl(url);
             });
         }
       }
@@ -168,29 +99,7 @@ export struct WebPage {
     }
     .hideTitleBar(true)
     .onReady((ctx: NavDestinationContext): void => {
-      // 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）
-      const routeRaw: Object | null = RouteParamStore.consume(RouteName.WebPage);
-      if (routeRaw !== null) {
-        const routeParam: WebPageRouteParam = routeRaw as WebPageRouteParam;
-        if (routeParam.uri !== undefined && routeParam.uri !== null && routeParam.uri.length > 0) {
-          Logger.i('web/route', `WebPage adopted via RouteParamStore uri=${routeParam.uri}`);
-          this.adoptUri(routeParam.uri);
-          return;
-        }
-      }
-      let initial: string = '';
-      try {
-        const info: NavPathInfo | undefined = ctx.pathInfo;
-        if (info !== undefined && info !== null && info.param !== undefined && info.param !== null) {
-          const route: WebPageRouteParam = info.param as WebPageRouteParam;
-          if (route.uri !== undefined && route.uri !== null && route.uri.length > 0) {
-            initial = route.uri;
-          }
-        }
-      } catch (_e) {
-        initial = '';
-      }
-      this.adoptUri(initial);
+      this.vm.initFromNavContext(ctx);
     });
   }
 }

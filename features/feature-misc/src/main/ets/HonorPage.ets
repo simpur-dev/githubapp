@@ -21,9 +21,14 @@ export const HONOR_LIST: HonorEntry[] = [
   new HonorEntry('Contributors', 'GSYGithubApp 全体贡献者'),
 ];
 
-@Component
+/**
+ * HonorPage —— 荣耀榜页 View 层（R9 V2 + MVVM）。
+ * 纯静态列表展示，无异步编排/业务状态，不强抽 ViewModel，仅做 @ComponentV2 化；
+ * 列表 ForEach → Repeat（短列表，不用 virtualScroll），测试 id（honor_*）一字不动。
+ */
+@ComponentV2
 export struct HonorPage {
-  @State items: HonorEntry[] = HONOR_LIST;
+  @Local items: HonorEntry[] = HONOR_LIST;
 
   @Builder
   buildItem(item: HonorEntry, index: number): void {
@@ -40,7 +45,7 @@ export struct HonorPage {
       Column() {
         Text(item.name)
           .id('honor_name_' + index.toString())
-          .fontSize(15) // TODO: 字号 15 暂无 token 映射
+          .fontSize(GSYFontSize.middleNormal)
           .fontWeight(FontWeight.Bold)
           .fontColor(GSYColor.primary);
         Text(item.desc)
@@ -89,17 +94,19 @@ export struct HonorPage {
       .backgroundColor(GSYColor.white);
 
       List() {
-        ForEach(this.items, (item: HonorEntry, index: number): void => {
-          ListItem() {
-            this.buildItem(item, index);
-          }
-          .id('honor_item_' + index.toString());
-        }, (item: HonorEntry, index: number): string => 'h_' + index.toString() + '_' + item.name);
+        Repeat(this.items)
+          .each((obj: RepeatItem<HonorEntry>) => {
+            ListItem() {
+              this.buildItem(obj.item, obj.index);
+            }
+            .id('honor_item_' + obj.index.toString());
+          })
+          .key((item: HonorEntry): string => item.name)
       }
       .id('honor_list')
       .width('100%')
       .layoutWeight(1)
-      .divider({ strokeWidth: 0, color: Color.Transparent });
+      .divider({ strokeWidth: 0, color: GSYColor.transparent });
     }
     .id('honor_root')
     .width('100%')

@@ -21,9 +21,14 @@ export function buildCustomPlaceholderList(): CustomScriptItem[] {
   ];
 }
 
-@Component
+/**
+ * CustomPage —— 自定义脚本页 View 层（R9 V2 + MVVM）。
+ * 纯静态占位列表展示，无异步编排/业务状态，不强抽 ViewModel，仅做 @ComponentV2 化；
+ * 列表 ForEach → Repeat（短列表，不用 virtualScroll），测试 id（custom_*）一字不动。
+ */
+@ComponentV2
 export struct CustomPage {
-  @State items: CustomScriptItem[] = buildCustomPlaceholderList();
+  @Local items: CustomScriptItem[] = buildCustomPlaceholderList();
 
   @Builder
   buildItem(item: CustomScriptItem, index: number): void {
@@ -75,17 +80,19 @@ export struct CustomPage {
       .backgroundColor(GSYColor.white);
 
       List() {
-        ForEach(this.items, (item: CustomScriptItem, index: number): void => {
-          ListItem() {
-            this.buildItem(item, index);
-          }
-          .id('custom_list_item_' + index.toString());
-        }, (item: CustomScriptItem, index: number): string => 'c_' + index.toString() + '_' + item.name);
+        Repeat(this.items)
+          .each((obj: RepeatItem<CustomScriptItem>) => {
+            ListItem() {
+              this.buildItem(obj.item, obj.index);
+            }
+            .id('custom_list_item_' + obj.index.toString());
+          })
+          .key((item: CustomScriptItem): string => item.name)
       }
       .id('custom_list')
       .width('100%')
       .layoutWeight(1)
-      .divider({ strokeWidth: 0, color: Color.Transparent });
+      .divider({ strokeWidth: 0, color: GSYColor.transparent });
 
       Button(I18n('customComingSoon'))
         .id('custom_placeholder_btn')

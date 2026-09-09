@@ -9,12 +9,35 @@ export const APP_AUTHOR: string = 'CarGuo';
 export const APP_PROJECT_URL: string = 'https://github.com/CarGuo/GSYGithubAppOH';
 export const APP_LICENSE: string = 'MIT License';
 
-@Component
+/**
+ * AboutInfoRow —— 信息行展示数据（Repeat 数据源，纯静态页无 VM）。
+ * idValue 是测试脚本依赖的组件 id 前缀（about_*），一字不动。
+ */
+class AboutInfoRow {
+  readonly idValue: string;
+  readonly label: string;
+  readonly value: string;
+
+  constructor(idValue: string, label: string, value: string) {
+    this.idValue = idValue;
+    this.label = label;
+    this.value = value;
+  }
+}
+
+/**
+ * AboutPage —— 关于页 View 层（R9 V2 + MVVM）。
+ * 纯静态信息展示，无异步编排/业务状态，按迁移指南不强抽 ViewModel，
+ * 仅做 @ComponentV2 化；信息行改由 Repeat 渲染。
+ */
+@ComponentV2
 export struct AboutPage {
-  @State versionText: string = APP_VERSION;
-  @State authorText: string = APP_AUTHOR;
-  @State projectUrlText: string = APP_PROJECT_URL;
-  @State licenseText: string = APP_LICENSE;
+  @Local rows: AboutInfoRow[] = [
+    new AboutInfoRow('about_version', I18n('version'), APP_VERSION),
+    new AboutInfoRow('about_author', I18n('author'), APP_AUTHOR),
+    new AboutInfoRow('about_project_url', I18n('projectUrl'), APP_PROJECT_URL),
+    new AboutInfoRow('about_license', 'License', APP_LICENSE),
+  ];
 
   private goHonor(): void {
     NavigationService.push(RouteName.Honor);
@@ -22,29 +45,6 @@ export struct AboutPage {
 
   private goCustom(): void {
     NavigationService.push(RouteName.Custom);
-  }
-
-  @Builder
-  buildRow(idValue: string, label: string, value: string): void {
-    Row() {
-      Text(label)
-        .id(idValue + '_label')
-        .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.textSubtle)
-        .width(96);
-      Text(value)
-        .id(idValue + '_value')
-        .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.primary)
-        .layoutWeight(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .maxLines(2);
-    }
-    .id(idValue + '_row')
-    .width('100%')
-    .padding({ top: 12, bottom: 12, left: 16, right: 16 })
-    .backgroundColor(GSYColor.white)
-    .border({ width: { bottom: 0.5 }, color: GSYColor.borderSubtle });
   }
 
   build(): void {
@@ -81,17 +81,36 @@ export struct AboutPage {
           .padding({ top: 32, bottom: 24 })
           .alignItems(HorizontalAlign.Center);
 
-          this.buildRow('about_version', I18n('version'), this.versionText);
-          this.buildRow('about_author', I18n('author'), this.authorText);
-          this.buildRow('about_project_url', I18n('projectUrl'), this.projectUrlText);
-          this.buildRow('about_license', 'License', this.licenseText);
+          Repeat(this.rows)
+            .each((obj: RepeatItem<AboutInfoRow>) => {
+              Row() {
+                Text(obj.item.label)
+                  .id(obj.item.idValue + '_label')
+                  .fontSize(GSYFontSize.small)
+                  .fontColor(GSYColor.textSubtle)
+                  .width(96);
+                Text(obj.item.value)
+                  .id(obj.item.idValue + '_value')
+                  .fontSize(GSYFontSize.small)
+                  .fontColor(GSYColor.primary)
+                  .layoutWeight(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .maxLines(2);
+              }
+              .id(obj.item.idValue + '_row')
+              .width('100%')
+              .padding({ top: 12, bottom: 12, left: 16, right: 16 })
+              .backgroundColor(GSYColor.white)
+              .border({ width: { bottom: 0.5 }, color: GSYColor.borderSubtle });
+            })
+            .key((item: AboutInfoRow): string => item.idValue)
 
           Button(I18n('beStaredText'))
             .id('about_honor_btn')
             .type(ButtonType.Capsule)
             .width('90%')
             .height(46)
-            .fontSize(15) // TODO: 字号 15 暂无 token 映射
+            .fontSize(GSYFontSize.middleNormal)
             .fontColor(GSYColor.white)
             .backgroundColor(GSYColor.successGreen)
             .margin({ top: 24 })
@@ -104,7 +123,7 @@ export struct AboutPage {
             .type(ButtonType.Capsule)
             .width('90%')
             .height(46)
-            .fontSize(15) // TODO: 字号 15 暂无 token 映射
+            .fontSize(GSYFontSize.middleNormal)
             .fontColor(GSYColor.white)
             .backgroundColor(GSYColor.linkBlue)
             .margin({ top: 12, bottom: 24 })
