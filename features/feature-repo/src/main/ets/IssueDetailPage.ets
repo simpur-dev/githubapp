@@ -1,15 +1,28 @@
+/**
+ * IssueDetailPage —— Issue 详情页（R9 V2 + MVVM）。
+ *
+ * 原 V1 @Component + IssueDetailStore + CustomDialogController 三弹层整页迁
+ * @ComponentV2：issue 详情 / 评论列表 + 分页 / 权限判定 / 弹层开关与草稿 /
+ * 操作 busy 态全部收敛到 IssueDetailViewModel（@Local vm 持有）；
+ * 三组弹层（回复 / 编辑 issue / 编辑评论，含 issue_markdown_toolbar_* 工具条）
+ * 由 @CustomDialog IssueEditDialog 迁为 @ComponentV2 IssueMarkdownEditSheet +
+ * bindSheet 呈现（单节点单弹层，借 0 高锚点各挂一个，DrawerMenu 同款），
+ * 全部 issue_detail_* / issue_comment_* / issue_edit_dialog_* / issue_reply_dialog_* /
+ * issue_comment_edit_dialog_* / issue_markdown_toolbar_* 测试 id 原样保留；
+ * 长按评论的选项菜单保持 CommonModal.options 系统弹层。
+ * 登录态直读 GlobalAuthStore 单例（VM 内）。
+ */
 import { I18n } from 'common';
 import { AppBar, AppBarAction } from 'common';
 import { MarkdownText } from 'common';
 import { PullLoadMoreList } from 'common';
 import { Logger } from 'common';
-import { BOOT_ISSUE_KEY, BootChannel, GlobalAuthStore } from 'common';
+import { BOOT_ISSUE_KEY, BootChannel } from 'common';
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
 import {
-  IssueDetailStore,
   IssueDetailModel,
   IssueCommentModel,
   ISSUE_STATE_OPEN
@@ -17,7 +30,6 @@ import {
 import { IssueService, IssueServiceResult } from 'common';
 import { TimeUtil } from 'common';
 import { renderEmoji } from 'common';
-import { IssuePermissionUtil } from 'common';
 import { CommonBottomBar, CommonBottomBarItem } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem, OptionListOptions } from 'common';
@@ -29,40 +41,124 @@ import {
   FA_CHECK,
   FA_PLUS,
   FA_LOCK,
-  FA_UNLOCK,
-  IconFont
+  FA_UNLOCK
 } from 'common';
+import { IssueDetailViewModel } from './viewmodel/IssueDetailViewModel';
 
-@CustomDialog
-struct IssueEditDialog {
-  controller?: CustomDialogController;
-  title: string = '';
-  showTitleField: boolean = true;
-  defaultTitle: string = '';
-  defaultBody: string = '';
-  titlePlaceholder: string = '';
-  bodyPlaceholder: string = '';
-  okText: string = 'OK';
-  cancelText: string = 'Cancel';
-  rootId: string = 'issue_edit_dialog_root';
-  titleTextId: string = 'issue_edit_dialog_title';
-  titleInputId: string = 'issue_edit_dialog_title_input';
-  bodyInputId: string = 'issue_edit_dialog_body_input';
-  toolbarId: string = 'issue_markdown_toolbar';
-  cancelButtonId: string = 'issue_edit_dialog_cancel_btn';
-  okButtonId: string = 'issue_edit_dialog_ok_btn';
-  onConfirm: (title: string, body: string) => void = (): void => {};
-  onCancel: () => void = (): void => {};
-  @State currentTitle: string = '';
-  @State currentBody: string = '';
+/** 弹层形态枚举：回复 / 编辑 issue / 编辑评论（三组测试 id 前缀在此切换）。 */
+const SHEET_MODE_REPLY: string = 'reply';
+const SHEET_MODE_EDIT_ISSUE: string = 'editIssue';
+const SHEET_MODE_EDIT_COMMENT: string = 'editComment';
+
+const REPLY_SHEET_HEIGHT: number = 460;
+const EDIT_ISSUE_SHEET_HEIGHT: number = 560;
+const EDIT_COMMENT_SHEET_HEIGHT: number = 460;
+
+/**
+ * 编辑弹层内容（V2）。旧版经 @CustomDialog IssueEditDialog +
+ * CustomDialogController 呈现（V2 组件不可用），内容结构原样迁为
+ * @ComponentV2 + bindSheet，三组弹层（issue_edit_dialog_* / issue_reply_dialog_* /
+ * issue_comment_edit_dialog_*，含 issue_markdown_toolbar_* 工具条）测试 id 全部原样保留。
+ * 草稿值由 View 层在打开前写入 VM，经 @Param + @Monitor 同步（等价旧弹窗每次 open 重建）。
+ */
+@ComponentV2
+struct IssueMarkdownEditSheet {
+  @Param sheetMode: string = SHEET_MODE_REPLY;
+  @Param dialogTitle: string = '';
+  @Param showTitleField: boolean = true;
+  @Param defaultTitle: string = '';
+  @Param defaultBody: string = '';
+  @Param titlePlaceholder: string = '';
+  @Param bodyPlaceholder: string = '';
+  @Param okText: string = '';
+  @Param cancelText: string = '';
+  @Event onConfirm: (title: string, body: string) => void = (_t: string, _b: string): void => {};
+  @Event onCancel: () => void = (): void => {};
+  @Local currentTitle: string = '';
+  @Local currentBody: string = '';
 
   aboutToAppear(): void {
     this.currentTitle = this.defaultTitle;
     this.currentBody = this.defaultBody;
   }
 
+  // 每次打开弹层前 View 层会更新 default 值，同步草稿（等价旧弹窗每次 open 重建）。
+  @Monitor('defaultTitle')
+  onDefaultTitleChange(): void {
+    this.currentTitle = this.defaultTitle;
+  }
+
+  @Monitor('defaultBody')
+  onDefaultBodyChange(): void {
+    this.currentBody = this.defaultBody;
+  }
+
   private appendMarkdown(insertion: string): void {
     this.currentBody = this.currentBody + insertion;
+  }
+
+  private titleTextId(): string {
+    if (this.sheetMode === SHEET_MODE_REPLY) {
+      return 'issue_reply_dialog_title';
+    }
+    if (this.sheetMode === SHEET_MODE_EDIT_COMMENT) {
+      return 'issue_comment_edit_dialog_title';
+    }
+    return 'issue_edit_dialog_title';
+  }
+
+  private titleInputId(): string {
+    return 'issue_edit_dialog_title_input';
+  }
+
+  private bodyInputId(): string {
+    if (this.sheetMode === SHEET_MODE_REPLY) {
+      return 'issue_reply_dialog_body_input';
+    }
+    if (this.sheetMode === SHEET_MODE_EDIT_COMMENT) {
+      return 'issue_comment_edit_dialog_body_input';
+    }
+    return 'issue_edit_dialog_body_input';
+  }
+
+  private toolbarId(): string {
+    if (this.sheetMode === SHEET_MODE_REPLY) {
+      return 'issue_reply_markdown_toolbar';
+    }
+    if (this.sheetMode === SHEET_MODE_EDIT_COMMENT) {
+      return 'issue_comment_edit_markdown_toolbar';
+    }
+    return 'issue_markdown_toolbar';
+  }
+
+  private rootId(): string {
+    if (this.sheetMode === SHEET_MODE_REPLY) {
+      return 'issue_reply_dialog_root';
+    }
+    if (this.sheetMode === SHEET_MODE_EDIT_COMMENT) {
+      return 'issue_comment_edit_dialog_root';
+    }
+    return 'issue_edit_dialog_root';
+  }
+
+  private cancelButtonId(): string {
+    if (this.sheetMode === SHEET_MODE_REPLY) {
+      return 'issue_reply_dialog_cancel_btn';
+    }
+    if (this.sheetMode === SHEET_MODE_EDIT_COMMENT) {
+      return 'issue_comment_edit_dialog_cancel_btn';
+    }
+    return 'issue_edit_dialog_cancel_btn';
+  }
+
+  private okButtonId(): string {
+    if (this.sheetMode === SHEET_MODE_REPLY) {
+      return 'issue_reply_dialog_ok_btn';
+    }
+    if (this.sheetMode === SHEET_MODE_EDIT_COMMENT) {
+      return 'issue_comment_edit_dialog_ok_btn';
+    }
+    return 'issue_edit_dialog_ok_btn';
   }
 
   @Builder
@@ -83,17 +179,19 @@ struct IssueEditDialog {
 
   build(): void {
     Column() {
-      if (this.title.length > 0) {
-        Text(this.title)
-          .id(this.titleTextId)
+      if (this.dialogTitle.length > 0) {
+        Text(this.dialogTitle)
+          .id(this.titleTextId())
           .fontSize(GSYFontSize.middleWhite)
           .fontWeight(FontWeight.Bold)
           .fontColor(GSYColor.darkText)
+          .width('100%')
+          .textAlign(TextAlign.Start)
           .margin({ bottom: GSYSpacing.normalEdge });
       }
       if (this.showTitleField) {
         TextInput({ text: this.currentTitle, placeholder: this.titlePlaceholder })
-          .id(this.titleInputId)
+          .id(this.titleInputId())
           .maxLength(255)
           .height(44)
           .fontSize(GSYFontSize.small)
@@ -105,7 +203,7 @@ struct IssueEditDialog {
           });
       }
       TextArea({ text: this.currentBody, placeholder: this.bodyPlaceholder })
-        .id(this.bodyInputId)
+        .id(this.bodyInputId())
         .maxLength(8192)
         .height(200)
         .fontSize(GSYFontSize.small)
@@ -118,18 +216,18 @@ struct IssueEditDialog {
         });
       Scroll() {
         Row() {
-          this.buildMarkdownAction(`${this.toolbarId}_h1`, 'H1', '# ');
-          this.buildMarkdownAction(`${this.toolbarId}_h2`, 'H2', '## ');
-          this.buildMarkdownAction(`${this.toolbarId}_h3`, 'H3', '### ');
-          this.buildMarkdownAction(`${this.toolbarId}_bold`, 'B', '****');
-          this.buildMarkdownAction(`${this.toolbarId}_italic`, 'I', '**');
-          this.buildMarkdownAction(`${this.toolbarId}_ul`, 'UL', '- ');
-          this.buildMarkdownAction(`${this.toolbarId}_quote`, 'Quote', '> ');
-          this.buildMarkdownAction(`${this.toolbarId}_code`, 'Code', '``');
-          this.buildMarkdownAction(`${this.toolbarId}_image`, 'IMG', '![]()');
-          this.buildMarkdownAction(`${this.toolbarId}_link`, 'Link', '[]()');
+          this.buildMarkdownAction(`${this.toolbarId()}_h1`, 'H1', '# ');
+          this.buildMarkdownAction(`${this.toolbarId()}_h2`, 'H2', '## ');
+          this.buildMarkdownAction(`${this.toolbarId()}_h3`, 'H3', '### ');
+          this.buildMarkdownAction(`${this.toolbarId()}_bold`, 'B', '****');
+          this.buildMarkdownAction(`${this.toolbarId()}_italic`, 'I', '**');
+          this.buildMarkdownAction(`${this.toolbarId()}_ul`, 'UL', '- ');
+          this.buildMarkdownAction(`${this.toolbarId()}_quote`, 'Quote', '> ');
+          this.buildMarkdownAction(`${this.toolbarId()}_code`, 'Code', '``');
+          this.buildMarkdownAction(`${this.toolbarId()}_image`, 'IMG', '![]()');
+          this.buildMarkdownAction(`${this.toolbarId()}_link`, 'Link', '[]()');
         }
-        .id(this.toolbarId)
+        .id(this.toolbarId())
         .height(36)
         .alignItems(VerticalAlign.Center);
       }
@@ -140,28 +238,22 @@ struct IssueEditDialog {
       .margin({ top: GSYSpacing.halfEdge });
       Row() {
         Button(this.cancelText)
-          .id(this.cancelButtonId)
+          .id(this.cancelButtonId())
           .layoutWeight(1)
-          .backgroundColor(Color.Transparent)
+          .backgroundColor(GSYColor.transparent)
           .fontColor(GSYColor.mediumText)
           .onClick((): void => {
-            if (this.controller) {
-              this.controller.close();
-            }
             this.onCancel();
           });
         Divider().vertical(true).height(20).color(GSYColor.pillDivider);
         Button(this.okText)
-          .id(this.okButtonId)
+          .id(this.okButtonId())
           .layoutWeight(1)
-          .backgroundColor(Color.Transparent)
+          .backgroundColor(GSYColor.transparent)
           .fontColor(GSYColor.materialBlue)
           .onClick((): void => {
             const t: string = this.currentTitle;
             const b: string = this.currentBody;
-            if (this.controller) {
-              this.controller.close();
-            }
             this.onConfirm(t, b);
           });
       }
@@ -170,11 +262,11 @@ struct IssueEditDialog {
       .margin({ top: GSYSpacing.normalEdge })
       .alignItems(VerticalAlign.Center);
     }
-    .id(this.rootId)
+    .id(this.rootId())
+    .width('100%')
     .padding(GSYSpacing.normalEdge)
     .borderRadius(8)
-    .width('86%')
-    .backgroundColor(Color.White);
+    .backgroundColor(GSYColor.white);
   }
 }
 
@@ -188,10 +280,7 @@ const FALLBACK_NUMBER: number = 0;
 
 const HEADER_AVATAR_SIZE: number = GSYIconSize.big;
 const COMMENT_AVATAR_SIZE: number = GSYIconSize.normal;
-const HEADER_STATE_ICON_SIZE: number = 16;
 const COMMENT_CARD_RADIUS: number = 3;
-const STATE_PILL_RADIUS: number = 10;
-const HEADER_STATE_GAP: number = 6;
 const HEADER_NUMBER_GAP: number = 8;
 const COMMENT_NAME_TIME_GAP: number = 4;
 const COMMENT_BODY_GAP: number = 8;
@@ -200,103 +289,10 @@ const HEADER_DIVIDER_GAP: number = 12;
 const HEADER_LABEL_GAP: number = 4;
 const EMPTY_HEIGHT: number = 180;
 
-@Component
+@ComponentV2
 export struct IssueDetailPage {
-  @State fullName: string = FALLBACK_FULL_NAME;
-  @State issueNumber: number = FALLBACK_NUMBER;
-  @State store: IssueDetailStore = new IssueDetailStore();
-  @State commentRefreshing: boolean = false;
-  @State commentLoadingMore: boolean = false;
-  @State commentNoMore: boolean = false;
-  @State pendingTitle: string = '';
-  @State pendingBody: string = '';
-  @State pendingCommentBody: string = '';
-  private pendingCommentId: number = 0;
-  private pendingCommentRowIndex: number = -1;
-  private service: IssueService = new IssueService(this.store);
+  @Local vm: IssueDetailViewModel = new IssueDetailViewModel();
   private pathStack: NavPathStack = new NavPathStack();
-
-  // KI-046 修复：CustomDialogController 必须挂在 @Component scope，
-  // 不能从 static 函数内 new。LoginPage 已采用同一 pattern。
-  private commentReplyController: CustomDialogController = new CustomDialogController({
-    builder: IssueEditDialog({
-      title: I18n('issueComment'),
-      showTitleField: false,
-      defaultBody: this.pendingCommentBody,
-      bodyPlaceholder: I18n('issueInputTip'),
-      okText: I18n('ok'),
-      cancelText: I18n('cancel'),
-      rootId: 'issue_reply_dialog_root',
-      titleTextId: 'issue_reply_dialog_title',
-      bodyInputId: 'issue_reply_dialog_body_input',
-      toolbarId: 'issue_reply_markdown_toolbar',
-      cancelButtonId: 'issue_reply_dialog_cancel_btn',
-      okButtonId: 'issue_reply_dialog_ok_btn',
-      onConfirm: (_title: string, body: string): void => {
-        Logger.i('issue/comment', `reply onConfirm len=${body.length}`);
-        this.runCreateComment(body);
-      },
-      onCancel: (): void => {
-        Logger.i('issue/comment', 'reply onCancel');
-      },
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center,
-    customStyle: true,
-  });
-
-  private commentEditController: CustomDialogController = new CustomDialogController({
-    builder: IssueEditDialog({
-      title: I18n('issueCommentEdit'),
-      showTitleField: false,
-      defaultBody: this.pendingCommentBody,
-      bodyPlaceholder: I18n('issueInputTip'),
-      okText: I18n('ok'),
-      cancelText: I18n('cancel'),
-      rootId: 'issue_comment_edit_dialog_root',
-      titleTextId: 'issue_comment_edit_dialog_title',
-      bodyInputId: 'issue_comment_edit_dialog_body_input',
-      toolbarId: 'issue_comment_edit_markdown_toolbar',
-      cancelButtonId: 'issue_comment_edit_dialog_cancel_btn',
-      okButtonId: 'issue_comment_edit_dialog_ok_btn',
-      onConfirm: (_title: string, body: string): void => {
-        Logger.i('comment/edit', `onConfirm cid=${this.pendingCommentId} len=${body.length}`);
-        this.runEditComment(body);
-      },
-      onCancel: (): void => {
-        Logger.i('comment/edit', 'onCancel');
-      },
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center,
-    customStyle: true,
-  });
-
-  private issueEditController: CustomDialogController = new CustomDialogController({
-    builder: IssueEditDialog({
-      title: I18n('editIssue'),
-      defaultTitle: this.pendingTitle,
-      defaultBody: this.pendingBody,
-      titlePlaceholder: I18n('issueInputTitleTip'),
-      bodyPlaceholder: I18n('issueInputTip'),
-      okText: I18n('ok'),
-      cancelText: I18n('cancel'),
-      onConfirm: (title: string, body: string): void => {
-        Logger.i('issue/edit', `onConfirm titleLen=${title.length} bodyLen=${body.length}`);
-        this.runEditIssue(title, body);
-      },
-      onCancel: (): void => {
-        Logger.i('issue/edit', 'onCancel');
-      },
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center,
-    customStyle: true,
-  });
-
-  aboutToAppear(): void {
-    this.service = new IssueService(this.store);
-  }
 
   private resolveParamFromStack(stack: NavPathStack): IssueDetailRouteParam | null {
     try {
@@ -315,100 +311,21 @@ export struct IssueDetailPage {
   }
 
   private async loadAll(): Promise<void> {
-    if (this.fullName.length === 0 || this.issueNumber <= 0) {
-      return;
-    }
-    await this.service.getIssue(this.fullName, this.issueNumber);
-    await this.refreshComments();
-  }
-
-  private async refreshComments(): Promise<void> {
-    if (this.fullName.length === 0 || this.issueNumber <= 0) {
-      return;
-    }
-    this.commentRefreshing = true;
-    this.commentLoadingMore = false;
-    this.commentNoMore = false;;
-    await this.service.getComments(this.fullName, this.issueNumber, 1);
-    this.commentRefreshing = false;
-    this.commentLoadingMore = false;
-    this.commentNoMore = !(this.store.hasMore);
-  }
-
-  private async loadMoreComments(): Promise<void> {
-    if (!this.store.hasMore) {
-      this.commentLoadingMore = false;
-    this.commentNoMore = !(false);
-      return;
-    }
-    const next: number = this.store.page + 1;
-    await this.service.getComments(this.fullName, this.issueNumber, next);
-    this.commentLoadingMore = false;
-    this.commentNoMore = !(this.store.hasMore);
-  }
-
-  private currentLogin(): string {
-    // 登录名直读 GlobalAuthStore 单例（原 auth.userLogin 镜像通道已移除）。
-    if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined) {
-      return GlobalAuthStore.userInfo.login;
-    }
-    return '';
-  }
-
-  private isIssueOwner(): boolean {
-    if (this.store.issue === null) {
-      return false;
-    }
-    const login: string = this.currentLogin();
-    if (login.length === 0) {
-      return false;
-    }
-    return (this.store.issue as IssueDetailModel).user.login === login;
-  }
-
-  private isRepoOwner(): boolean {
-    return IssuePermissionUtil.isRepoOwner(this.fullName, this.currentLogin());
-  }
-
-  private isIssueLocked(): boolean {
-    return this.store.issue !== null ? (this.store.issue as IssueDetailModel).locked : false;
-  }
-
-  private canReply(): boolean {
-    return this.store.issue !== null &&
-      IssuePermissionUtil.canReply(this.isRepoOwner(), this.isIssueOwner(), this.isIssueLocked());
-  }
-
-  private canEditIssue(): boolean {
-    return this.store.issue !== null &&
-      IssuePermissionUtil.canEdit(this.isRepoOwner(), this.isIssueOwner(), this.isIssueLocked());
-  }
-
-  private canOpenCloseIssue(): boolean {
-    return this.store.issue !== null &&
-      IssuePermissionUtil.canOpenClose(this.isRepoOwner(), this.isIssueOwner());
-  }
-
-  private canLockUnlockIssue(): boolean {
-    return this.store.issue !== null && IssuePermissionUtil.canLockUnlock(this.isRepoOwner());
-  }
-
-  private shouldShowBottomBar(): boolean {
-    return this.canReply() || this.canEditIssue() || this.canOpenCloseIssue() || this.canLockUnlockIssue();
+    await this.vm.loadAll();
   }
 
   private issueTitleForAppBar(): string {
-    if (this.store.issue !== null) {
-      return '#' + this.issueNumber.toString() + ' ' + (this.store.issue as IssueDetailModel).title;
-    }
-    return this.issueNumber > 0 ? '#' + this.issueNumber.toString() : I18n('reposIssue');
+    const title: string = this.vm.appBarTitle();
+    return title.length > 0 ? title : I18n('reposIssue');
   }
 
   private resolveHtmlUrl(): string {
-    if (this.fullName.length === 0 || this.issueNumber <= 0) {
+    const fullName: string = this.vm.targetFullName();
+    const number: number = this.vm.targetNumber();
+    if (fullName.length === 0 || number <= 0) {
       return '';
     }
-    return 'https://github.com/' + this.fullName + '/issues/' + this.issueNumber.toString();
+    return 'https://github.com/' + fullName + '/issues/' + number.toString();
   }
 
   private showMoreMenu(): void {
@@ -451,18 +368,6 @@ export struct IssueDetailPage {
     return renderEmoji(safe);
   }
 
-  private isCommentOwner(item: IssueCommentModel): boolean {
-    const login: string = this.currentLogin();
-    if (login.length === 0) {
-      return false;
-    }
-    return item.user.login === login;
-  }
-
-  private canManageComment(item: IssueCommentModel): boolean {
-    return this.isRepoOwner() || this.isCommentOwner(item);
-  }
-
   private copyToPasteboard(text: string): void {
     if (text.length === 0) {
       return;
@@ -477,65 +382,41 @@ export struct IssueDetailPage {
     }
   }
 
-  private async runCreateComment(text: string): Promise<void> {
-    const safe: string = text !== null && text !== undefined ? text.trim() : '';
-    if (safe.length === 0 || this.fullName.length === 0 || this.issueNumber <= 0) {
-      return;
-    }
-    const res: IssueServiceResult<IssueCommentModel> =
-      await this.service.createComment(this.fullName, this.issueNumber, safe);
-    Logger.i('issue/comment', `create result=${res.result} code=${res.code}`);
+  private showErrorToast(msg: string): void {
+    const safe: string = msg !== null && msg !== undefined && msg.length > 0 ? msg : I18n('errorUnKnow');
+    CommonToast.showShort(safe);
+  }
+
+  private async runCreateComment(): Promise<void> {
+    const res: IssueServiceResult<IssueCommentModel> = await this.vm.submitReply();
     if (!res.result) {
-      const msg: string = res.msg.length > 0 ? res.msg : I18n('errorUnKnow');
-      CommonToast.showShort(msg);
+      this.showErrorToast(res.msg);
     }
   }
 
-  private async runEditIssue(title: string, body: string): Promise<void> {
-    const safeTitle: string = title !== null && title !== undefined ? title.trim() : '';
-    if (safeTitle.length === 0 || this.fullName.length === 0 || this.issueNumber <= 0) {
-      return;
-    }
-    const safeBody: string = body !== null && body !== undefined ? body : '';
-    const res: IssueServiceResult<IssueDetailModel> =
-      await this.service.editIssue(this.fullName, this.issueNumber, safeTitle, safeBody);
-    Logger.i('issue/edit', `result=${res.result} code=${res.code}`);
+  private async runEditIssue(): Promise<void> {
+    const res: IssueServiceResult<IssueDetailModel> = await this.vm.submitEditIssue();
     if (!res.result) {
-      const msg: string = res.msg.length > 0 ? res.msg : I18n('errorUnKnow');
-      CommonToast.showShort(msg);
+      this.showErrorToast(res.msg);
     }
   }
 
-  private async runEditComment(text: string): Promise<void> {
-    const safe: string = text !== null && text !== undefined ? text.trim() : '';
-    if (safe.length === 0 || this.pendingCommentRowIndex < 0 || this.pendingCommentId <= 0) {
-      return;
-    }
-    const res: IssueServiceResult<IssueCommentModel> =
-      await this.service.editComment(this.fullName, this.issueNumber,
-        this.pendingCommentId, safe, this.pendingCommentRowIndex);
-    Logger.i('comment/edit', `result=${res.result} code=${res.code} cid=${this.pendingCommentId}`);
+  private async runEditComment(): Promise<void> {
+    const res: IssueServiceResult<IssueCommentModel> = await this.vm.submitEditComment();
     if (!res.result) {
-      const msg: string = res.msg.length > 0 ? res.msg : I18n('errorUnKnow');
-      CommonToast.showShort(msg);
+      this.showErrorToast(res.msg);
     }
   }
 
-  private async runDeleteComment(commentId: number, rowIndex: number): Promise<void> {
-    const res: IssueServiceResult<boolean> =
-      await this.service.deleteComment(this.fullName, this.issueNumber, commentId, rowIndex);
-    Logger.i('comment/delete', `result=${res.result} code=${res.code} cid=${commentId} row=${rowIndex}`);
+  private async runDeleteComment(): Promise<void> {
+    const res: IssueServiceResult<boolean> = await this.vm.deleteSelectedComment();
     if (!res.result) {
-      const msg: string = res.msg.length > 0 ? res.msg : I18n('errorUnKnow');
-      CommonToast.showShort(msg);
+      this.showErrorToast(res.msg);
     }
   }
 
-  private async toggleIssueState(): Promise<void> {
-    if (this.fullName.length === 0 || this.issueNumber <= 0) {
-      return;
-    }
-    const isOpen: boolean = this.store.state === ISSUE_STATE_OPEN;
+  private toggleIssueState(): void {
+    const isOpen: boolean = this.vm.isIssueOpen();
     const tip: string = isOpen ? I18n('closeIssueTip') : I18n('openIssueTip');
     Logger.i('issue/state', `confirm prepare isOpen=${isOpen}`);
     CommonModal.confirm({
@@ -548,50 +429,29 @@ export struct IssueDetailPage {
   }
 
   private async runToggleIssueState(isOpen: boolean): Promise<void> {
-    let res: IssueServiceResult<IssueDetailModel>;
-    if (isOpen) {
-      res = await this.service.closeIssue(this.fullName, this.issueNumber);
-    } else {
-      res = await this.service.reopenIssue(this.fullName, this.issueNumber);
-    }
-    Logger.i('issue/state', `result=${res.result} code=${res.code} wasOpen=${isOpen}`);
-    if (res.result) {
-      await this.service.getIssue(this.fullName, this.issueNumber);
-    } else {
-      const msg: string = res.msg.length > 0 ? res.msg : I18n('errorUnKnow');
-      CommonToast.showShort(msg);
+    const res: IssueServiceResult<IssueDetailModel> = await this.vm.runToggleIssueState(isOpen);
+    if (!res.result) {
+      this.showErrorToast(res.msg);
     }
   }
 
   private onCommentMenuTap(): void {
-    if (this.fullName.length === 0 || this.issueNumber <= 0) {
-      return;
-    }
-    this.pendingCommentBody = '';
     Logger.i('issue/comment', 'reply markdown dialog open');
-    this.commentReplyController.open();
+    this.vm.openReplySheet();
   }
 
   private onEditMenuTap(): void {
-    if (this.store.issue === null) {
-      return;
-    }
-    if (!this.canEditIssue()) {
+    if (!this.vm.canEditIssue) {
       CommonToast.showShort(I18n('noPower'));
       return;
     }
-    const detail: IssueDetailModel = this.store.issue as IssueDetailModel;
-    this.pendingTitle = detail.title !== null && detail.title !== undefined ? detail.title : '';
-    this.pendingBody = detail.body !== null && detail.body !== undefined ? detail.body : '';
-    Logger.i('issue/edit', `markdown dialog open titleLen=${this.pendingTitle.length} bodyLen=${this.pendingBody.length}`);
-    this.issueEditController.open();
+    Logger.i('issue/edit', `markdown dialog open titleLen=${this.vm.editIssueTitleDraft.length}`
+      + ` bodyLen=${this.vm.editIssueBodyDraft.length}`);
+    this.vm.openEditIssueSheet();
   }
 
   private onLockMenuTap(): void {
-    if (this.store.issue === null || this.fullName.length === 0 || this.issueNumber <= 0) {
-      return;
-    }
-    const isLocked: boolean = (this.store.issue as IssueDetailModel).locked;
+    const isLocked: boolean = this.vm.isIssueLocked();
     const tip: string = isLocked ? I18n('unLockIssueTip') : I18n('lockIssueTip');
     Logger.i('issue/lock', `confirm prepare locked=${isLocked}`);
     CommonModal.confirm({
@@ -604,28 +464,19 @@ export struct IssueDetailPage {
   }
 
   private async runToggleIssueLock(currentLocked: boolean): Promise<void> {
-    const res: IssueServiceResult<boolean> =
-      await this.service.toggleIssueLock(this.fullName, this.issueNumber, currentLocked);
-    Logger.i('issue/lock', `result=${res.result} code=${res.code} wasLocked=${currentLocked}`);
+    const res: IssueServiceResult<boolean> = await this.vm.runToggleIssueLock(currentLocked);
     if (!res.result) {
-      const msg: string = res.msg.length > 0 ? res.msg : I18n('errorUnKnow');
-      CommonToast.showShort(msg);
+      this.showErrorToast(res.msg);
     }
   }
 
-  private selectComment(item: IssueCommentModel, index: number): void {
-    this.pendingCommentId = item.id;
-    this.pendingCommentRowIndex = index;
-    this.pendingCommentBody = item.body !== null && item.body !== undefined ? item.body : '';
-  }
-
   private onCommentTap(item: IssueCommentModel, index: number): void {
-    const canManage: boolean = this.canManageComment(item);
+    const canManage: boolean = this.vm.canManageComment(item);
     Logger.i('comment/tap', `index=${index} cid=${item.id} canManage=${canManage}`);
     if (!canManage) {
       return;
     }
-    this.selectComment(item, index);
+    this.vm.selectComment(item, index);
     // 原生系统 ActionSheet（API 26 原生弹窗），替代自绘 IssueCommentOptionsDialog
     const opts: OptionListOptions = {
       items: [
@@ -635,19 +486,16 @@ export struct IssueDetailPage {
     };
     CommonModal.options(opts, (sel: number, _item: CommonOptionItem): void => {
       if (sel === 0) {
-        Logger.i('comment/options', `edit selected cid=${this.pendingCommentId} row=${this.pendingCommentRowIndex}`);
-        this.commentEditController.open();
+        Logger.i('comment/options', 'edit selected');
+        this.vm.openEditCommentSheet();
       } else if (sel === 1) {
-        Logger.i('comment/options', `delete selected cid=${this.pendingCommentId} row=${this.pendingCommentRowIndex}`);
-        if (this.pendingCommentId <= 0 || this.pendingCommentRowIndex < 0) {
-          return;
-        }
+        Logger.i('comment/options', 'delete selected');
         CommonModal.confirm({
           message: I18n('issueCommentDelete'),
           okText: I18n('ok'),
           cancelText: I18n('cancel'),
         }, (): void => {
-          this.runDeleteComment(this.pendingCommentId, this.pendingCommentRowIndex);
+          this.runDeleteComment();
         });
       }
     });
@@ -659,9 +507,8 @@ export struct IssueDetailPage {
   }
 
   private buildBottomBarItems(): CommonBottomBarItem[] {
-    const isOpen: boolean = this.store.state === ISSUE_STATE_OPEN;
-    const isLocked: boolean = this.store.issue !== null
-      ? (this.store.issue as IssueDetailModel).locked : false;
+    const isOpen: boolean = this.vm.isIssueOpen();
+    const isLocked: boolean = this.vm.isIssueLocked();
     const items: CommonBottomBarItem[] = [];
 
     const commentItem: CommonBottomBarItem = new CommonBottomBarItem();
@@ -671,7 +518,7 @@ export struct IssueDetailPage {
     commentItem.itemClick = (): void => {
       this.onCommentMenuTap();
     };
-    if (this.canReply()) {
+    if (this.vm.canReply) {
       items.push(commentItem);
     }
 
@@ -682,7 +529,7 @@ export struct IssueDetailPage {
     editItem.itemClick = (): void => {
       this.onEditMenuTap();
     };
-    if (this.canEditIssue()) {
+    if (this.vm.canEditIssue) {
       items.push(editItem);
     }
 
@@ -695,7 +542,7 @@ export struct IssueDetailPage {
     stateItem.itemClick = (): void => {
       this.toggleIssueState();
     };
-    if (this.canOpenCloseIssue()) {
+    if (this.vm.canOpenCloseIssue) {
       items.push(stateItem);
     }
 
@@ -706,20 +553,96 @@ export struct IssueDetailPage {
     lockItem.itemClick = (): void => {
       this.onLockMenuTap();
     };
-    if (this.canLockUnlockIssue()) {
+    if (this.vm.canLockUnlockIssue) {
       items.push(lockItem);
     }
 
     return items;
   }
 
+  // ── 三组弹层 builder（bindSheet 内容，id 原样保留） ──────────────────────────
+
+  @Builder
+  replySheetBuilder(): void {
+    IssueMarkdownEditSheet({
+      sheetMode: SHEET_MODE_REPLY,
+      dialogTitle: I18n('issueComment'),
+      showTitleField: false,
+      defaultTitle: '',
+      defaultBody: this.vm.replyDraft,
+      bodyPlaceholder: I18n('issueInputTip'),
+      okText: I18n('ok'),
+      cancelText: I18n('cancel'),
+      onConfirm: (_title: string, body: string): void => {
+        Logger.i('issue/comment', `reply onConfirm len=${body.length}`);
+        this.vm.closeReplySheet();
+        this.vm.replyDraft = body;
+        this.runCreateComment();
+      },
+      onCancel: (): void => {
+        Logger.i('issue/comment', 'reply onCancel');
+        this.vm.closeReplySheet();
+      },
+    });
+  }
+
+  @Builder
+  editIssueSheetBuilder(): void {
+    IssueMarkdownEditSheet({
+      sheetMode: SHEET_MODE_EDIT_ISSUE,
+      dialogTitle: I18n('editIssue'),
+      showTitleField: true,
+      defaultTitle: this.vm.editIssueTitleDraft,
+      defaultBody: this.vm.editIssueBodyDraft,
+      titlePlaceholder: I18n('issueInputTitleTip'),
+      bodyPlaceholder: I18n('issueInputTip'),
+      okText: I18n('ok'),
+      cancelText: I18n('cancel'),
+      onConfirm: (title: string, body: string): void => {
+        Logger.i('issue/edit', `onConfirm titleLen=${title.length} bodyLen=${body.length}`);
+        this.vm.closeEditIssueSheet();
+        this.vm.editIssueTitleDraft = title;
+        this.vm.editIssueBodyDraft = body;
+        this.runEditIssue();
+      },
+      onCancel: (): void => {
+        Logger.i('issue/edit', 'onCancel');
+        this.vm.closeEditIssueSheet();
+      },
+    });
+  }
+
+  @Builder
+  editCommentSheetBuilder(): void {
+    IssueMarkdownEditSheet({
+      sheetMode: SHEET_MODE_EDIT_COMMENT,
+      dialogTitle: I18n('issueCommentEdit'),
+      showTitleField: false,
+      defaultTitle: '',
+      defaultBody: this.vm.editCommentDraft,
+      bodyPlaceholder: I18n('issueInputTip'),
+      okText: I18n('ok'),
+      cancelText: I18n('cancel'),
+      onConfirm: (_title: string, body: string): void => {
+        Logger.i('comment/edit', `onConfirm len=${body.length}`);
+        this.vm.closeEditCommentSheet();
+        this.vm.editCommentDraft = body;
+        this.runEditComment();
+      },
+      onCancel: (): void => {
+        Logger.i('comment/edit', 'onCancel');
+        this.vm.closeEditCommentSheet();
+      },
+    });
+  }
+
   @Builder
   buildHeader(): void {
     Column() {
-      if (this.store.issue !== null) {
+      if (this.vm.issue !== null) {
         Column() {
           Row() {
-            Image((this.store.issue as IssueDetailModel).user.avatar_url)
+            Image((this.vm.issue as IssueDetailModel).user.avatar_url)
               .id('issue_detail_user_avatar')
               .width(HEADER_AVATAR_SIZE)
               .height(HEADER_AVATAR_SIZE)
@@ -728,12 +651,12 @@ export struct IssueDetailPage {
 
             Column() {
               Row() {
-                Text((this.store.issue as IssueDetailModel).state === ISSUE_STATE_OPEN
+                Text((this.vm.issue as IssueDetailModel).state === ISSUE_STATE_OPEN
                   ? I18n('issueOpenText') : I18n('issueCloseText'))
                   .id('issue_detail_state')
                   .fontSize(GSYFontSize.min)
                   .fontWeight(FontWeight.Bold)
-                  .fontColor((this.store.issue as IssueDetailModel).state === ISSUE_STATE_OPEN
+                  .fontColor((this.vm.issue as IssueDetailModel).state === ISSUE_STATE_OPEN
                     ? GSYColor.issueOpenGreen : GSYColor.issueClosedRed)
                   .padding({
                     left: 0,
@@ -743,13 +666,13 @@ export struct IssueDetailPage {
                   })
                   .margin({ left: 0 });
 
-                Text('#' + (this.store.issue as IssueDetailModel).number.toString())
+                Text('#' + (this.vm.issue as IssueDetailModel).number.toString())
                   .id('issue_detail_number')
                   .fontSize(GSYFontSize.small)
                   .fontColor(GSYColor.mediumText)
                   .margin({ left: HEADER_NUMBER_GAP });
 
-                Text(I18n('issueComment') + '(' + (this.store.issue as IssueDetailModel).comments.toString() + ')')
+                Text(I18n('issueComment') + '(' + (this.vm.issue as IssueDetailModel).comments.toString() + ')')
                   .id('issue_detail_comment_count')
                   .fontSize(GSYFontSize.small)
                   .fontColor(GSYColor.mediumText)
@@ -757,7 +680,7 @@ export struct IssueDetailPage {
               }
               .alignItems(VerticalAlign.Center);
 
-              Text((this.store.issue as IssueDetailModel).user.login)
+              Text((this.vm.issue as IssueDetailModel).user.login)
                 .id('issue_detail_user_login')
                 .fontSize(GSYFontSize.small)
                 .fontWeight(FontWeight.Bold)
@@ -768,7 +691,7 @@ export struct IssueDetailPage {
             .margin({ left: GSYSpacing.normalEdge })
             .layoutWeight(1);
 
-            Text(TimeUtil.resolveTime((this.store.issue as IssueDetailModel).created_at))
+            Text(TimeUtil.resolveTime((this.vm.issue as IssueDetailModel).created_at))
               .id('issue_detail_created_time')
               .fontSize(GSYFontSize.min)
               .fontColor(GSYColor.mediumText);
@@ -776,7 +699,7 @@ export struct IssueDetailPage {
           .width('100%')
           .alignItems(VerticalAlign.Center);
 
-          Text((this.store.issue as IssueDetailModel).title)
+          Text((this.vm.issue as IssueDetailModel).title)
             .id('issue_detail_title')
             .fontSize(GSYFontSize.normal)
             .fontWeight(FontWeight.Bold)
@@ -787,7 +710,7 @@ export struct IssueDetailPage {
             .margin({ top: GSYSpacing.normalEdge });
 
           MarkdownText({
-            markdown: this.renderIssueBody((this.store.issue as IssueDetailModel).body),
+            markdown: this.renderIssueBody((this.vm.issue as IssueDetailModel).body),
             rootId: 'issue_detail_body_html',
             textColor: GSYColor.mainText,
             textFontSize: GSYFontSize.small,
@@ -818,7 +741,7 @@ export struct IssueDetailPage {
         })
         .alignItems(HorizontalAlign.Start);
       } else {
-        Text(this.store.error.length > 0 ? this.store.error : I18n('loading'))
+        Text(this.vm.errorMessage.length > 0 ? this.vm.errorMessage : I18n('loading'))
           .id('issue_detail_loading_text')
           .fontSize(GSYFontSize.small)
           .fontColor(GSYColor.subText)
@@ -836,7 +759,7 @@ export struct IssueDetailPage {
         .color(GSYColor.lightDivider)
         .margin({ top: HEADER_DIVIDER_GAP, bottom: HEADER_LABEL_GAP });
 
-      Text(I18n('issueComment') + ' (' + this.store.comments.length.toString() + ')')
+      Text(I18n('issueComment') + ' (' + this.vm.comments.length.toString() + ')')
         .id('issue_detail_comments_label')
         .fontSize(GSYFontSize.small)
         .fontColor(GSYColor.subText)
@@ -942,69 +865,104 @@ export struct IssueDetailPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: this.issueTitleForAppBar(),
-          titleStart: true,
-          showBack: true,
-          rightActions: this.buildRightActions(),
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        })
-          .id('issue_detail_appbar');
-
-        PullLoadMoreList({
-          dataSource: this.store.comments,
-          refreshing: this.commentRefreshing,
-        loadingMore: this.commentLoadingMore,
-        noMore: this.commentNoMore,
-          renderRow: (item: Object, index: number): void =>
-            this.buildCommentRow(item as IssueCommentModel, index),
-          renderHeader: (): void => this.buildHeader(),
-          renderEmpty: (): void => this.buildEmpty(),
-          onRefresh: (): void => {
-            this.refreshComments();
-          },
-          onLoadMore: (): void => {
-            this.loadMoreComments();
-          },
-        })
-          .id('issue_detail_pull_list')
-          .layoutWeight(1);
-
-        if (this.shouldShowBottomBar()) {
-          CommonBottomBar({
-            dataList: this.buildBottomBarItems(),
-            rootId: 'issue_detail_bottom_bar',
+        Column() {
+          AppBar({
+            title: this.issueTitleForAppBar(),
+            titleStart: true,
+            showBack: true,
+            rightActions: this.buildRightActions(),
+            onBack: (): void => {
+              NavigationService.pop();
+            },
           })
-            .id('issue_detail_bottom_bar_wrap');
+            .id('issue_detail_appbar');
+
+          PullLoadMoreList({
+            dataSource: this.vm.comments as Object[],
+            refreshing: this.vm.commentRefreshing,
+            loadingMore: this.vm.commentLoadingMore,
+            noMore: this.vm.commentNoMore,
+            renderRow: (item: Object, index: number): void =>
+              this.buildCommentRow(item as IssueCommentModel, index),
+            renderHeader: (): void => this.buildHeader(),
+            renderEmpty: (): void => this.buildEmpty(),
+            onRefresh: (): void => {
+              this.vm.refreshComments();
+            },
+            onLoadMore: (): void => {
+              this.vm.loadMoreComments();
+            },
+          })
+            .id('issue_detail_pull_list')
+            .layoutWeight(1);
+
+          if (this.vm.shouldShowBottomBar()) {
+            CommonBottomBar({
+              dataList: this.buildBottomBarItems(),
+              rootId: 'issue_detail_bottom_bar',
+            })
+              .id('issue_detail_bottom_bar_wrap');
+          }
         }
+        .id('issue_detail_root')
+        .width('100%')
+        .height('100%')
+        .backgroundColor(GSYColor.mainBackground)
+        // bindSheet 单节点只能挂一个弹层，回复弹层挂页面根，编辑 issue / 编辑评论
+        // 弹层分别挂两个 0 高锚点（DrawerMenu 同款）。
+        .bindSheet(this.vm.replySheetOpen, this.replySheetBuilder(), {
+          height: REPLY_SHEET_HEIGHT,
+          dragBar: false,
+          showClose: false,
+          backgroundColor: GSYColor.white,
+        });
+
+        Row()
+          .width(0)
+          .height(0)
+          .bindSheet(this.vm.editIssueSheetOpen, this.editIssueSheetBuilder(), {
+            height: EDIT_ISSUE_SHEET_HEIGHT,
+            dragBar: false,
+            showClose: false,
+            backgroundColor: GSYColor.white,
+          });
+
+        Row()
+          .width(0)
+          .height(0)
+          .bindSheet(this.vm.editCommentSheetOpen, this.editCommentSheetBuilder(), {
+            height: EDIT_COMMENT_SHEET_HEIGHT,
+            dragBar: false,
+            showClose: false,
+            backgroundColor: GSYColor.white,
+          });
       }
-      .id('issue_detail_root')
       .width('100%')
-      .height('100%')
-      .backgroundColor(GSYColor.mainBackground);
+      .height('100%');
     }
     .onReady((ctx: NavDestinationContext): void => {
       const stack: NavPathStack | undefined = ctx.pathStack;
       if (stack !== undefined && stack !== null) {
         this.pathStack = stack;
       }
+      let fullName: string = FALLBACK_FULL_NAME;
+      let issueNumber: number = FALLBACK_NUMBER;
       // 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）
       const routeRaw: Object | null = RouteParamStore.consume(RouteName.IssueDetail);
       if (routeRaw !== null) {
         const routeParam: IssueDetailRouteParam = routeRaw as IssueDetailRouteParam;
         let adopted: boolean = false;
         if (routeParam.fullName !== undefined && routeParam.fullName !== null && routeParam.fullName.length > 0) {
-          this.fullName = routeParam.fullName;
+          fullName = routeParam.fullName;
           adopted = true;
         }
         if (routeParam.number !== undefined && routeParam.number !== null && routeParam.number > 0) {
-          this.issueNumber = routeParam.number;
+          issueNumber = routeParam.number;
           adopted = true;
         }
         if (adopted) {
-          Logger.i('issue/route', `IssueDetailPage adopted via RouteParamStore fullName=${this.fullName} number=${this.issueNumber}`);
+          Logger.i('issue/route', `IssueDetailPage adopted via RouteParamStore fullName=${fullName} number=${issueNumber}`);
+          this.vm.setTarget(fullName, issueNumber);
           this.loadAll();
           return;
         }
@@ -1023,10 +981,10 @@ export struct IssueDetailPage {
       }
       if (param !== null) {
         if (param.fullName !== undefined && param.fullName !== null && param.fullName.length > 0) {
-          this.fullName = param.fullName;
+          fullName = param.fullName;
         }
         if (param.number !== undefined && param.number !== null && param.number > 0) {
-          this.issueNumber = param.number;
+          issueNumber = param.number;
         }
       }
       // KI-045 同款：BOOT_ISSUE_KEY 旁路优先级最高（NavDestination 复用时
@@ -1040,12 +998,13 @@ export struct IssueDetailPage {
           const numStr: string = raw.substring(sep + 1);
           const n: number = parseInt(numStr, 10);
           if (!isNaN(n) && n > 0) {
-            this.fullName = fn;
-            this.issueNumber = n;
-            Logger.i('boot/ts', `IssueDetailPage.onReady bootKey-priority fullName='${this.fullName}' number=${this.issueNumber}`);
+            fullName = fn;
+            issueNumber = n;
+            Logger.i('boot/ts', `IssueDetailPage.onReady bootKey-priority fullName='${fullName}' number=${issueNumber}`);
           }
         }
       }
+      this.vm.setTarget(fullName, issueNumber);
       this.loadAll();
     });
   }

@@ -6,7 +6,6 @@ import { ReadResult } from '../../base/dao/DaoBase';
 import {
   CommitDetail,
   CommitFileItem,
-  PushDetailStore,
 } from '../store/PushDetailStore';
 
 export class CommitOwnerNamePair {
@@ -52,31 +51,26 @@ export interface CommitCacheDao {
 }
 
 export class CommitService {
-  private store: PushDetailStore;
   private dao: CommitCacheDao;
 
-  constructor(store: PushDetailStore, dao?: CommitCacheDao) {
-    this.store = store;
+  // R9 V2 + MVVM 无状态化：构造函数不再持有 PushDetailStore，
+  // 取数结果走返回值（谁调谁更新：调用方 ViewModel 写自己的 UI 状态）。
+  constructor(dao?: CommitCacheDao) {
     this.dao = dao !== undefined ? dao : new RepositoryDao();
   }
 
-  getStore(): PushDetailStore {
-    return this.store;
-  }
-
   async getCommitDetail(fullName: string,
-                        sha: string): Promise<CommitServiceResult<CommitDetail>> {
+                        sha: string,
+                        onCached?: (detail: CommitDetail) => void): Promise<CommitServiceResult<CommitDetail>> {
     const owner: CommitOwnerNamePair = CommitOwnerNamePair.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0 || sha === null || sha.length === 0) {
       const msg: string = 'invalid params';
-      this.store.setError(msg);
       return new CommitServiceResult<CommitDetail>(false, 0, null, msg);
     }
-    let cached: CommitDetail | null = await this.readCommitCache(fullName, sha);
-    if (cached !== null) {
-      this.store.setCommit(cached);
+    const cached: CommitDetail | null = await this.readCommitCache(fullName, sha);
+    if (cached !== null && onCached !== undefined && onCached !== null) {
+      onCached(cached);
     }
-    this.store.startLoading();
     const url: string = Address.getCommitDetail(owner.owner, owner.name, sha);
     const httpResult: HttpResult<CommitDetail> = await HttpManager.getFetch<CommitDetail>(url);
     if (httpResult.result && httpResult.data !== null) {
@@ -85,17 +79,14 @@ export class CommitService {
         await this.dao.saveCommitInfoDetail(fullName, sha, JSON.stringify(data));
       } catch (_e) {
       }
-      this.store.setCommit(data);
       return new CommitServiceResult<CommitDetail>(true, httpResult.code, data, '');
     }
     if (cached !== null) {
-      this.store.setCommit(cached);
       return new CommitServiceResult<CommitDetail>(true, httpResult.code, cached,
         httpResult.msg !== null ? httpResult.msg : '', true);
     }
     const msg: string = httpResult.msg !== null && httpResult.msg.length > 0
       ? httpResult.msg : 'network error';
-    this.store.setError(msg);
     return new CommitServiceResult<CommitDetail>(false, httpResult.code, null, msg);
   }
 

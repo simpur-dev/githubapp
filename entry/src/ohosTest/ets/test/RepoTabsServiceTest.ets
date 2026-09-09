@@ -26,7 +26,6 @@ import {
   RepositoryServiceResult,
 } from 'common';
 import {
-  RepositoryDetailStore,
   RepositoryDetail,
   RepositoryEventItem,
   RepositoryFileItem,
@@ -367,7 +366,6 @@ export default function RepoTabsServiceTest(): void {
     let rdb: FakeRdbStore;
     let dao: RepositoryDao;
     let issueDao: IssueDao;
-    let store: RepositoryDetailStore;
     let service: RepositoryService;
 
     beforeEach((): void => {
@@ -376,8 +374,8 @@ export default function RepoTabsServiceTest(): void {
       rdb = buildStore();
       dao = new RepositoryDao(rdb);
       issueDao = new IssueDao(rdb);
-      store = new RepositoryDetailStore();
-      // R9 无状态化：service 不再持有 store；store 仅保留给纯 store 行为测试（setPath/popPath）。
+      // R9 无状态化：service 不再持有 store；原 RepositoryDetailStore 类已删除，
+      // 纯 store 行为测试（setPath/popPath）随之移除，取数断言全部走返回值。
       service = new RepositoryService(dao, PAGE_SIZE, issueDao);
 
       HttpManager.setMockProvider(provider);
@@ -600,20 +598,5 @@ export default function RepoTabsServiceTest(): void {
       expect(res.code).assertEqual(UNAUTHORIZED);
       expect(res.data.length).assertEqual(0);
     });
-
-    it('store_setPath_pushes_stack_and_popPath_restores_previous', 0,
-      async (): Promise<void> => {
-        store.setPath('a');
-        store.setPath('a/b');
-        expect(store.currentPath).assertEqual('a/b');
-
-        const popped: string = store.popPath();
-        expect(popped).assertEqual('a');
-        expect(store.currentPath).assertEqual('a');
-
-        const popped2: string = store.popPath();
-        expect(popped2).assertEqual('');
-        expect(store.currentPath).assertEqual('');
-      });
   });
 }

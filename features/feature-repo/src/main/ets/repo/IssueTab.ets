@@ -1,3 +1,9 @@
+/**
+ * IssueTab —— 仓库详情 Issue 列表 tab（R9 V2 + MVVM）。
+ * 上批特意保留 V1 的组件本体，本批迁 @ComponentV2：列表 / 分页 / 筛选 / 搜索状态
+ * 全部收敛在 IssueTabViewModel（@Param vm 传入，对象引用传递，@Trace 自动刷新），
+ * 组件只做组装 + 点击转发。全部 repo_issue_* 测试 id 原样保留。
+ */
 import { I18n } from 'common';
 import type { TranslationMap } from 'common';
 import { PullLoadMoreList } from 'common';
@@ -5,12 +11,8 @@ import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { GSYSpacing, GSYColor, GSYFontSize, GSYShadow } from 'common';
 import { IconFont, FA_PLUS, FA_SEARCH, FA_TIMES, FA_BUG } from 'common';
-import {
-  RepositoryIssueItem,
-  ISSUE_STATE_OPEN,
-  ISSUE_STATE_CLOSED,
-  ISSUE_STATE_ALL
-} from 'common';
+import { RepositoryIssueItem, ISSUE_STATE_OPEN, ISSUE_STATE_CLOSED, ISSUE_STATE_ALL } from 'common';
+import { IssueTabViewModel } from '../viewmodel/IssueTabViewModel';
 
 const ISSUE_SEARCH_HEADER_HEIGHT: number = 56;
 const ISSUE_SEARCH_INPUT_HEIGHT: number = 52;
@@ -22,23 +24,14 @@ interface IssueChipModel {
   id: string;
 }
 
-@Component
+@ComponentV2
 export struct IssueTab {
-  @Prop issues: RepositoryIssueItem[] = [];
-  @Prop fullName: string = '';
-  @Prop currentState: string = ISSUE_STATE_ALL;
-  @Prop searchQuery: string = '';
-  @Prop showCreateFab: boolean = true;
-  @Prop refreshing: boolean = false;
-  @Prop loadingMore: boolean = false;
-  @Prop noMore: boolean = false;
-  refresh: () => void = (): void => {};
-  loadMore: () => void = (): void => {};
-  onIssueClick: (item: RepositoryIssueItem) => void = (_item: RepositoryIssueItem): void => {};
-  onStateChange: (state: string) => void = (_state: string): void => {};
-  onSearchQueryChange: (query: string) => void = (_query: string): void => {};
-  onSearch: () => void = (): void => {};
-  onCreateIssue: () => void = (): void => {};
+  /** 列表 + 分页 + 筛选态（由宿主页面持有并下发；tab 自身不再持有状态）。 */
+  @Param vm: IssueTabViewModel = new IssueTabViewModel();
+  /** 是否显示创建 Issue 的 FAB（仓库详情页 FAB 上移到页面级，传 false）。 */
+  @Param showCreateFab: boolean = true;
+  @Event onIssueClick: (item: RepositoryIssueItem) => void = (_item: RepositoryIssueItem): void => {};
+  @Event onCreateIssue: () => void = (): void => {};
 
   private chipDefs: IssueChipModel[] = [
     { key: ISSUE_STATE_ALL, label: 'issueAllText', id: 'repo_issue_chip_all' },
@@ -47,33 +40,31 @@ export struct IssueTab {
   ];
 
   private handleChipTap(state: string): void {
-    if (state === this.currentState) {
-      return;
-    }
-    this.onStateChange(state);
+    this.vm.handleIssueStateChange(state);
   }
 
   private hasSearchQuery(): boolean {
-    return this.searchQuery !== null && this.searchQuery !== undefined && this.searchQuery.trim().length > 0;
+    return this.vm.issueSearchQuery !== null && this.vm.issueSearchQuery !== undefined
+      && this.vm.issueSearchQuery.trim().length > 0;
   }
 
   private submitSearch(): void {
-    this.onSearch();
+    this.vm.handleIssueSearch();
   }
 
   private clearSearch(): void {
     if (!this.hasSearchQuery()) {
       return;
     }
-    this.onSearchQueryChange('');
-    this.onSearch();
+    this.vm.setIssueSearchQuery('');
+    this.vm.handleIssueSearch();
   }
 
   private handleRowTap(item: RepositoryIssueItem): void {
     this.onIssueClick(item);
-    if (this.fullName.length > 0) {
+    if (this.vm.fullName.length > 0) {
       const param: Record<string, Object> = {
-        'fullName': this.fullName,
+        'fullName': this.vm.fullName,
         'number': item.number,
       };
       NavigationService.push(RouteName.IssueDetail, param);
@@ -99,7 +90,7 @@ export struct IssueTab {
   @Builder
   searchHeaderBuilder(): void {
     Row() {
-      TextInput({ text: this.searchQuery, placeholder: I18n('searchIssue') })
+      TextInput({ text: this.vm.issueSearchQuery, placeholder: I18n('searchIssue') })
         .id('repo_issue_search_input')
         .layoutWeight(1)
         .height(ISSUE_SEARCH_INPUT_HEIGHT)
@@ -121,7 +112,7 @@ export struct IssueTab {
         })
         .enterKeyType(EnterKeyType.Search)
         .onChange((value: string): void => {
-          this.onSearchQueryChange(value);
+          this.vm.setIssueSearchQuery(value);
         })
         .onSubmit((): void => {
           this.submitSearch();
@@ -168,7 +159,7 @@ export struct IssueTab {
   @Builder
   chipBuilder(chip: IssueChipModel): void {
     Row() {
-      if (this.currentState === chip.key) {
+      if (this.vm.issueState === chip.key) {
         IconFont({
           char: '\uf00c',
           glyphSize: 12,
@@ -179,7 +170,7 @@ export struct IssueTab {
       Text(I18n(chip.label))
         .id(chip.id)
         .fontSize(GSYFontSize.small)
-        .fontColor(this.currentState === chip.key ? GSYColor.miWhite : GSYColor.subText);
+        .fontColor(this.vm.issueState === chip.key ? GSYColor.miWhite : GSYColor.subText);
     }
     .layoutWeight(1)
     .padding({ top: 8, bottom: 8 })
@@ -342,17 +333,18 @@ export struct IssueTab {
         this.searchHeaderBuilder();
         this.chipBarBuilder();
         PullLoadMoreList({
-          dataSource: this.issues,
-          refreshing: this.refreshing,
-        loadingMore: this.loadingMore,
-        noMore: this.noMore,
-          renderRow: (item: Object, index: number): void => this.rowBuilder(item as RepositoryIssueItem, index),
+          dataSource: this.vm.issues as Object[],
+          refreshing: this.vm.issueRefreshing,
+          loadingMore: this.vm.issueLoadingMore,
+          noMore: this.vm.issueNoMore,
+          renderRow: (item: Object, index: number): void =>
+            this.rowBuilder(item as RepositoryIssueItem, index),
           renderEmpty: (): void => this.emptyBuilder(),
           onRefresh: (): void => {
-            this.refresh();
+            this.vm.refreshIssues();
           },
           onLoadMore: (): void => {
-            this.loadMore();
+            this.vm.loadMoreIssues();
           },
           tailPadding: GSYSpacing.normalEdge * 5,
         })

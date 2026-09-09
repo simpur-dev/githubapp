@@ -300,26 +300,6 @@ export struct RepositoryDetailPage {
     }
   }
 
-  private async refreshIssues(): Promise<void> {
-    await this.vm.refreshIssues();
-  }
-
-  private async loadMoreIssues(): Promise<void> {
-    await this.vm.loadMoreIssues();
-  }
-
-  private async handleIssueStateChange(state: string): Promise<void> {
-    await this.vm.handleIssueStateChange(state);
-  }
-
-  private handleIssueSearchQueryChange(query: string): void {
-    this.vm.setIssueSearchQuery(query);
-  }
-
-  private async handleIssueSearch(): Promise<void> {
-    await this.vm.handleIssueSearch();
-  }
-
   private openCreateIssueSheet(): void {
     this.createIssueSheetOpen = true;
   }
@@ -328,8 +308,9 @@ export struct RepositoryDetailPage {
     if (this.vm.fullName.length === 0) {
       return;
     }
+    // 创建 Issue 编排（含「插到列表头部」）已收敛到 IssueTabViewModel。
     const res: RepositoryServiceResult<RepositoryIssueItem | null> =
-      await this.vm.createIssue(title, body);
+      await this.vm.issueTab.createIssue(title, body);
     if (res.result) {
       CommonToast.showShort(I18n('createIssue'));
     } else {
@@ -831,30 +812,9 @@ export struct RepositoryDetailPage {
 
             TabContent() {
               IssueTab({
-                issues: this.vm.issues,
-                fullName: this.vm.fullName,
-                currentState: this.vm.issueState,
-                searchQuery: this.vm.issueSearchQuery,
+                vm: this.vm.issueTab,
                 showCreateFab: false,
-                refreshing: this.vm.issueRefreshing,
-                loadingMore: this.vm.issueLoadingMore,
-                noMore: this.vm.issueNoMore,
-                refresh: (): void => {
-                  this.refreshIssues();
-                },
-                loadMore: (): void => {
-                  this.loadMoreIssues();
-                },
                 onIssueClick: (_item: RepositoryIssueItem): void => {
-                },
-                onStateChange: (state: string): void => {
-                  this.handleIssueStateChange(state);
-                },
-                onSearchQueryChange: (query: string): void => {
-                  this.handleIssueSearchQueryChange(query);
-                },
-                onSearch: (): void => {
-                  this.handleIssueSearch();
                 },
                 onCreateIssue: (): void => {
                   this.openCreateIssueSheet();

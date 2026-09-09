@@ -1,7 +1,6 @@
 import HttpManager from '../../base/net/HttpManager';
 import { Address } from '../../base/net/Address';
 import { HttpResult } from '../../base/net/Result';
-import { CodeDetailStore } from '../store/CodeDetailStore';
 import { HtmlUtil } from '../../base/utils/HtmlUtil';
 import { GSYColor } from '../../ui/style/Theme';
 import { RepositoryDao } from '../../base/dao/RepositoryDao';
@@ -28,22 +27,6 @@ export class RepoOwnerNamePair {
   }
 }
 
-export class CodeServiceResult<T> {
-  result: boolean;
-  code: number;
-  data: T | null;
-  msg: string;
-  fromCache: boolean;
-
-  constructor(result: boolean, code: number, data: T | null, msg: string, fromCache: boolean = false) {
-    this.result = result;
-    this.code = code;
-    this.data = data;
-    this.msg = msg;
-    this.fromCache = fromCache;
-  }
-}
-
 export interface RawContentResponse {
   content: string;
   encoding: string;
@@ -54,17 +37,38 @@ export interface RawContentResponse {
 const MARKDOWN_LANG: string = 'markdown';
 const GITHUB_HTML_ACCEPT: string = 'application/vnd.github.html';
 
+/**
+ * 文件内容取数结果（R9 无状态化，双通道语义对齐 FetchReadmeResult）：
+ *   - content：raw 原文 / markdown 原文 / patch（原生 MarkdownRenderer 通道）；
+ *   - html：包好的高亮 HTML（WebView 兜底通道；markdown 通道与 content 相同）；
+ *   - result=false 时两者皆空，msg 为错误文案。
+ */
+export class FetchCodeContentResult {
+  result: boolean;
+  code: number;
+  content: string;
+  html: string;
+  fromCache: boolean;
+  msg: string;
+
+  constructor(result: boolean, code: number, content: string, html: string,
+              fromCache: boolean, msg: string) {
+    this.result = result;
+    this.code = code;
+    this.content = content;
+    this.html = html;
+    this.fromCache = fromCache;
+    this.msg = msg;
+  }
+}
+
 export class CodeService {
-  private store: CodeDetailStore;
   private dao: RepositoryDao;
 
-  constructor(store: CodeDetailStore, dao?: RepositoryDao) {
-    this.store = store;
+  // R9 V2 + MVVM 无状态化：构造函数不再持有 CodeDetailStore，
+  // content / html 双通道结果走返回值（谁调谁更新：调用方 ViewModel 写自己的 UI 状态）。
+  constructor(dao?: RepositoryDao) {
     this.dao = dao !== undefined ? dao : new RepositoryDao();
-  }
-
-  getStore(): CodeDetailStore {
-    return this.store;
   }
 
   static guessLangByPath(path: string): string {
@@ -139,30 +143,30 @@ export class CodeService {
 
   async getRawContent(fullName: string,
                       branch: string,
-                      path: string): Promise<CodeServiceResult<string>> {
+                      path: string,
+                      onCached?: (content: string, html: string) => void): Promise<FetchCodeContentResult> {
     const owner: RepoOwnerNamePair = RepoOwnerNamePair.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
-      return new CodeServiceResult<string>(false, 0, null, msg);
+      return new FetchCodeContentResult(false, 0, '', '', false, msg);
     }
     const safePath: string = path !== null && path !== undefined ? path : '';
     const safeBranch: string = branch !== null && branch !== undefined && branch.length > 0
       ? branch : 'master';
     const isMarkdown: boolean = CodeService.isMarkdownPath(safePath);
-    this.store.setPath(safePath);
     let cachedBody: string = '';
     try {
       const cache: ReadResult = await this.dao.readCodeContent(fullName, safeBranch, safePath);
       if (cache.result && cache.data.length > 0) {
         cachedBody = cache.data;
         if (!isMarkdown || CodeService.isLikelyHtml(cachedBody)) {
-          this.store.setContent(cachedBody, CodeService.wrapHtml(cachedBody, safePath));
+          if (onCached !== undefined && onCached !== null) {
+            onCached(cachedBody, CodeService.wrapHtml(cachedBody, safePath));
+          }
         }
       }
     } catch (_e) {
     }
-    this.store.startLoading();
 
     // 双通道：markdown 文件优先 raw 原文（原生 MarkdownRenderer 渲染，无 WebView、高性能）；
     // 失败再降级 GitHub HTML（WebView 兜底）。非 markdown 文件维持原逻辑。
@@ -178,8 +182,7 @@ export class CodeService {
           await this.dao.saveCodeContent(fullName, safeBranch, safePath, md);
         } catch (_e) {
         }
-        this.store.setContent(md, md);
-        return new CodeServiceResult<string>(true, rawResp.code, md, '');
+        return new FetchCodeContentResult(true, rawResp.code, md, md, false, '');
       }
     }
 
@@ -195,8 +198,7 @@ export class CodeService {
         await this.dao.saveCodeContent(fullName, safeBranch, safePath, body);
       } catch (_e) {
       }
-      this.store.setContent(body, html);
-      return new CodeServiceResult<string>(true, htmlResp.code, html, '');
+      return new FetchCodeContentResult(true, htmlResp.code, body, html, false, '');
     }
 
     // Compose 的文件详情对 Markdown 只走 GitHub 渲染后的 HTML，再交给 WebView。
@@ -204,14 +206,12 @@ export class CodeService {
     if (isMarkdown) {
       if (cachedBody.length > 0 && CodeService.isLikelyHtml(cachedBody)) {
         const cachedHtml: string = CodeService.wrapHtml(cachedBody, safePath);
-        this.store.setContent(cachedBody, cachedHtml);
-        return new CodeServiceResult<string>(true, htmlResp.code, cachedHtml,
-          htmlResp.msg !== null ? htmlResp.msg : '', true);
+        return new FetchCodeContentResult(true, htmlResp.code, cachedBody, cachedHtml, true,
+          htmlResp.msg !== null ? htmlResp.msg : '');
       }
       const markdownMsg: string = htmlResp.msg !== null && htmlResp.msg.length > 0
         ? htmlResp.msg : 'network error';
-      this.store.setError(markdownMsg);
-      return new CodeServiceResult<string>(false, htmlResp.code, null, markdownMsg);
+      return new FetchCodeContentResult(false, htmlResp.code, '', '', false, markdownMsg);
     }
 
     const rawUrl: string = Address.getRawFile(owner.owner, owner.name, safeBranch, safePath);
@@ -223,8 +223,7 @@ export class CodeService {
         await this.dao.saveCodeContent(fullName, safeBranch, safePath, text);
       } catch (_e) {
       }
-      this.store.setContent(text, html);
-      return new CodeServiceResult<string>(true, rawResp.code, html, '');
+      return new FetchCodeContentResult(true, rawResp.code, text, html, false, '');
     }
 
     const apiResp: HttpResult<RawContentResponse> =
@@ -237,34 +236,29 @@ export class CodeService {
         await this.dao.saveCodeContent(fullName, safeBranch, safePath, decoded);
       } catch (_e) {
       }
-      this.store.setContent(decoded, html);
-      return new CodeServiceResult<string>(true, apiResp.code, html, '');
+      return new FetchCodeContentResult(true, apiResp.code, decoded, html, false, '');
     }
 
     if (cachedBody.length > 0) {
-      this.store.setContent(cachedBody, CodeService.wrapHtml(cachedBody, safePath));
-      return new CodeServiceResult<string>(true, apiResp.code, this.store.htmlContent,
-        apiResp.msg !== null ? apiResp.msg : '', true);
+      return new FetchCodeContentResult(true, apiResp.code, cachedBody,
+        CodeService.wrapHtml(cachedBody, safePath), true,
+        apiResp.msg !== null ? apiResp.msg : '');
     }
     const msg: string = apiResp.msg !== null && apiResp.msg.length > 0 ? apiResp.msg
       : (rawResp.msg !== null ? rawResp.msg : 'network error');
-    this.store.setError(msg);
-    return new CodeServiceResult<string>(false, apiResp.code, null, msg);
+    return new FetchCodeContentResult(false, apiResp.code, '', '', false, msg);
   }
 
   async getCommitFile(fullName: string,
                       sha: string,
-                      path: string): Promise<CodeServiceResult<string>> {
+                      path: string): Promise<FetchCodeContentResult> {
     const owner: RepoOwnerNamePair = RepoOwnerNamePair.parse(fullName);
     const safePath: string = path !== null && path !== undefined ? path : '';
     if (owner.owner.length === 0 || owner.name.length === 0
       || sha === null || sha === undefined || sha.length === 0 || safePath.length === 0) {
       const msg: string = 'invalid params';
-      this.store.setError(msg);
-      return new CodeServiceResult<string>(false, 0, null, msg);
+      return new FetchCodeContentResult(false, 0, '', '', false, msg);
     }
-    this.store.setPath(safePath);
-    this.store.startLoading();
 
     const url: string = Address.getCommitDetail(owner.owner, owner.name, sha);
     const httpResult: HttpResult<CommitDetail> = await HttpManager.getFetch<CommitDetail>(url);
@@ -276,18 +270,15 @@ export class CodeService {
         if (file.filename === safePath) {
           const patch: string = file.patch !== null && file.patch !== undefined ? file.patch : '';
           const html: string = CodeService.wrapHtml(patch, safePath);
-          this.store.setContent(patch, html);
-          return new CodeServiceResult<string>(true, httpResult.code, html, '');
+          return new FetchCodeContentResult(true, httpResult.code, patch, html, false, '');
         }
       }
       const msg: string = 'File not found in commit';
-      this.store.setError(msg);
-      return new CodeServiceResult<string>(false, httpResult.code, null, msg);
+      return new FetchCodeContentResult(false, httpResult.code, '', '', false, msg);
     }
     const msg: string = httpResult.msg !== null && httpResult.msg.length > 0
       ? httpResult.msg : 'network error';
-    this.store.setError(msg);
-    return new CodeServiceResult<string>(false, httpResult.code, null, msg);
+    return new FetchCodeContentResult(false, httpResult.code, '', '', false, msg);
   }
 
   static wrapHtml(content: string, path: string): string {

@@ -24,7 +24,6 @@ import {
 import {
   IssueDetailModel,
   IssueCommentModel,
-  IssueDetailStore,
   ISSUE_STATE_OPEN,
   ISSUE_STATE_CLOSED,
 } from 'common';
@@ -332,16 +331,19 @@ export default function IssueServiceTest(): void {
     let storage: FakeTokenStorage;
     let rdb: FakeRdbStore;
     let dao: IssueDao;
-    let store: IssueDetailStore;
     let service: IssueService;
+    // cache-first 断言（onCached 回调与 onRequest 的时序交叉记录）。
+    let sawCacheTitle: string = '';
+    let sawCacheState: string = '';
+    let sawCacheCommentBody: string = '';
 
     beforeEach((): void => {
       provider = new FakeHttpProvider();
       storage = new FakeTokenStorage();
       rdb = buildStore();
       dao = new IssueDao(rdb);
-      store = new IssueDetailStore();
-      service = new IssueService(store, dao, PAGE_SIZE);
+      // R9 无状态化：service 不再持有 IssueDetailStore，取数结果走返回值。
+      service = new IssueService(dao, PAGE_SIZE);
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -366,8 +368,8 @@ export default function IssueServiceTest(): void {
       expect(provider.captured.url).assertEqual(Address.getIssue(OWNER, REPO_NAME, ISSUE_NUMBER));
       expect(provider.captured.method).assertEqual('GET');
       expect(res.result).assertTrue();
-      expect(store.issue !== null).assertTrue();
-      expect(store.state).assertEqual(ISSUE_STATE_OPEN);
+      expect(res.data !== null).assertTrue();
+      expect((res.data as IssueDetailModel).state).assertEqual(ISSUE_STATE_OPEN);
       const writes: number | undefined = rdb.insertCountByTable.get(ISSUE_TABLE_DETAIL);
       expect(writes !== undefined && writes >= 1).assertTrue();
     });
@@ -384,8 +386,8 @@ export default function IssueServiceTest(): void {
 
       expect(res.result).assertTrue();
       expect(res.fromCache).assertTrue();
-      expect(store.issue !== null).assertTrue();
-      expect(store.state).assertEqual(ISSUE_STATE_CLOSED);
+      expect(res.data !== null).assertTrue();
+      expect((res.data as IssueDetailModel).state).assertEqual(ISSUE_STATE_CLOSED);
     });
 
     it('getIssue_applies_cache_before_network_refresh', 0, async (): Promise<void> => {
@@ -398,20 +400,23 @@ export default function IssueServiceTest(): void {
       provider.nextBody = JSON.stringify(network);
       let sawCacheBeforeRequest: boolean = false;
       provider.onRequest = (): void => {
-        sawCacheBeforeRequest = store.issue !== null
-          && (store.issue as IssueDetailModel).title === 'cached issue title'
-          && store.state === ISSUE_STATE_CLOSED;
+        sawCacheBeforeRequest = sawCacheTitle === 'cached issue title'
+          && sawCacheState === ISSUE_STATE_CLOSED;
       };
 
       const res: IssueServiceResult<IssueDetailModel> =
-        await service.getIssue(FULL_NAME, ISSUE_NUMBER);
+        await service.getIssue(FULL_NAME, ISSUE_NUMBER,
+          (cachedIssue: IssueDetailModel): void => {
+            sawCacheTitle = cachedIssue.title;
+            sawCacheState = cachedIssue.state;
+          });
 
       expect(sawCacheBeforeRequest).assertTrue();
       expect(res.result).assertTrue();
       expect(res.fromCache).assertFalse();
-      expect(store.issue !== null).assertTrue();
-      expect((store.issue as IssueDetailModel).title).assertEqual('network issue title');
-      expect(store.state).assertEqual(ISSUE_STATE_OPEN);
+      expect(res.data !== null).assertTrue();
+      expect((res.data as IssueDetailModel).title).assertEqual('network issue title');
+      expect((res.data as IssueDetailModel).state).assertEqual(ISSUE_STATE_OPEN);
     });
 
     it('getComments_first_page_writes_cache_and_refreshes_store', 0, async (): Promise<void> => {
@@ -426,9 +431,9 @@ export default function IssueServiceTest(): void {
         Address.getIssueComments(OWNER, REPO_NAME, ISSUE_NUMBER, 1, PAGE_SIZE));
       expect(provider.captured.method).assertEqual('GET');
       expect(res.result).assertTrue();
-      expect(store.comments.length).assertEqual(PAGE_SIZE);
-      expect(store.page).assertEqual(1);
-      expect(store.hasMore).assertTrue();
+      expect(res.data.length).assertEqual(PAGE_SIZE);
+      expect(res.page).assertEqual(1);
+      expect(res.hasMore).assertTrue();
       const writes: number | undefined = rdb.insertCountByTable.get(ISSUE_TABLE_COMMENT);
       expect(writes !== undefined && writes >= 1).assertTrue();
     });
@@ -440,17 +445,20 @@ export default function IssueServiceTest(): void {
         provider.pushResponse(SUCCESS, JSON.stringify(first));
         provider.pushResponse(SUCCESS, JSON.stringify(second));
 
-        await service.getComments(FULL_NAME, ISSUE_NUMBER, 1);
+        const firstRes: IssueServiceResult<IssueCommentModel[]> =
+          await service.getComments(FULL_NAME, ISSUE_NUMBER, 1);
         const writesAfterFirst: number | undefined =
           rdb.insertCountByTable.get(ISSUE_TABLE_COMMENT);
 
-        await service.getComments(FULL_NAME, ISSUE_NUMBER, 2);
+        const secondRes: IssueServiceResult<IssueCommentModel[]> =
+          await service.getComments(FULL_NAME, ISSUE_NUMBER, 2);
         const writesAfterSecond: number | undefined =
           rdb.insertCountByTable.get(ISSUE_TABLE_COMMENT);
 
         expect(writesAfterFirst).assertEqual(writesAfterSecond);
-        expect(store.comments.length).assertEqual(PAGE_SIZE * 2);
-        expect(store.page).assertEqual(2);
+        expect(firstRes.data.length).assertEqual(PAGE_SIZE);
+        expect(secondRes.data.length).assertEqual(PAGE_SIZE);
+        expect(secondRes.page).assertEqual(2);
       });
 
     it('getComments_first_page_falls_back_to_cache_on_failure', 0,
@@ -466,7 +474,7 @@ export default function IssueServiceTest(): void {
 
         expect(res.result).assertTrue();
         expect(res.fromCache).assertTrue();
-        expect(store.comments.length).assertEqual(PAGE_SIZE);
+        expect(res.data.length).assertEqual(PAGE_SIZE);
       });
 
     it('getComments_first_page_applies_cache_before_network_refresh', 0,
@@ -478,18 +486,22 @@ export default function IssueServiceTest(): void {
         provider.nextBody = JSON.stringify(network);
         let sawCacheBeforeRequest: boolean = false;
         provider.onRequest = (): void => {
-          sawCacheBeforeRequest = store.comments.length === 1
-            && store.comments[0].body.indexOf('cache-first') >= 0;
+          sawCacheBeforeRequest = sawCacheCommentBody.indexOf('cache-first') >= 0;
         };
 
         const res: IssueServiceResult<IssueCommentModel[]> =
-          await service.getComments(FULL_NAME, ISSUE_NUMBER, 1);
+          await service.getComments(FULL_NAME, ISSUE_NUMBER, 1,
+            (cachedComments: IssueCommentModel[]): void => {
+              if (cachedComments.length > 0) {
+                sawCacheCommentBody = cachedComments[0].body;
+              }
+            });
 
         expect(sawCacheBeforeRequest).assertTrue();
         expect(res.result).assertTrue();
         expect(res.fromCache).assertFalse();
-        expect(store.comments.length).assertEqual(2);
-        expect(store.comments[0].body.indexOf('network') >= 0).assertTrue();
+        expect(res.data.length).assertEqual(2);
+        expect(res.data[0].body.indexOf('network') >= 0).assertTrue();
       });
 
     it('createComment_uses_post_url_and_appends_to_store', 0, async (): Promise<void> => {
@@ -506,7 +518,8 @@ export default function IssueServiceTest(): void {
       expect(provider.captured.method).assertEqual('POST');
       expect(provider.captured.body !== null
         && (provider.captured.body as string).indexOf('hello world') >= 0).assertTrue();
-      expect(store.comments.length).assertEqual(1);
+      expect(res.data !== null).assertTrue();
+      expect((res.data as IssueCommentModel).body).assertEqual('reply-0');
     });
 
     it('closeIssue_uses_patch_with_state_closed_and_writes_cache', 0,
@@ -524,7 +537,7 @@ export default function IssueServiceTest(): void {
         expect(provider.captured.method).assertEqual('PATCH');
         expect(provider.captured.body !== null
           && (provider.captured.body as string).indexOf(ISSUE_STATE_CLOSED) >= 0).assertTrue();
-        expect(store.state).assertEqual(ISSUE_STATE_CLOSED);
+        expect((res.data as IssueDetailModel).state).assertEqual(ISSUE_STATE_CLOSED);
         const writes: number | undefined = rdb.insertCountByTable.get(ISSUE_TABLE_DETAIL);
         expect(writes !== undefined && writes >= 1).assertTrue();
       });
@@ -543,7 +556,7 @@ export default function IssueServiceTest(): void {
       expect(provider.captured.method).assertEqual('PATCH');
       expect(provider.captured.body !== null
         && (provider.captured.body as string).indexOf(ISSUE_STATE_OPEN) >= 0).assertTrue();
-      expect(store.state).assertEqual(ISSUE_STATE_OPEN);
+      expect((res.data as IssueDetailModel).state).assertEqual(ISSUE_STATE_OPEN);
     });
   });
 }

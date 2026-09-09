@@ -7,7 +7,6 @@ import { ReadResult } from '../../base/dao/DaoBase';
 import {
   IssueDetailModel,
   IssueCommentModel,
-  IssueDetailStore,
   ISSUE_STATE_OPEN,
   ISSUE_STATE_CLOSED
 } from '../store/IssueDetailStore';
@@ -33,19 +32,30 @@ export class IssueOwnerName {
   }
 }
 
+/**
+ * R9 无状态化：结果携带 page / hasMore（列表接口用，详情/布尔类接口恒为 1 / false），
+ * 调用方 ViewModel 拿返回值写自己的 UI 状态，service 不再写任何 store。
+ */
 export class IssueServiceResult<T> {
   result: boolean;
   code: number;
   data: T | null;
   fromCache: boolean;
   msg: string;
+  /** 列表接口附带：本次请求对应页码（详情/布尔类接口恒为 1）。 */
+  page: number;
+  /** 列表接口附带：是否还有下一页（按返回条数 >= pageSize 判定）。 */
+  hasMore: boolean;
 
-  constructor(result: boolean, code: number, data: T | null, fromCache: boolean, msg: string) {
+  constructor(result: boolean, code: number, data: T | null, fromCache: boolean, msg: string,
+              page: number = 1, hasMore: boolean = false) {
     this.result = result;
     this.code = code;
     this.data = data;
     this.fromCache = fromCache;
     this.msg = msg;
+    this.page = page;
+    this.hasMore = hasMore;
   }
 }
 
@@ -63,19 +73,15 @@ interface IssueEditBody {
 }
 
 export class IssueService {
-  private store: IssueDetailStore;
   private dao: IssueDao;
   private pageSize: number;
 
-  constructor(store: IssueDetailStore, dao?: IssueDao, pageSize?: number) {
-    this.store = store;
+  // R9 V2 + MVVM 无状态化：构造函数不再持有 IssueDetailStore，
+  // 方法只做取数/写入并返回数据（谁调谁更新：调用方 ViewModel 写自己的 UI 状态）。
+  constructor(dao?: IssueDao, pageSize?: number) {
     this.dao = dao !== undefined ? dao : new IssueDao();
     this.pageSize = pageSize !== undefined && pageSize > 0
       ? pageSize : Address.getIssuePageSize();
-  }
-
-  getStore(): IssueDetailStore {
-    return this.store;
   }
 
   getPageSize(): number {
@@ -83,18 +89,17 @@ export class IssueService {
   }
 
   async getIssue(fullName: string,
-                 num: number): Promise<IssueServiceResult<IssueDetailModel>> {
+                 num: number,
+                 onCached?: (issue: IssueDetailModel) => void): Promise<IssueServiceResult<IssueDetailModel>> {
     const owner: IssueOwnerName = IssueOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
       return new IssueServiceResult<IssueDetailModel>(false, 0, null, false, msg);
     }
     const cachedIssue: IssueDetailModel | null = await this.readIssueCache(fullName, num);
-    if (cachedIssue !== null) {
-      this.store.setIssue(cachedIssue);
+    if (cachedIssue !== null && onCached !== undefined && onCached !== null) {
+      onCached(cachedIssue);
     }
-    this.store.startLoading();
     const url: string = Address.getIssue(owner.owner, owner.name, num);
     const httpResult: HttpResult<IssueDetailModel> =
       await HttpManager.getFetch<IssueDetailModel>(url);
@@ -104,44 +109,37 @@ export class IssueService {
         await this.dao.saveIssueDetail(fullName, num, JSON.stringify(detail));
       } catch (_e) {
       }
-      this.store.setIssue(detail);
-      this.store.finishLoading();
       return new IssueServiceResult<IssueDetailModel>(true, httpResult.code, detail, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
       return new IssueServiceResult<IssueDetailModel>(false, UNAUTHORIZED, null, false, msg);
     }
     if (cachedIssue !== null) {
-      this.store.setIssue(cachedIssue);
-      this.store.finishLoading();
       return new IssueServiceResult<IssueDetailModel>(true, httpResult.code, cachedIssue, true,
         httpResult.msg !== null ? httpResult.msg : '');
     }
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
     return new IssueServiceResult<IssueDetailModel>(false, httpResult.code, null, false, failMsg);
   }
 
   async getComments(fullName: string,
                     num: number,
-                    page: number): Promise<IssueServiceResult<IssueCommentModel[]>> {
+                    page: number,
+                    onCached?: (comments: IssueCommentModel[]) => void): Promise<IssueServiceResult<IssueCommentModel[]>> {
     const owner: IssueOwnerName = IssueOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
       return new IssueServiceResult<IssueCommentModel[]>(false, 0, [], false, msg);
     }
     const finalPage: number = page > 0 ? page : 1;
     let cachedComments: IssueCommentModel[] = [];
     if (finalPage === 1) {
       cachedComments = await this.readCommentsCache(fullName, num, finalPage);
-      if (cachedComments.length > 0) {
-        this.store.applyCommentsRefresh(cachedComments, this.pageSize);
+      if (cachedComments.length > 0 && onCached !== undefined && onCached !== null) {
+        onCached(cachedComments);
       }
     }
-    this.store.startLoading();
     const url: string = Address.getIssueComments(owner.owner, owner.name, num,
       finalPage, this.pageSize);
     const httpResult: HttpResult<IssueCommentModel[]> =
@@ -153,27 +151,25 @@ export class IssueService {
           await this.dao.saveIssueComment(fullName, num, finalPage, JSON.stringify(items));
         } catch (_e) {
         }
-        this.store.applyCommentsRefresh(items, this.pageSize);
-      } else {
-        this.store.applyCommentsAppend(items, finalPage, this.pageSize);
       }
-      return new IssueServiceResult<IssueCommentModel[]>(true, httpResult.code, items, false, '');
+      return new IssueServiceResult<IssueCommentModel[]>(true, httpResult.code, items, false, '',
+        finalPage, items.length >= this.pageSize);
     }
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
       return new IssueServiceResult<IssueCommentModel[]>(false, UNAUTHORIZED, [], false, msg);
     }
-    if (cachedComments.length > 0) {
-      this.store.applyCommentsRefresh(cachedComments, this.pageSize);
+    if (finalPage === 1 && cachedComments.length > 0) {
       return new IssueServiceResult<IssueCommentModel[]>(true, httpResult.code, cachedComments, true,
-        httpResult.msg !== null ? httpResult.msg : '');
+        httpResult.msg !== null ? httpResult.msg : '', 1, cachedComments.length >= this.pageSize);
     }
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
     return new IssueServiceResult<IssueCommentModel[]>(false, httpResult.code, [], false, failMsg);
   }
 
+  /**
+   * 创建评论 —— 无状态化后只返回新建条目，「追加到列表尾部 + 计数 +1」由调用方 ViewModel 处理。
+   */
   async createComment(fullName: string,
                       num: number,
                       body: string): Promise<IssueServiceResult<IssueCommentModel>> {
@@ -192,7 +188,6 @@ export class IssueService {
         params as Object as Record<string, Object>, true, null);
     if (httpResult.result && httpResult.data !== null) {
       const comment: IssueCommentModel = httpResult.data as IssueCommentModel;
-      this.store.appendComment(comment);
       return new IssueServiceResult<IssueCommentModel>(true, httpResult.code, comment, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
@@ -231,7 +226,6 @@ export class IssueService {
         await this.dao.saveIssueDetail(fullName, num, JSON.stringify(detail));
       } catch (_e) {
       }
-      this.store.setIssue(detail);
       return new IssueServiceResult<IssueDetailModel>(true, httpResult.code, detail, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
@@ -266,7 +260,6 @@ export class IssueService {
         await this.dao.saveIssueDetail(fullName, num, JSON.stringify(detail));
       } catch (_e) {
       }
-      this.store.setIssue(detail);
       return new IssueServiceResult<IssueDetailModel>(true, httpResult.code, detail, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
@@ -291,12 +284,12 @@ export class IssueService {
     const ok: boolean = httpResult.result || httpResult.code === NO_CONTENT;
     if (ok) {
       const nextLocked: boolean = !currentLocked;
-      if (this.store.issue !== null) {
-        const current: IssueDetailModel = this.store.issue as IssueDetailModel;
-        current.locked = nextLocked;
-        this.store.setIssue(current);
+      // 无状态化：缓存里的 issue 详情就地翻转 locked 后回写（原先经 store.issue 的语义平移）。
+      const cached: IssueDetailModel | null = await this.readIssueCache(fullName, num);
+      if (cached !== null) {
+        cached.locked = nextLocked;
         try {
-          await this.dao.saveIssueDetail(fullName, num, JSON.stringify(current));
+          await this.dao.saveIssueDetail(fullName, num, JSON.stringify(cached));
         } catch (_e) {
         }
       }
@@ -310,6 +303,9 @@ export class IssueService {
     return new IssueServiceResult<boolean>(false, httpResult.code, null, false, failMsg);
   }
 
+  /**
+   * 编辑评论 —— 无状态化后只返回更新条目，「按行替换」由调用方 ViewModel 处理。
+   */
   async editComment(fullName: string,
                     num: number,
                     commentId: number,
@@ -330,7 +326,6 @@ export class IssueService {
         params as Object as Record<string, Object>, true, null);
     if (httpResult.result && httpResult.data !== null) {
       const comment: IssueCommentModel = httpResult.data as IssueCommentModel;
-      this.store.replaceCommentAt(rowIndex, comment);
       return new IssueServiceResult<IssueCommentModel>(true, httpResult.code, comment, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
@@ -341,6 +336,9 @@ export class IssueService {
     return new IssueServiceResult<IssueCommentModel>(false, httpResult.code, null, false, failMsg);
   }
 
+  /**
+   * 删除评论 —— 无状态化后只返回成功与否，「按行移除 + 计数 -1」由调用方 ViewModel 处理。
+   */
   async deleteComment(fullName: string,
                       num: number,
                       commentId: number,
@@ -354,7 +352,6 @@ export class IssueService {
       await HttpManager.netFetch<Object>(url, 'DELETE', null, true, null);
     const ok: boolean = httpResult.result || httpResult.code === NO_CONTENT;
     if (ok) {
-      this.store.removeCommentAt(rowIndex);
       return new IssueServiceResult<boolean>(true, httpResult.code, true, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {

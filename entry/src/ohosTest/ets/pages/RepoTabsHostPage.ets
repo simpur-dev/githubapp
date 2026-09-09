@@ -9,7 +9,6 @@ import { SUCCESS } from 'common';
 import { Address } from 'common';
 
 import {
-  RepositoryDetailStore,
   RepositoryEventItem,
   RepositoryCommitItem,
   RepositoryFileItem,
@@ -22,6 +21,7 @@ import {
   RepositoryService,
 } from 'common';
 import { IssueTab } from 'feature_repo';
+import { IssueTabViewModel } from 'feature_repo';
 import { ActivityTab } from 'feature_repo';
 import { FilesTab } from 'feature_repo';
 import { RouteName } from 'common';
@@ -306,156 +306,102 @@ export function getRepoTabsHostStub(): RepoTabsHostProvider {
 @Component
 struct RepoTabsHostPage {
   @State navStack: NavPathStack = new NavPathStack();
-  @State store: RepositoryDetailStore = new RepositoryDetailStore();
   @State currentTab: number = 0;
-  @State issueRefreshing: boolean = false;
-  @State issueLoadingMore: boolean = false;
-  @State issueNoMore: boolean = false;
+  // Issue tab（列表 + 分页 + 筛选态）收敛在 IssueTabViewModel，V1 宿主只持引用不观测。
+  private issueVm: IssueTabViewModel = new IssueTabViewModel();
+  // Activity / Files tab 数据（R9 无状态化：service 返回值直接回填 @State）。
+  @State eventList: RepositoryEventItem[] = [];
+  @State commits: RepositoryCommitItem[] = [];
+  @State fileList: RepositoryFileItem[] = [];
   @State eventRefreshing: boolean = false;
   @State eventLoadingMore: boolean = false;
   @State eventNoMore: boolean = false;
   @State filesRefreshing: boolean = false;
   @State filesLoadingMore: boolean = false;
   @State filesNoMore: boolean = false;
+  private eventPage: number = 1;
+  private eventHasMore: boolean = true;
   private service: RepositoryService = new RepositoryService();
 
   aboutToAppear(): void {
     HttpManager.setMockProvider(REPO_TABS_HOST_STUB);
-    // R9 无状态化：service 不再写 store，取数结果在这里显式回填（原 store 写入语义平移）。
     this.service = new RepositoryService();
-    this.loadInitial();
+    this.issueVm.loadAll(TARGET_FULL_NAME);
+    this.fetchEventsPage(1);
+    this.fetchFilesPage('');
   }
 
   aboutToDisappear(): void {
     HttpManager.setMockProvider(null);
   }
 
-  private async loadInitial(): Promise<void> {
-    this.store.setIssueState(ISSUE_STATE_ALL);
-    await this.fetchIssuesPage(ISSUE_STATE_ALL, 1, '');
-    await this.fetchEventsPage(1);
-    await this.fetchFilesPage('');
-  }
-
-  private async fetchIssuesPage(state: string, page: number, query: string): Promise<void> {
-    const res = await this.service.getIssues(TARGET_FULL_NAME, state, page, query);
-    if (res.result && res.data !== null) {
-      this.store.applyIssueRefresh(res.data, this.service.getPageSize());
-      this.store.applyIssuesRefresh(res.data, this.service.getPageSize());
-    }
-  }
-
   private async fetchEventsPage(page: number): Promise<void> {
     const res = await this.service.getEvents(TARGET_FULL_NAME, page);
     if (res.result && res.data !== null) {
       if (page <= 1) {
-        this.store.applyEventRefresh(res.data, this.service.getPageSize());
+        this.eventList = res.data;
       } else {
-        this.store.applyEventAppend(res.data, page, this.service.getPageSize());
+        this.eventList = this.eventList.concat(res.data);
       }
+      this.eventPage = res.page;
+      this.eventHasMore = res.hasMore;
     }
   }
 
   private async fetchCommitsPage(page: number): Promise<void> {
     const res = await this.service.getRepositoryCommits(TARGET_FULL_NAME, page, '', '');
     if (res.result && res.data !== null) {
-      if (page <= 1) {
-        this.store.applyCommitsRefresh(res.data, this.service.getPageSize());
-      } else {
-        this.store.applyCommitsAppend(res.data, page, this.service.getPageSize());
-      }
+      this.commits = res.data;
     }
   }
 
   private async fetchFilesPage(path: string): Promise<void> {
     const res = await this.service.getFiles(TARGET_FULL_NAME, null, path, '');
     if (res.result && res.data !== null) {
-      this.store.applyFileRefresh(res.data);
+      this.fileList = res.data;
     }
-  }
-
-  private async refreshIssues(): Promise<void> {
-    this.issueRefreshing = true;
-    this.issueLoadingMore = false;
-    this.issueNoMore = false;;
-    await this.fetchIssuesPage(this.store.issueState, 1, this.store.issueSearchQuery);
-    this.issueRefreshing = false;
-    this.issueLoadingMore = false;
-    this.issueNoMore = !(this.store.issueHasMore);
-  }
-
-  private async loadMoreIssues(): Promise<void> {
-    if (!this.store.issueHasMore) {
-      this.issueLoadingMore = false;
-    this.issueNoMore = !(false);
-      return;
-    }
-    const next: number = this.store.issuePage + 1;
-    await this.fetchIssuesPage(this.store.issueState, next, this.store.issueSearchQuery);
-    this.issueLoadingMore = false;
-    this.issueNoMore = !(this.store.issueHasMore);
   }
 
   private async refreshEvents(): Promise<void> {
     this.eventRefreshing = true;
     this.eventLoadingMore = false;
-    this.eventNoMore = false;;
+    this.eventNoMore = false;
     await this.fetchEventsPage(1);
     this.eventRefreshing = false;
     this.eventLoadingMore = false;
-    this.eventNoMore = !(this.store.eventHasMore);
+    this.eventNoMore = !(this.eventHasMore);
   }
 
   private async loadMoreEvents(): Promise<void> {
-    if (!this.store.eventHasMore) {
+    if (!this.eventHasMore) {
       this.eventLoadingMore = false;
-    this.eventNoMore = !(false);
+      this.eventNoMore = true;
       return;
     }
-    const next: number = this.store.eventPage + 1;
+    const next: number = this.eventPage + 1;
     await this.fetchEventsPage(next);
     this.eventLoadingMore = false;
-    this.eventNoMore = !(this.store.eventHasMore);
+    this.eventNoMore = !(this.eventHasMore);
   }
 
   private async refreshCommits(): Promise<void> {
     this.eventRefreshing = true;
     this.eventLoadingMore = false;
-    this.eventNoMore = false;;
+    this.eventNoMore = false;
     await this.fetchCommitsPage(1);
     this.eventRefreshing = false;
     this.eventLoadingMore = false;
-    this.eventNoMore = !(this.store.commitsHasMore);
+    this.eventNoMore = true;
   }
 
   private async refreshFiles(): Promise<void> {
     this.filesRefreshing = true;
     this.filesLoadingMore = false;
-    this.filesNoMore = false;;
-    await this.fetchFilesPage(this.store.currentPath);
+    this.filesNoMore = false;
+    await this.fetchFilesPage('');
     this.filesRefreshing = false;
     this.filesLoadingMore = false;
-    this.filesNoMore = !(false);
-  }
-
-  private async handleStateChange(state: string): Promise<void> {
-    this.store.setIssueState(state);
-    await this.refreshIssues();
-  }
-
-  private async handleIssueSearch(): Promise<void> {
-    this.store.resetIssuePage();
-    await this.refreshIssues();
-  }
-
-  private async handlePathChange(path: string): Promise<void> {
-    this.store.setPath(path);
-    await this.refreshFiles();
-  }
-
-  private async handleBack(): Promise<void> {
-    this.store.popPath();
-    await this.refreshFiles();
+    this.filesNoMore = true;
   }
 
   private handleIssueTap(_item: RepositoryIssueItem): void {
@@ -534,41 +480,19 @@ struct RepoTabsHostPage {
 
           if (this.currentTab === 0) {
             IssueTab({
-              issues: this.store.issueList,
-              fullName: TARGET_FULL_NAME,
-              currentState: this.store.issueState,
-              searchQuery: this.store.issueSearchQuery,
-              refreshing: this.issueRefreshing,
-        loadingMore: this.issueLoadingMore,
-        noMore: this.issueNoMore,
-              refresh: (): void => {
-                this.refreshIssues();
-              },
-              loadMore: (): void => {
-                this.loadMoreIssues();
-              },
+              vm: this.issueVm,
               onIssueClick: (item: RepositoryIssueItem): void => {
                 this.handleIssueTap(item);
-              },
-              onStateChange: (state: string): void => {
-                this.handleStateChange(state);
-              },
-              onSearchQueryChange: (query: string): void => {
-                this.store.setIssueSearchQuery(query);
-              },
-              onSearch: (): void => {
-                this.handleIssueSearch();
               },
             })
               .id('repo_tabs_host_issue_tab');
           } else if (this.currentTab === 1) {
             ActivityTab({
-              activity: this.store.eventList,
-              commits: this.store.commits,
-              detail: this.store.detail,
+              activity: this.eventList,
+              commits: this.commits,
               refreshing: this.eventRefreshing,
-        loadingMore: this.eventLoadingMore,
-        noMore: this.eventNoMore,
+              loadingMore: this.eventLoadingMore,
+              noMore: this.eventNoMore,
               ownerName: TARGET_OWNER,
               repositoryName: TARGET_REPO,
               refresh: (): void => {
@@ -586,13 +510,13 @@ struct RepoTabsHostPage {
               .id('repo_tabs_host_activity_tab');
           } else {
             FilesTab({
-              files: this.store.fileList,
-              currentPath: this.store.currentPath,
+              files: this.fileList,
+              currentPath: '',
               fullName: TARGET_FULL_NAME,
               branch: '',
               refreshing: this.filesRefreshing,
-        loadingMore: this.filesLoadingMore,
-        noMore: this.filesNoMore,
+              loadingMore: this.filesLoadingMore,
+              noMore: this.filesNoMore,
               refresh: (): void => {
                 this.refreshFiles();
               },
@@ -600,10 +524,8 @@ struct RepoTabsHostPage {
                 this.handleFileTap(item);
               },
               onBack: (): void => {
-                this.handleBack();
               },
               onPathChange: (path: string): void => {
-                this.handlePathChange(path);
               },
             })
               .id('repo_tabs_host_files_tab');

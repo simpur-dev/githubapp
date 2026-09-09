@@ -1,12 +1,14 @@
 /**
  * RepositoryDetailViewModel —— 仓库详情页状态与编排（R9 V2 + MVVM）。
  *
- * 原 V1 页面级 RepositoryDetailStore（common，本批保留给 ohosTest 宿主与下批 Issue 域）
- * 的字段语义在此平移为 @Trace UI 状态：
- *   detail / readme 双通道 / 事件列表 + 分页 / 提交列表 + 分页 / issues 列表 + 分页 /
- *   文件列表 + 目录栈 / 分支列表 + 当前分支 / star / watch / fork 状态 / 错误文案。
- * RepositoryService 已无状态化（不写 store），取数结果在这里写入 @Trace 字段；
- * 缓存先行的渐进渲染语义通过 service 的 onCached 回调保留。
+ * 原 V1 页面级 RepositoryDetailStore（common，本批已删除）的字段语义在此平移为
+ * @Trace UI 状态：
+ *   detail / readme 双通道 / 事件列表 + 分页 / 提交列表 + 分页 / 文件列表 + 目录栈 /
+ *   分支列表 + 当前分支 / star / watch / fork 状态 / 错误文案。
+ * Issue 列表 + 分页 + 筛选态收敛到组合的 IssueTabViewModel（issueTab 字段，
+ * 由页面下发给 IssueTab 组件）；RepositoryService 已无状态化（不写 store），
+ * 取数结果在这里写回 @Trace 字段；缓存先行的渐进渲染语义通过 service 的
+ * onCached 回调保留。
  */
 import {
   RepositoryService,
@@ -18,13 +20,12 @@ import {
   RepositoryDetail,
   RepositoryEventItem,
   RepositoryCommitItem,
-  RepositoryFileItem,
-  RepositoryIssueItem,
-  ISSUE_STATE_ALL
+  RepositoryFileItem
 } from 'common';
 import { ReadHistoryService, ReadHistoryAddParam } from 'common';
 import { READ_HISTORY_TYPE_REPO } from 'common';
 import { Logger } from 'common';
+import { IssueTabViewModel } from './IssueTabViewModel';
 
 const MASTER_BRANCH: string = 'master';
 
@@ -39,10 +40,6 @@ export class RepositoryDetailViewModel {
   @Trace readmeMarkdown: string = '';
   @Trace readmeLoading: boolean = false;
   @Trace readmeError: string = '';
-  /** issues 列表（IssueTab @Prop 数据源）与筛选 / 搜索状态。 */
-  @Trace issues: RepositoryIssueItem[] = [];
-  @Trace issueState: string = ISSUE_STATE_ALL;
-  @Trace issueSearchQuery: string = '';
   /** Activity tab：事件列表（select=0）与提交列表（select=1）。 */
   @Trace activity: RepositoryEventItem[] = [];
   @Trace commits: RepositoryCommitItem[] = [];
@@ -60,10 +57,6 @@ export class RepositoryDetailViewModel {
   @Trace activityRefreshing: boolean = false;
   @Trace activityLoadingMore: boolean = false;
   @Trace activityNoMore: boolean = false;
-  /** Issue 列表加载 / 分页 / 错误态。 */
-  @Trace issueRefreshing: boolean = false;
-  @Trace issueLoadingMore: boolean = false;
-  @Trace issueNoMore: boolean = false;
   /** Files 列表加载 / 分页 / 错误态。 */
   @Trace filesRefreshing: boolean = false;
   @Trace filesLoadingMore: boolean = false;
@@ -71,13 +64,14 @@ export class RepositoryDetailViewModel {
   /** 详情域错误文案（首屏 detail 取数失败）。 */
   @Trace errorMessage: string = '';
 
+  /** Issue 列表 tab（列表 + 分页 + 筛选态）收敛到独立 VM，由页面下发给 IssueTab。 */
+  readonly issueTab: IssueTabViewModel = new IssueTabViewModel();
+
   private filePathStack: string[] = [];
   private activityPage: number = 1;
   private activityHasMore: boolean = true;
   private commitsPage: number = 1;
   private commitsHasMore: boolean = true;
-  private issuePage: number = 1;
-  private issueHasMore: boolean = true;
   private branchesLoaded: boolean = false;
   private service: RepositoryService = new RepositoryService();
   private readHistoryService: ReadHistoryService = new ReadHistoryService();
@@ -130,7 +124,7 @@ export class RepositoryDetailViewModel {
 
   /**
    * 首屏加载（原 loadAll 串行编排语义一行不改）：
-   * detail → star/watch 状态 → README → 事件 → issues → 文件 → 读历史。
+   * detail → star/watch 状态 → README → 事件 → issues（issueTab）→ 文件 → 读历史。
    */
   async loadAll(): Promise<void> {
     if (this.fullName.length === 0) {
@@ -154,7 +148,7 @@ export class RepositoryDetailViewModel {
     }
     await this.fetchReadme(null);
     await this.refreshActivity();
-    await this.refreshIssues();
+    await this.issueTab.loadAll(this.fullName);
     await this.refreshFiles('');
     await this.writeReadHistory();
   }
@@ -306,97 +300,7 @@ export class RepositoryDetailViewModel {
     await this.loadMoreActivity();
   }
 
-  // ── Issue tab（本批只做列表读取编排；IssueTab 组件本体留给下批）───────────────
-
-  private applyIssuesPage(items: RepositoryIssueItem[], append: boolean, page: number): void {
-    if (append) {
-      const merged: RepositoryIssueItem[] = this.issues.slice();
-      for (let i: number = 0; i < items.length; i++) {
-        merged.push(items[i]);
-      }
-      this.issues = merged;
-    } else {
-      this.issues = items.slice();
-    }
-    this.issuePage = page;
-    this.issueHasMore = items.length >= this.service.getPageSize();
-  }
-
-  async refreshIssues(): Promise<void> {
-    if (this.fullName.length === 0) {
-      return;
-    }
-    this.issueRefreshing = true;
-    this.issueLoadingMore = false;
-    this.issueNoMore = false;
-    const res: RepositoryServiceResult<RepositoryIssueItem[]> = await this.service.getIssues(
-      this.fullName, this.issueState, 1, this.issueSearchQuery,
-      (cached: RepositoryIssueItem[]): void => {
-        this.applyIssuesPage(cached, false, 1);
-      });
-    if (res.result && res.data !== null) {
-      this.applyIssuesPage(res.data, false, res.page);
-    }
-    this.issueRefreshing = false;
-    this.issueLoadingMore = false;
-    this.issueNoMore = !(this.issueHasMore);
-  }
-
-  async loadMoreIssues(): Promise<void> {
-    if (!this.issueHasMore) {
-      this.issueLoadingMore = false;
-      this.issueNoMore = true;
-      return;
-    }
-    const next: number = this.issuePage + 1;
-    const res: RepositoryServiceResult<RepositoryIssueItem[]> = await this.service.getIssues(
-      this.fullName, this.issueState, next, this.issueSearchQuery);
-    if (res.result && res.data !== null) {
-      this.applyIssuesPage(res.data, true, res.page);
-    }
-    this.issueLoadingMore = false;
-    this.issueNoMore = !(this.issueHasMore);
-  }
-
-  /** 切换 open / closed / all 筛选（原 handleIssueStateChange：重置分页后重拉）。 */
-  async handleIssueStateChange(state: string): Promise<void> {
-    this.issueState = state;
-    this.issues = [];
-    this.issuePage = 1;
-    this.issueHasMore = true;
-    await this.refreshIssues();
-  }
-
-  /** 搜索框输入回写（原 handleIssueSearchQueryChange）。 */
-  setIssueSearchQuery(query: string): void {
-    this.issueSearchQuery = query !== null && query !== undefined ? query : '';
-  }
-
-  /** 搜索提交（原 handleIssueSearch：重置分页后重拉）。 */
-  async handleIssueSearch(): Promise<void> {
-    this.issues = [];
-    this.issuePage = 1;
-    this.issueHasMore = true;
-    await this.refreshIssues();
-  }
-
-  /**
-   * 创建 Issue：无状态 service 只返回新建条目，「插到列表头部」在这里处理
-   * （原 service.createIssue 写 store.issues / store.issueList 的语义平移）。
-   * 返回 result 供 View 决定 toast 文案。
-   */
-  async createIssue(title: string, body: string): Promise<RepositoryServiceResult<RepositoryIssueItem | null>> {
-    const res: RepositoryServiceResult<RepositoryIssueItem | null> =
-      await this.service.createIssue(this.fullName, title, body);
-    if (res.result && res.data !== null) {
-      const merged: RepositoryIssueItem[] = [res.data];
-      for (let i: number = 0; i < this.issues.length; i++) {
-        merged.push(this.issues[i]);
-      }
-      this.issues = merged;
-    }
-    return res;
-  }
+  // ── Issue tab：列表 / 分页 / 筛选 / 创建已收敛到 issueTab（IssueTabViewModel）────
 
   // ── Files tab ────────────────────────────────────────────────────────────────
 

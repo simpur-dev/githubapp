@@ -21,7 +21,7 @@ import {
 } from 'common';
 import {
   CodeService,
-  CodeServiceResult,
+  FetchCodeContentResult,
 } from 'common';
 import { CodeDetailStore } from 'common';
 import { ReadResult } from 'common';
@@ -135,20 +135,18 @@ export default function CommitServiceTest(): void {
   describe('CommitServiceTest', (): void => {
     let provider: FakeHttpProvider;
     let storage: FakeTokenStorage;
-    let pushStore: PushDetailStore;
     let commitService: CommitService;
     let commitCacheDao: FakeCommitCacheDao;
-    let codeStore: CodeDetailStore;
     let codeService: CodeService;
 
     beforeEach((): void => {
       provider = new FakeHttpProvider();
       storage = new FakeTokenStorage();
-      pushStore = new PushDetailStore();
       commitCacheDao = new FakeCommitCacheDao();
-      commitService = new CommitService(pushStore, commitCacheDao);
-      codeStore = new CodeDetailStore();
-      codeService = new CodeService(codeStore);
+      // R9 无状态化：service 不再持有 PushDetailStore / CodeDetailStore，
+      // 取数结果走返回值（双通道 content/html），store 断言改为返回值断言。
+      commitService = new CommitService(commitCacheDao);
+      codeService = new CodeService();
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -172,9 +170,9 @@ export default function CommitServiceTest(): void {
       expect(provider.captured.url).assertEqual(Address.getCommitDetail(OWNER, REPO_NAME, SHA));
       expect(provider.captured.method).assertEqual('GET');
       expect(res.result).assertTrue();
-      expect(pushStore.commit !== null).assertTrue();
-      expect(pushStore.files.length).assertEqual(1);
-      expect(pushStore.files[0].filename).assertEqual('README.md');
+      expect(res.data !== null).assertTrue();
+      expect(CommitService.extractFiles(res.data).length).assertEqual(1);
+      expect(CommitService.extractFiles(res.data)[0].filename).assertEqual('README.md');
       expect(commitCacheDao.saveCount).assertEqual(1);
       expect(commitCacheDao.savedFullName).assertEqual(FULL_NAME);
       expect(commitCacheDao.savedSha).assertEqual(SHA);
@@ -191,8 +189,8 @@ export default function CommitServiceTest(): void {
       expect(provider.callCount).assertEqual(1);
       expect(res.result).assertTrue();
       expect(res.fromCache).assertFalse();
-      expect(pushStore.commit !== null).assertTrue();
-      expect((pushStore.commit as CommitDetail).commit.message).assertEqual('unit test commit');
+      expect(res.data !== null).assertTrue();
+      expect((res.data as CommitDetail).commit.message).assertEqual('unit test commit');
       expect(commitCacheDao.readCount).assertEqual(1);
       expect(commitCacheDao.saveCount).assertEqual(1);
     });
@@ -208,16 +206,15 @@ export default function CommitServiceTest(): void {
       expect(provider.callCount).assertEqual(1);
       expect(res.result).assertTrue();
       expect(res.fromCache).assertTrue();
-      expect(pushStore.error.length).assertEqual(0);
-      expect(pushStore.commit !== null).assertTrue();
-      expect((pushStore.commit as CommitDetail).commit.message).assertEqual('cached commit');
+      expect(res.data !== null).assertTrue();
+      expect((res.data as CommitDetail).commit.message).assertEqual('cached commit');
     });
 
     it('getCommitDetail_invalid_full_name_sets_error', 0, async (): Promise<void> => {
       const res: CommitServiceResult<CommitDetail> =
         await commitService.getCommitDetail('', SHA);
       expect(res.result).assertFalse();
-      expect(pushStore.error.length > 0).assertTrue();
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('getCommitDetail_failure_sets_error', 0, async (): Promise<void> => {
@@ -228,7 +225,7 @@ export default function CommitServiceTest(): void {
         await commitService.getCommitDetail(FULL_NAME, SHA);
 
       expect(res.result).assertFalse();
-      expect(pushStore.error.length > 0).assertTrue();
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('getCommitDiff_uses_diff_accept_header', 0, async (): Promise<void> => {
@@ -273,7 +270,7 @@ export default function CommitServiceTest(): void {
     it('CodeService_getRawContent_succeeds_via_github_html_contents_api', 0, async (): Promise<void> => {
       provider.pushResponse(SUCCESS, '<h1>Hello</h1><p>print("hi")</p>');
 
-      const res: CodeServiceResult<string> =
+      const res: FetchCodeContentResult =
         await codeService.getRawContent(FULL_NAME, BRANCH, PATH);
 
       expect(res.result).assertTrue();
@@ -281,9 +278,8 @@ export default function CommitServiceTest(): void {
         .assertEqual(Address.getReposFileDir(OWNER, REPO_NAME, PATH, BRANCH));
       expect(provider.capturedAll[0].method).assertEqual('GET');
       expect(provider.capturedAll[0].acceptHeader).assertEqual('application/vnd.github.html');
-      expect(codeStore.content.length > 0).assertTrue();
-      expect(codeStore.htmlContent.length > 0).assertTrue();
-      expect(codeStore.path).assertEqual(PATH);
+      expect(res.content.length > 0).assertTrue();
+      expect(res.html.length > 0).assertTrue();
     });
 
     it('CodeService_getRawContent_falls_back_to_contents_api_when_html_and_raw_fail', 0,
@@ -297,7 +293,7 @@ export default function CommitServiceTest(): void {
           'name': PATH,
         }));
 
-        const res: CodeServiceResult<string> =
+        const res: FetchCodeContentResult =
           await codeService.getRawContent(FULL_NAME, BRANCH, CODE_PATH);
 
         expect(res.result).assertTrue();
@@ -308,8 +304,8 @@ export default function CommitServiceTest(): void {
           .assertEqual(Address.getRawFile(OWNER, REPO_NAME, BRANCH, CODE_PATH));
         expect(provider.capturedAll[2].url)
           .assertEqual(Address.getReposFileDir(OWNER, REPO_NAME, CODE_PATH, BRANCH));
-        expect(codeStore.content.indexOf('Hello') >= 0).assertTrue();
-        expect(codeStore.htmlContent.length > 0).assertTrue();
+        expect(res.content.indexOf('Hello') >= 0).assertTrue();
+        expect(res.html.length > 0).assertTrue();
       });
 
     it('CodeService_getRawContent_markdown_does_not_fallback_to_raw_source', 0,
@@ -317,60 +313,59 @@ export default function CommitServiceTest(): void {
         provider.pushResponse(404, '');
         provider.pushResponse(SUCCESS, '# Hello');
 
-        const res: CodeServiceResult<string> =
+        const res: FetchCodeContentResult =
           await codeService.getRawContent(FULL_NAME, BRANCH, PATH);
 
         expect(res.result).assertFalse();
         expect(provider.callCount).assertEqual(1);
         expect(provider.capturedAll[0].acceptHeader).assertEqual('application/vnd.github.html');
-        expect(codeStore.content.length).assertEqual(0);
-        expect(codeStore.error.length > 0).assertTrue();
+        expect(res.content.length).assertEqual(0);
+        expect(res.msg.length > 0).assertTrue();
       });
 
     it('CodeService_getCommitFile_loads_patch_from_commit_sha_like_compose', 0,
       async (): Promise<void> => {
         provider.pushResponse(SUCCESS, buildCommitDetailBody());
 
-        const res: CodeServiceResult<string> =
+        const res: FetchCodeContentResult =
           await codeService.getCommitFile(FULL_NAME, SHA, PATH);
 
         expect(res.result).assertTrue();
         expect(provider.callCount).assertEqual(1);
         expect(provider.captured.url).assertEqual(Address.getCommitDetail(OWNER, REPO_NAME, SHA));
         expect(provider.captured.method).assertEqual('GET');
-        expect(codeStore.path).assertEqual(PATH);
-        expect(codeStore.content).assertEqual('@@ patch @@');
-        expect(codeStore.htmlContent.indexOf('@@ patch @@') >= 0).assertTrue();
+        expect(res.content).assertEqual('@@ patch @@');
+        expect(res.html.indexOf('@@ patch @@') >= 0).assertTrue();
       });
 
     it('CodeService_getCommitFile_missing_file_sets_error', 0,
       async (): Promise<void> => {
         provider.pushResponse(SUCCESS, buildCommitDetailBody());
 
-        const res: CodeServiceResult<string> =
+        const res: FetchCodeContentResult =
           await codeService.getCommitFile(FULL_NAME, SHA, 'missing.txt');
 
         expect(res.result).assertFalse();
-        expect(codeStore.error).assertEqual('File not found in commit');
+        expect(res.msg).assertEqual('File not found in commit');
       });
 
     it('CodeService_getRawContent_invalid_full_name_returns_false', 0,
       async (): Promise<void> => {
-        const res: CodeServiceResult<string> =
+        const res: FetchCodeContentResult =
           await codeService.getRawContent('', BRANCH, PATH);
         expect(res.result).assertFalse();
-        expect(codeStore.error.length > 0).assertTrue();
+        expect(res.msg.length > 0).assertTrue();
       });
 
     it('CodeService_getRawContent_failure_sets_error', 0, async (): Promise<void> => {
       provider.pushResponse(NETWORK_ERROR, '');
       provider.pushResponse(NETWORK_ERROR, '');
 
-      const res: CodeServiceResult<string> =
+      const res: FetchCodeContentResult =
         await codeService.getRawContent(FULL_NAME, BRANCH, PATH);
 
       expect(res.result).assertFalse();
-      expect(codeStore.error.length > 0).assertTrue();
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('CodeService_guessLangByPath_returns_markdown_for_md', 0, (): void => {

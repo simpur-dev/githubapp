@@ -1,10 +1,14 @@
 // features/feature-repo 统一出口（R9 阶段1b 生成，模块间只允许从这里导入）
 
 export { CodeDetailPage } from './src/main/ets/CodeDetailPage';
+export { CodeViewModel } from './src/main/ets/viewmodel/CodeViewModel';
 export { CommonListPage } from './src/main/ets/CommonListPage';
 export { COMMON_LIST_DATA_TYPE_FOLLOWED, COMMON_LIST_DATA_TYPE_FOLLOWER, COMMON_LIST_DATA_TYPE_FOLLOWING, COMMON_LIST_DATA_TYPE_FORKS, COMMON_LIST_DATA_TYPE_REPOSITORIES, COMMON_LIST_DATA_TYPE_REPO_FORK, COMMON_LIST_DATA_TYPE_REPO_STAR, COMMON_LIST_DATA_TYPE_REPO_WATCHER, COMMON_LIST_DATA_TYPE_STARGAZERS, COMMON_LIST_DATA_TYPE_TOPICS, COMMON_LIST_DATA_TYPE_USER_BE_STARED, COMMON_LIST_DATA_TYPE_USER_ORGS, COMMON_LIST_DATA_TYPE_USER_REPOS, COMMON_LIST_DATA_TYPE_USER_STAR, COMMON_LIST_DATA_TYPE_WATCHERS, COMMON_LIST_SHOW_TYPE_REPOSITORY, COMMON_LIST_SHOW_TYPE_USER } from './src/main/ets/viewmodel/CommonListViewModel';
 export { IssueDetailPage } from './src/main/ets/IssueDetailPage';
+export { IssueDetailViewModel } from './src/main/ets/viewmodel/IssueDetailViewModel';
+export { IssueTabViewModel } from './src/main/ets/viewmodel/IssueTabViewModel';
 export { PushDetailPage } from './src/main/ets/PushDetailPage';
+export { PushViewModel } from './src/main/ets/viewmodel/PushViewModel';
 export { ReleasePage } from './src/main/ets/ReleasePage';
 export { RepositoryDetailPage } from './src/main/ets/RepositoryDetailPage';
 export { RepositoryForkPage } from './src/main/ets/RepositoryForkPage';

@@ -1,3 +1,13 @@
+/**
+ * CodeDetailPage —— 代码文件详情页（R9 V2 + MVVM）。
+ *
+ * 原 V1 @Component + CodeDetailStore + CodeService(store) 整页迁 @ComponentV2：
+ * 路径四元组 / 文件内容双通道（content：markdown/raw 原文走 MarkdownRenderer 原生渲染；
+ * htmlContent：高亮 HTML 走 WebView）/ 加载错误态收敛到 CodeViewModel（@Local vm 持有），
+ * CodeService 已无状态化（双通道结果走返回值，cache-first 经 onCached 回调）；
+ * 路由取参（RouteParamStore → pathInfo/stack → BOOT_CODE_KEY 兜底）时序一行不改。
+ * 全部 code_detail_* 测试 id 原样保留。
+ */
 import webview from '@ohos.web.webview';
 import common from '@ohos.app.ability.common';
 import Want from '@ohos.app.ability.Want';
@@ -11,11 +21,10 @@ import { I18n } from 'common';
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
-import { CodeDetailStore } from 'common';
-import { CodeService } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
 import { Logger } from 'common';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
+import { CodeViewModel } from './viewmodel/CodeViewModel';
 
 interface CodeDetailUserRouteParam {
   login: string;
@@ -34,25 +43,18 @@ interface CodeDetailRouteParam {
   path?: string;
 }
 
-const FALLBACK_FULL_NAME: string = '';
 const FALLBACK_BRANCH: string = 'master';
 
-@Component
+@ComponentV2
 export struct CodeDetailPage {
-  @State fullName: string = FALLBACK_FULL_NAME;
-  @State branch: string = FALLBACK_BRANCH;
-  @State sha: string = '';
-  @State path: string = '';
-  @State store: CodeDetailStore = new CodeDetailStore();
-  @State loadedHtml: string = '';
-  @State webSrc: string = 'about:blank';
-  @State controllerAttached: boolean = false;
-  private service: CodeService = new CodeService(this.store);
+  @Local vm: CodeViewModel = new CodeViewModel();
+  @Local webSrc: string = 'about:blank';
+  private controllerAttached: boolean = false;
+  private loadedHtml: string = '';
   private webController: webview.WebviewController = new webview.WebviewController();
   private pathStack: NavPathStack = new NavPathStack();
 
   aboutToAppear(): void {
-    this.service = new CodeService(this.store);
     if (this.tryAdoptRouteStore()) {
       return;
     }
@@ -61,7 +63,7 @@ export struct CodeDetailPage {
 
   /**
    * 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）。
-   * 命中即赋值 @State 并返回 true，跳过后续 BOOT_CODE_KEY 兜底。
+   * 命中即写入 VM 并返回 true，跳过后续 BOOT_CODE_KEY 兜底。
    */
   private tryAdoptRouteStore(): boolean {
     const routeRaw: Object | null = RouteParamStore.consume(RouteName.CodeDetail);
@@ -70,26 +72,31 @@ export struct CodeDetailPage {
     }
     const routeParam: CodeDetailRouteParam = routeRaw as CodeDetailRouteParam;
     let adopted: boolean = false;
-    this.sha = '';
+    let fullName: string = this.vm.fullName;
+    let branch: string = this.vm.branch;
+    let sha: string = '';
+    let path: string = this.vm.path;
     if (routeParam.fullName !== undefined && routeParam.fullName !== null && routeParam.fullName.length > 0) {
-      this.fullName = routeParam.fullName;
+      fullName = routeParam.fullName;
       adopted = true;
     }
     if (routeParam.branch !== undefined && routeParam.branch !== null && routeParam.branch.length > 0) {
-      this.branch = routeParam.branch;
+      branch = routeParam.branch;
       adopted = true;
     }
     if (routeParam.sha !== undefined && routeParam.sha !== null && routeParam.sha.length > 0) {
-      this.sha = routeParam.sha;
+      sha = routeParam.sha;
       adopted = true;
     }
     if (routeParam.path !== undefined && routeParam.path !== null && routeParam.path.length > 0) {
-      this.path = routeParam.path;
+      path = routeParam.path;
       adopted = true;
     }
+    this.vm.setTarget(fullName, branch, sha, path);
     if (adopted) {
       Logger.i('CodeDetail',
-        `aboutToAppear adoptRouteStore fullName=${this.fullName} branch=${this.branch} sha=${this.sha} path=${this.path}`);
+        `aboutToAppear adoptRouteStore fullName=${this.vm.fullName} branch=${this.vm.branch}`
+        + ` sha=${this.vm.sha} path=${this.vm.path}`);
     }
     return adopted;
   }
@@ -117,10 +124,7 @@ export struct CodeDetailPage {
     if (fullName.length === 0 || branch.length === 0 || path.length === 0) {
       return;
     }
-    this.fullName = fullName;
-    this.branch = branch;
-    this.sha = '';
-    this.path = path;
+    this.vm.setTarget(fullName, branch, '', path);
     BootChannel.set(BOOT_CODE_KEY, '');
     Logger.i('CodeDetail', `aboutToAppear adoptBootCode fullName=${fullName} branch=${branch} path=${path}`);
   }
@@ -141,24 +145,12 @@ export struct CodeDetailPage {
     }
   }
 
-  private async loadAll(): Promise<void> {
-    if (this.fullName.length === 0 || this.path.length === 0) {
-      this.store.setError('invalid params');
-      return;
-    }
-    Logger.i('CodeDetail',
-      `loadAll BEGIN fullName=${this.fullName} branch=${this.branch} sha=${this.sha} path=${this.path}`);
-    if (this.sha.length > 0) {
-      await this.service.getCommitFile(this.fullName, this.sha, this.path);
-    } else {
-      await this.service.getRawContent(this.fullName, this.branch, this.path);
-    }
-    this.updateWebSrc();
-    Logger.i('CodeDetail', `loadAll END htmlLen=${this.store.htmlContent.length} err=${this.store.error}`);
+  private loadAll(): void {
+    this.vm.loadAll();
   }
 
   private updateWebSrc(): void {
-    const sourceHtml: string = this.store.htmlContent;
+    const sourceHtml: string = this.vm.htmlContent;
     if (sourceHtml === null || sourceHtml === undefined || sourceHtml.length === 0) {
       return;
     }
@@ -202,8 +194,8 @@ export struct CodeDetailPage {
   }
 
   private safeCodeFileName(): string {
-    const source: string = (this.fullName.length > 0 ? this.fullName : 'repository')
-      + '_' + (this.path.length > 0 ? this.path : 'file');
+    const source: string = (this.vm.fullName.length > 0 ? this.vm.fullName : 'repository')
+      + '_' + (this.vm.path.length > 0 ? this.vm.path : 'file');
     return source.replace(/[^A-Za-z0-9_.-]/g, '_') + '_code.html';
   }
 
@@ -222,27 +214,27 @@ export struct CodeDetailPage {
   }
 
   private resolveBaseUrl(): string {
-    if (this.fullName.length === 0) {
+    if (this.vm.fullName.length === 0) {
       return 'https://github.com/';
     }
-    const branch: string = this.branch.length > 0 ? this.branch : FALLBACK_BRANCH;
-    return `https://raw.githubusercontent.com/${this.fullName}/${branch}/`;
+    const branch: string = this.vm.branch.length > 0 ? this.vm.branch : FALLBACK_BRANCH;
+    return `https://raw.githubusercontent.com/${this.vm.fullName}/${branch}/`;
   }
 
   private titleFileName(): string {
-    if (this.path.length === 0) {
+    if (this.vm.path.length === 0) {
       return I18n('reposFile');
     }
-    const idx: number = this.path.lastIndexOf('/');
-    return idx >= 0 ? this.path.substring(idx + 1) : this.path;
+    const idx: number = this.vm.path.lastIndexOf('/');
+    return idx >= 0 ? this.vm.path.substring(idx + 1) : this.vm.path;
   }
 
   private resolveHtmlUrl(): string {
-    if (this.fullName.length === 0 || this.path.length === 0) {
+    if (this.vm.fullName.length === 0 || this.vm.path.length === 0) {
       return '';
     }
-    const branch: string = this.branch.length > 0 ? this.branch : FALLBACK_BRANCH;
-    return 'https://github.com/' + this.fullName + '/blob/' + branch + '/' + this.path;
+    const branch: string = this.vm.branch.length > 0 ? this.vm.branch : FALLBACK_BRANCH;
+    return 'https://github.com/' + this.vm.fullName + '/blob/' + branch + '/' + this.vm.path;
   }
 
   private copyToPasteboard(text: string): void {
@@ -295,7 +287,7 @@ export struct CodeDetailPage {
   }
 
   private buildHtmlDoc(): string {
-    const html: string = this.store.htmlContent;
+    const html: string = this.vm.htmlContent;
     if (html.length === 0) {
       return '<html><body></body></html>';
     }
@@ -326,7 +318,7 @@ export struct CodeDetailPage {
     let target: string = url;
     if (url.indexOf('gsygithub://') === 0) {
       const tail: string = url.substring('gsygithub://'.length);
-      target = `https://github.com/${this.fullName}/blob/${this.branch}/${tail}`;
+      target = `https://github.com/${this.vm.fullName}/blob/${this.vm.branch}/${tail}`;
       Logger.i('CodeDetail', `interceptUrl gsygithub mapped url=${target}`);
     }
     if (target.indexOf('https://github.com/') !== 0) {
@@ -413,8 +405,8 @@ export struct CodeDetailPage {
         .id('code_detail_empty_title')
         .fontSize(GSYFontSize.middleNormal)
         .fontColor(GSYColor.subText);
-      if (this.store.error.length > 0) {
-        Text(this.store.error)
+      if (this.vm.error.length > 0) {
+        Text(this.vm.error)
           .id('code_detail_empty_error')
           .fontSize(GSYFontSize.small)
           .fontColor(GSYColor.issueClosedRed)
@@ -451,15 +443,15 @@ export struct CodeDetailPage {
         })
           .id('code_detail_appbar');
 
-        if (this.store.htmlContent.length === 0) {
-          if (this.store.loading || this.store.error.length === 0) {
+        if (this.vm.htmlContent.length === 0) {
+          if (this.vm.loading || this.vm.error.length === 0) {
             this.buildLoading();
           } else {
             this.buildEmpty();
           }
-        } else if (this.isMarkdownPath(this.path)) {
+        } else if (this.isMarkdownPath(this.vm.path)) {
           MarkdownRenderer({
-            markdown: this.store.content,
+            markdown: this.vm.content,
           })
             .id('code_detail_markdown')
             .width('100%')
@@ -480,15 +472,15 @@ export struct CodeDetailPage {
             .backgroundColor(GSYColor.white)
             .onControllerAttached((): void => {
               this.controllerAttached = true;
-              Logger.i('CodeDetail', `onControllerAttached htmlLen=${this.store.htmlContent.length}`);
+              Logger.i('CodeDetail', `onControllerAttached htmlLen=${this.vm.htmlContent.length}`);
               this.updateWebSrc();
             })
             .onPageBegin((event: OnPageBeginEvent): void => {
               Logger.i('CodeDetail', `onPageBegin url=${event.url}`);
             })
             .onPageEnd((event: OnPageEndEvent): void => {
-              Logger.i('CodeDetail', `onPageEnd url=${event.url} htmlLen=${this.store.htmlContent.length}`);
-              if (this.store.htmlContent.length > 0 && this.loadedHtml !== this.store.htmlContent) {
+              Logger.i('CodeDetail', `onPageEnd url=${event.url} htmlLen=${this.vm.htmlContent.length}`);
+              if (this.vm.htmlContent.length > 0 && this.loadedHtml !== this.vm.htmlContent) {
                 this.updateWebSrc();
               }
             })
@@ -516,6 +508,10 @@ export struct CodeDetailPage {
       if (stack !== undefined && stack !== null) {
         this.pathStack = stack;
       }
+      let fullName: string = this.vm.fullName;
+      let branch: string = this.vm.branch;
+      let sha: string = this.vm.sha;
+      let path: string = this.vm.path;
       let param: CodeDetailRouteParam | null = null;
       try {
         const info: NavPathInfo | undefined = ctx.pathInfo;
@@ -530,21 +526,22 @@ export struct CodeDetailPage {
       }
       if (param !== null) {
         if (param.fullName !== undefined && param.fullName !== null && param.fullName.length > 0) {
-          this.fullName = param.fullName;
+          fullName = param.fullName;
         }
         if (param.branch !== undefined && param.branch !== null && param.branch.length > 0) {
-          this.branch = param.branch;
+          branch = param.branch;
         }
-        this.sha = '';
+        sha = '';
         if (param.sha !== undefined && param.sha !== null && param.sha.length > 0) {
-          this.sha = param.sha;
+          sha = param.sha;
         }
         if (param.path !== undefined && param.path !== null && param.path.length > 0) {
-          this.path = param.path;
+          path = param.path;
         }
       }
       Logger.i('CodeDetail',
-        `onReady fullName=${this.fullName} branch=${this.branch} sha=${this.sha} path=${this.path}`);
+        `onReady fullName=${fullName} branch=${branch} sha=${sha} path=${path}`);
+      this.vm.setTarget(fullName, branch, sha, path);
       this.loadAll();
     });
   }

@@ -1,3 +1,12 @@
+/**
+ * PushDetailPage —— 提交（commit）详情页（R9 V2 + MVVM）。
+ *
+ * 原 V1 @Component + PushDetailStore + CommitService(store) 整页迁 @ComponentV2：
+ * 提交详情 / 文件列表 / 加载错误态收敛到 PushViewModel（@Local vm 持有），
+ * CommitService 已无状态化（cache-first 经 onCached 回调）；
+ * 文件列表 ForEach → Repeat（virtualScroll，sha+文件名稳定 key），
+ * 全部 push_detail_* 测试 id 原样保留。
+ */
 import pasteboard from '@ohos.pasteboard';
 import { AppBar, AppBarAction } from 'common';
 import { I18n } from 'common';
@@ -16,31 +25,22 @@ import {
   CommitDetail,
   CommitFileItem,
   CommitInner,
-  PushDetailStore,
 } from 'common';
-import { CommitService } from 'common';
 import { ExternalUrlUtil } from 'common';
+import { PushViewModel } from './viewmodel/PushViewModel';
 
 interface PushDetailRouteParam {
   fullName?: string;
   sha?: string;
 }
 
-const FALLBACK_FULL_NAME: string = '';
 const FALLBACK_SHA: string = '';
 const FA_EDIT: string = '\uf044';
 
-@Component
+@ComponentV2
 export struct PushDetailPage {
-  @State fullName: string = FALLBACK_FULL_NAME;
-  @State sha: string = FALLBACK_SHA;
-  @State store: PushDetailStore = new PushDetailStore();
-  private service: CommitService = new CommitService(this.store);
+  @Local vm: PushViewModel = new PushViewModel();
   private pathStack: NavPathStack = new NavPathStack();
-
-  aboutToAppear(): void {
-    this.service = new CommitService(this.store);
-  }
 
   private resolveParamFromStack(stack: NavPathStack): PushDetailRouteParam | null {
     try {
@@ -58,34 +58,27 @@ export struct PushDetailPage {
     }
   }
 
-  private async loadAll(): Promise<void> {
-    if (this.fullName.length === 0 || this.sha.length === 0) {
-      Logger.i('boot/ts', `PushDetailPage.loadAll skip empty fullName='${this.fullName}' sha='${this.sha}'`);
-      return;
-    }
-    Logger.i('boot/ts', `PushDetailPage.loadAll BEGIN fullName='${this.fullName}' sha='${this.sha}'`);
-    const r = await this.service.getCommitDetail(this.fullName, this.sha);
-    const c = this.store.commit;
-    Logger.i('boot/ts', `PushDetailPage.loadAll done result=${r.result} code=${r.code} commit=${c !== null} files=${this.store.files.length}`);
+  private loadAll(): void {
+    this.vm.loadAll();
   }
 
   private openFile(item: CommitFileItem): void {
     NavigationService.push(RouteName.CodeDetail, {
-      'fullName': this.fullName,
-      'sha': this.sha,
+      'fullName': this.vm.fullName,
+      'sha': this.vm.sha,
       'path': item.filename,
     } as Record<string, Object>);
   }
 
   private titleOwnerRepo(): string {
-    return this.fullName.length > 0 ? this.fullName : I18n('reposPush');
+    return this.vm.fullName.length > 0 ? this.vm.fullName : I18n('reposPush');
   }
 
   private resolveHtmlUrl(): string {
-    if (this.fullName.length === 0 || this.sha.length === 0) {
+    if (this.vm.fullName.length === 0 || this.vm.sha.length === 0) {
       return '';
     }
-    return 'https://github.com/' + this.fullName + '/commit/' + this.sha;
+    return 'https://github.com/' + this.vm.fullName + '/commit/' + this.vm.sha;
   }
 
   private copyToPasteboard(text: string): void {
@@ -138,7 +131,7 @@ export struct PushDetailPage {
   }
 
   private getAuthorAvatar(): string {
-    const c: CommitDetail | null = this.store.commit;
+    const c: CommitDetail | null = this.vm.commit;
     if (c !== null && c.author !== null && c.author !== undefined) {
       return c.author.avatar_url;
     }
@@ -149,7 +142,7 @@ export struct PushDetailPage {
   }
 
   private getAuthorName(): string {
-    const c: CommitDetail | null = this.store.commit;
+    const c: CommitDetail | null = this.vm.commit;
     if (c === null) {
       return '';
     }
@@ -164,7 +157,7 @@ export struct PushDetailPage {
   }
 
   private getAuthorDate(): string {
-    const c: CommitDetail | null = this.store.commit;
+    const c: CommitDetail | null = this.vm.commit;
     if (c === null || c.commit === null || c.commit === undefined) {
       return '';
     }
@@ -179,7 +172,7 @@ export struct PushDetailPage {
   }
 
   private getAuthorEmail(): string {
-    const c: CommitDetail | null = this.store.commit;
+    const c: CommitDetail | null = this.vm.commit;
     if (c === null || c.commit === null || c.commit === undefined) {
       return '';
     }
@@ -191,7 +184,7 @@ export struct PushDetailPage {
   }
 
   private getMessage(): string {
-    const c: CommitDetail | null = this.store.commit;
+    const c: CommitDetail | null = this.vm.commit;
     if (c === null || c.commit === null || c.commit === undefined) {
       return '';
     }
@@ -222,24 +215,24 @@ export struct PushDetailPage {
           .objectFit(ImageFit.Cover);
 
         Column() {
-          if (this.store.commit !== null) {
+          if (this.vm.commit !== null) {
             Row() {
               IconFont({
                 char: FA_EDIT,
                 glyphSize: 16,
                 glyphColor: GSYColor.primary,
               });
-              Text((this.store.commit as CommitDetail).stats.total.toString())
+              Text((this.vm.commit as CommitDetail).stats.total.toString())
                 .id('push_detail_file_count_text')
                 .fontSize(GSYFontSize.min)
                 .fontColor(GSYColor.primary)
                 .margin({ left: GSYSpacing.halfEdge, right: GSYSpacing.normalEdge });
-              Text('+' + (this.store.commit as CommitDetail).stats.additions.toString())
+              Text('+' + (this.vm.commit as CommitDetail).stats.additions.toString())
                 .id('push_detail_additions_text')
                 .fontSize(GSYFontSize.min)
                 .fontColor(GSYColor.issueOpenGreen)
                 .margin({ right: GSYSpacing.normalEdge });
-              Text('-' + (this.store.commit as CommitDetail).stats.deletions.toString())
+              Text('-' + (this.vm.commit as CommitDetail).stats.deletions.toString())
                 .id('push_detail_deletions_text')
                 .fontSize(GSYFontSize.min)
                 .fontColor(GSYColor.issueClosedRed);
@@ -375,15 +368,19 @@ export struct PushDetailPage {
           }
           .id('push_detail_header_list_item');
 
-          ForEach(this.store.files, (item: CommitFileItem, idx: number): void => {
-            ListItem() {
-              this.buildFileItem(item, idx);
-            }
-            .id('push_detail_file_list_item_' + idx.toString());
-          }, (item: CommitFileItem, idx: number): string => 'pf_' + idx.toString() + '_' + item.sha);
+          Repeat<CommitFileItem>(this.vm.files)
+            .virtualScroll()
+            .each((obj: RepeatItem<CommitFileItem>): void => {
+              ListItem() {
+                this.buildFileItem(obj.item, obj.index);
+              }
+              .id('push_detail_file_list_item_' + obj.index.toString());
+            })
+            .key((item: CommitFileItem, idx: number): string => this.vm.fileKey(item, idx))
         }
         .id('push_detail_file_list')
         .width('100%')
+        .cachedCount(5)
         .layoutWeight(1);
       }
       .id('push_detail_root')
@@ -396,21 +393,24 @@ export struct PushDetailPage {
       if (stack !== undefined && stack !== null) {
         this.pathStack = stack;
       }
+      let fullName: string = '';
+      let sha: string = FALLBACK_SHA;
       // 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）
       const routeRaw: Object | null = RouteParamStore.consume(RouteName.PushDetail);
       if (routeRaw !== null) {
         const routeParam: PushDetailRouteParam = routeRaw as PushDetailRouteParam;
         let adopted: boolean = false;
         if (routeParam.fullName !== undefined && routeParam.fullName !== null && routeParam.fullName.length > 0) {
-          this.fullName = routeParam.fullName;
+          fullName = routeParam.fullName;
           adopted = true;
         }
         if (routeParam.sha !== undefined && routeParam.sha !== null && routeParam.sha.length > 0) {
-          this.sha = routeParam.sha;
+          sha = routeParam.sha;
           adopted = true;
         }
         if (adopted) {
-          Logger.i('push/route', `PushDetailPage adopted via RouteParamStore fullName=${this.fullName} sha=${this.sha}`);
+          Logger.i('push/route', `PushDetailPage adopted via RouteParamStore fullName=${fullName} sha=${sha}`);
+          this.vm.setTarget(fullName, sha);
           this.loadAll();
           return;
         }
@@ -453,10 +453,10 @@ export struct PushDetailPage {
       Logger.i('boot/ts', `PushDetailPage.onReady src=${src} stackSize=${stackSize} stackNames=${stackNames} rawType=${rawType} pFull='${pFull}' pSha='${pSha}'`);
       if (param !== null) {
         if (param.fullName !== undefined && param.fullName !== null && param.fullName.length > 0) {
-          this.fullName = param.fullName;
+          fullName = param.fullName;
         }
         if (param.sha !== undefined && param.sha !== null && param.sha.length > 0) {
-          this.sha = param.sha;
+          sha = param.sha;
         }
       }
       // KI-045 同款：BOOT_PUSH_KEY 旁路兜底；优先级最高（NavDestination 复用时
@@ -466,12 +466,13 @@ export struct PushDetailPage {
       if (raw.length > 0) {
         const sep: number = raw.indexOf('|');
         if (sep > 0 && sep < raw.length - 1) {
-          this.fullName = raw.substring(0, sep);
-          this.sha = raw.substring(sep + 1);
+          fullName = raw.substring(0, sep);
+          sha = raw.substring(sep + 1);
           src = src + '+bootKey';
-          Logger.i('boot/ts', `PushDetailPage.onReady bootKey-priority fullName='${this.fullName}' sha='${this.sha}'`);
+          Logger.i('boot/ts', `PushDetailPage.onReady bootKey-priority fullName='${fullName}' sha='${sha}'`);
         }
       }
+      this.vm.setTarget(fullName, sha);
       this.loadAll();
     });
   }
