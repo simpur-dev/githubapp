@@ -3,7 +3,6 @@ import { ReadHistoryDao, ReadHistoryRow, READ_HISTORY_TABLE } from '../../base/d
 import { RdbStoreLike, defaultStore } from '../../base/dao/DaoBase';
 import {
   ReadHistoryItem,
-  ReadHistoryStore,
   READ_HISTORY_TYPE_REPO,
   READ_HISTORY_TYPE_USER
 } from '../store/ReadHistoryStore';
@@ -87,23 +86,21 @@ function rowToItem(row: ReadHistoryRow): ReadHistoryItem {
   return item;
 }
 
+/**
+ * ReadHistoryService —— 无状态仓库（R9 V2 + MVVM）：只读写 RDB 并返回数据，
+ * 不再持有 / 回写 UI store（ReadHistoryStore），列表状态归调用方 ViewModel。
+ */
 export class ReadHistoryService {
   private dao: ReadHistoryDao;
-  private store: ReadHistoryStore | null;
   private rdb: RdbStoreLike;
 
-  constructor(uiStore?: ReadHistoryStore, rdbStore?: RdbStoreLike) {
+  constructor(rdbStore?: RdbStoreLike) {
     this.rdb = rdbStore !== undefined ? rdbStore : defaultStore();
     this.dao = new ReadHistoryDao(this.rdb);
-    this.store = uiStore !== undefined ? uiStore : null;
   }
 
   getDao(): ReadHistoryDao {
     return this.dao;
-  }
-
-  bindStore(store: ReadHistoryStore): void {
-    this.store = store;
   }
 
   async add(param: ReadHistoryAddParam): Promise<ReadHistoryServiceResult<number>> {
@@ -142,20 +139,9 @@ export class ReadHistoryService {
         const rows: ReadHistoryRow[] = await this.queryByType(safeType, safePage, safeSize);
         items = this.mapRows(rows);
       }
-      if (this.store !== null) {
-        const ui: ReadHistoryStore = this.store as ReadHistoryStore;
-        if (safePage <= 1) {
-          ui.applyRefresh(items, safeSize);
-        } else {
-          ui.applyAppend(items, safePage, safeSize);
-        }
-      }
       return new ReadHistoryServiceResult<ReadHistoryItem[]>(true, items, '');
     } catch (e) {
       const err: Error = e as Error;
-      if (this.store !== null) {
-        (this.store as ReadHistoryStore).setError(err.message);
-      }
       return new ReadHistoryServiceResult<ReadHistoryItem[]>(false, null, err.message);
     }
   }
@@ -168,9 +154,6 @@ export class ReadHistoryService {
         removed = await this.dao.clear();
       } else {
         removed = await this.deleteByType(safeType);
-      }
-      if (this.store !== null) {
-        (this.store as ReadHistoryStore).clearList();
       }
       return new ReadHistoryServiceResult<number>(true, removed, '');
     } catch (e) {

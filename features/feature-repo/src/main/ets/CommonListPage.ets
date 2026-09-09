@@ -8,7 +8,7 @@
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { I18n } from 'common';
-import { PullLoadMoreController } from 'common';
+
 import { GSYColor } from 'common';
 import { AppBar } from 'common';
 import {
@@ -93,7 +93,9 @@ export struct CommonListPage {
   @State page: number = 1;
   @State hasMore: boolean = true;
   @State error: string = '';
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
+  @State plmRefreshing: boolean = false;
+  @State plmLoadingMore: boolean = false;
+  @State plmNoMore: boolean = false;
   private localData: SubRepositoryItem[] = [];
   private userStore: UserDetailStore = new UserDetailStore();
   private repoStore: RepositoryDetailStore = new RepositoryDetailStore();
@@ -318,14 +320,20 @@ export struct CommonListPage {
         this.page = 1;
         this.hasMore = false;
         this.error = '';
-        this.plmController.refreshComplete(false, false);
+        this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
         return;
       }
       if (this.currentUser.length === 0) {
-        this.plmController.refreshComplete(false, false);
+        this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
         return;
       }
-      this.plmController.showRefreshState();
+      this.plmRefreshing = true;
+    this.plmLoadingMore = false;
+    this.plmNoMore = false;;
       const res: FetchUserReposResult = await this.userService.getUserRepos(this.currentUser, 1);
       hilog.info(0x6666, 'CommonList', 'user_be_stared fallback res ok=%{public}s code=%{public}d size=%{public}d msg=%{public}s',
         String(res.result), res.code, res.data.length, res.msg);
@@ -333,10 +341,14 @@ export struct CommonListPage {
       return;
     }
     if (this.currentUser.length === 0) {
-      this.plmController.refreshComplete(false, false);
+      this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
       return;
     }
-    this.plmController.showRefreshState();
+    this.plmRefreshing = true;
+    this.plmLoadingMore = false;
+    this.plmNoMore = false;;
 
     if (type === COMMON_LIST_DATA_TYPE_FOLLOWER) {
       const res: FetchSubUserListResult = await this.userService.getUserFollowers(this.currentUser, 1);
@@ -385,22 +397,27 @@ export struct CommonListPage {
       this.applySubRepoResult(res, true);
     } else {
       hilog.warn(0x6666, 'CommonList', 'unknown dataType=%{public}s', this.dataType);
-      this.plmController.refreshComplete(false, false);
+      this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
     }
   }
 
   private async loadMoreList(): Promise<void> {
     const type: string = this.normalizedDataType();
     if (!this.hasMore) {
-      this.plmController.loadMoreComplete(false);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
       return;
     }
     if (type === COMMON_LIST_DATA_TYPE_USER_BE_STARED) {
-      this.plmController.loadMoreComplete(false);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
       return;
     }
     if (this.currentUser.length === 0) {
-      this.plmController.loadMoreComplete(false);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
       return;
     }
     const next: number = this.page + 1;
@@ -433,7 +450,8 @@ export struct CommonListPage {
       const res: SubListResult<SubRepositoryItem> = await this.repoService.searchTopicRepos(this.currentUser, next);
       this.applySubRepoResult(res, false, next);
     } else {
-      this.plmController.loadMoreComplete(false);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
     }
   }
 
@@ -456,9 +474,12 @@ export struct CommonListPage {
       this.error = res.msg;
     }
     if (isRefresh) {
-      this.plmController.refreshComplete(this.hasMore, false);
+      this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
     } else {
-      this.plmController.loadMoreComplete(this.hasMore);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
     }
   }
 
@@ -481,9 +502,12 @@ export struct CommonListPage {
       this.error = res.msg;
     }
     if (isRefresh) {
-      this.plmController.refreshComplete(this.hasMore, false);
+      this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
     } else {
-      this.plmController.loadMoreComplete(this.hasMore);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
     }
   }
 
@@ -507,9 +531,12 @@ export struct CommonListPage {
       this.error = res.msg;
     }
     if (isRefresh) {
-      this.plmController.refreshComplete(this.hasMore, false);
+      this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
     } else {
-      this.plmController.loadMoreComplete(this.hasMore);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
     }
   }
 
@@ -571,7 +598,9 @@ export struct CommonListPage {
           mode: this.resolveSubListMode(),
           users: this.users,
           repos: this.repos,
-          controller: this.plmController,
+          refreshing: this.plmRefreshing,
+        loadingMore: this.plmLoadingMore,
+        noMore: this.plmNoMore,
           idPrefix: this.resolveIdPrefix(),
           refresh: (): void => {
             this.refreshList();

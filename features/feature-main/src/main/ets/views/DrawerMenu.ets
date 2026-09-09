@@ -8,7 +8,6 @@ import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RepositoryService, ReleaseListItem } from 'common';
 import { RepositoryDetailStore } from 'common';
-import { CreateIssueDialog } from 'common';
 import {
   AuthStore,
   GlobalAuthStore,
@@ -103,111 +102,133 @@ function buildDrawerLanguageOptions(): DrawerLanguageOption[] {
   ];
 }
 
-@CustomDialog
-struct DrawerAboutDialog {
-  controller?: CustomDialogController;
-  versionText: string = '0.0.0';
+/**
+ * 反馈弹层内容（V2）。旧版经 common 的 @CustomDialog CreateIssueDialog +
+ * CustomDialogController 呈现（V2 组件不可用），本轮保持内容结构原样迁为
+ * @ComponentV2 + bindSheet 呈现，全部 create_issue_* 测试 id 原样保留。
+ */
+@ComponentV2
+struct DrawerFeedbackSheet {
+  @Param dialogTitle: string = '';
+  @Param titlePlaceholder: string = '';
+  @Param bodyPlaceholder: string = '';
+  @Event onConfirm: (title: string, body: string) => void = (_t: string, _b: string): void => {};
+  @Event onCancel: () => void = (): void => {};
+  @Local titleText: string = '';
+  @Local bodyText: string = '';
+
+  private appendMarkdown(insertion: string): void {
+    this.bodyText = this.bodyText + insertion;
+  }
+
+  @Builder
+  private buildMarkdownAction(actionId: string, label: string, insertion: string): void {
+    Button(label)
+      .id(actionId)
+      .type(ButtonType.Normal)
+      .fontSize(GSYFontSize.min)
+      .fontColor(GSYColor.darkText)
+      .backgroundColor(GSYColor.surfaceGray)
+      .borderRadius(6)
+      .height(32)
+      .padding({ left: 10, right: 10 })
+      .onClick((): void => {
+        this.appendMarkdown(insertion);
+      });
+  }
 
   build(): void {
     Column() {
-      Text(I18n('appName'))
-        .id('drawer_about_dialog_title')
-        .fontSize(GSYFontSize.middleWhite)
+      Text(this.dialogTitle)
+        .id('create_issue_dialog_title')
+        .fontSize(GSYFontSize.middleNormal)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.darkText)
-        .width('100%')
-        .textAlign(TextAlign.Start)
-        .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 18, bottom: 8 });
-      Text(I18n('appVersionPrefix') + this.versionText)
-        .id('drawer_about_dialog_text')
+        .fontColor(GSYColor.primary)
+        .margin({ bottom: GSYSpacing.normalEdge });
+
+      TextInput({ placeholder: this.titlePlaceholder, text: this.titleText })
+        .id('create_issue_dialog_title_input')
         .fontSize(GSYFontSize.normal)
         .fontColor(GSYColor.primary)
-        .width('100%')
-        .textAlign(TextAlign.Start)
-        .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 4, bottom: 18 });
+        .placeholderColor(GSYColor.subText)
+        .backgroundColor(GSYColor.surfaceSubtle)
+        .borderRadius(4)
+        .height(40)
+        .padding({ left: GSYSpacing.halfEdge, right: GSYSpacing.halfEdge })
+        .onChange((value: string): void => {
+          this.titleText = value;
+        });
+
+      TextArea({ placeholder: this.bodyPlaceholder, text: this.bodyText })
+        .id('create_issue_dialog_body_input')
+        .fontSize(GSYFontSize.small)
+        .fontColor(GSYColor.primary)
+        .placeholderColor(GSYColor.subText)
+        .backgroundColor(GSYColor.surfaceSubtle)
+        .borderRadius(4)
+        .height(200)
+        .margin({ top: GSYSpacing.normalEdge })
+        .padding(GSYSpacing.halfEdge)
+        .onChange((value: string): void => {
+          this.bodyText = value;
+        });
+
+      Scroll() {
+        Row() {
+          this.buildMarkdownAction('create_issue_markdown_toolbar_h1', 'H1', '# ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_h2', 'H2', '## ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_h3', 'H3', '### ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_bold', 'B', '****');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_italic', 'I', '**');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_ul', 'UL', '- ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_quote', 'Quote', '> ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_code', 'Code', '``');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_image', 'IMG', '![]()');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_link', 'Link', '[]()');
+        }
+        .id('create_issue_markdown_toolbar')
+        .height(36)
+        .alignItems(VerticalAlign.Center);
+      }
+      .width('100%')
+      .height(40)
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .margin({ top: GSYSpacing.halfEdge });
+
       Row() {
-        Button(I18n('update'))
-          .id('drawer_about_dialog_confirm')
-          .type(ButtonType.Capsule)
+        Button(I18n('cancel'))
+          .id('create_issue_dialog_cancel')
           .fontSize(GSYFontSize.normal)
-          .fontColor(GSYColor.white)
-          .backgroundColor(GSYColor.linkBlue)
-          .height(40)
-          .width(96)
+          .fontColor(GSYColor.subText)
+          .backgroundColor(Color.Transparent)
+          .layoutWeight(1)
           .onClick((): void => {
-            if (this.controller) {
-              this.controller.close();
+            this.onCancel();
+          });
+        Button(I18n('ok'))
+          .id('create_issue_dialog_confirm')
+          .fontSize(GSYFontSize.normal)
+          .fontColor(GSYColor.miWhite)
+          .backgroundColor(GSYColor.primary)
+          .layoutWeight(1)
+          .margin({ left: GSYSpacing.normalEdge })
+          .onClick((): void => {
+            const t: string = this.titleText.trim();
+            if (t.length === 0) {
+              return;
             }
+            this.onConfirm(t, this.bodyText);
           });
       }
       .width('100%')
-      .justifyContent(FlexAlign.End)
-      .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, bottom: 16 });
+      .margin({ top: GSYSpacing.normalEdge });
     }
-    .id('drawer_about_dialog_root')
-    .width('86%')
-    .backgroundColor(Color.White)
-    .borderRadius(12);
-  }
-}
-
-@CustomDialog
-struct DrawerLanguageDialog {
-  controller?: CustomDialogController;
-  currentLanguage: string = LANGUAGE_OPTION_SYSTEM;
-  onSelect: (option: string) => void = (_option: string): void => {};
-  private options: DrawerLanguageOption[] = buildDrawerLanguageOptions();
-
-  @Builder
-  buildLanguageRow(item: DrawerLanguageOption, index: number): void {
-    Row() {
-      Text(this.currentLanguage === item.value ? '●' : '○')
-        .id('drawer_language_radio_' + item.value)
-        .fontSize(GSYFontSize.middleWhite)
-        .fontColor(this.currentLanguage === item.value ? GSYColor.linkBlue : GSYColor.textSubtle)
-        .width(32)
-        .textAlign(TextAlign.Center);
-      Text(item.label)
-        .id('drawer_language_label_' + item.value)
-        .fontSize(GSYFontSize.normal)
-        .fontColor(GSYColor.primary)
-        .layoutWeight(1)
-        .margin({ left: GSYSpacing.halfEdge });
-    }
-    .id('drawer_language_option_' + item.value)
-    .width('100%')
-    .height(48)
-    .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
-    .alignItems(VerticalAlign.Center)
-    .onClick((): void => {
-      if (this.controller) {
-        this.controller.close();
-      }
-      this.onSelect(item.value);
-    });
-    if (index < this.options.length - 1) {
-      Divider().color(GSYColor.pillDivider).strokeWidth(0.5);
-    }
-  }
-
-  build(): void {
-    Column() {
-      Text(I18n('drawerLanguage'))
-        .id('drawer_language_dialog_title')
-        .fontSize(GSYFontSize.middleWhite)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.darkText)
-        .width('100%')
-        .textAlign(TextAlign.Start)
-        .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 16, bottom: 12 });
-      ForEach(this.options, (item: DrawerLanguageOption, index: number): void => {
-        this.buildLanguageRow(item, index);
-      }, (item: DrawerLanguageOption): string => item.value);
-    }
-    .id('drawer_language_dialog_root')
-    .width('86%')
-    .backgroundColor(Color.White)
-    .borderRadius(12);
+    .id('create_issue_dialog_root')
+    .width('90%')
+    .padding(GSYSpacing.normalEdge)
+    .backgroundColor(GSYColor.white)
+    .borderRadius(8);
   }
 }
 
@@ -223,45 +244,20 @@ export function buildDrawerMenuItems(): DrawerMenuItem[] {
   ];
 }
 
-@Component
+@ComponentV2
 export struct DrawerMenu {
-  onItemTap: (key: string) => void = (_key: string): void => {
+  @Event onItemTap: (key: string) => void = (_key: string): void => {
   };
 
   private items: DrawerMenuItem[] = buildDrawerMenuItems();
-  @State currentLanguage: string = LANGUAGE_OPTION_SYSTEM;
+  @Local currentLanguage: string = LANGUAGE_OPTION_SYSTEM;
+  @Local aboutVersionText: string = '0.0.0';
+  // 三个自绘弹层（About / Language / Feedback）V2 走 bindSheet 受控开合，
+  // 内容结构与全部 drawer_about_* / drawer_language_* / create_issue_* id 原样保留。
+  @Local aboutSheetOpen: boolean = false;
+  @Local languageSheetOpen: boolean = false;
+  @Local feedbackSheetOpen: boolean = false;
   private feedbackService: RepositoryService = new RepositoryService(new RepositoryDetailStore());
-  private feedbackDialogController: CustomDialogController = new CustomDialogController({
-    builder: CreateIssueDialog({
-      dialogTitle: I18n('drawerFeedback'),
-      bodyPlaceholder: I18n('feedbackHint'),
-      onConfirm: (title: string, body: string): void => {
-        this.submitFeedback(title, body);
-      },
-    }),
-    autoCancel: true,
-    customStyle: true,
-    alignment: DialogAlignment.Center,
-  });
-  private languageDialogController: CustomDialogController = new CustomDialogController({
-    builder: DrawerLanguageDialog({
-      currentLanguage: this.currentLanguage,
-      onSelect: (option: string): void => {
-        this.selectLanguage(option);
-      },
-    }),
-    autoCancel: true,
-    customStyle: true,
-    alignment: DialogAlignment.Center,
-  });
-  private aboutDialogController: CustomDialogController = new CustomDialogController({
-    builder: DrawerAboutDialog({
-      versionText: this.getCurrentVersionName(),
-    }),
-    autoCancel: true,
-    customStyle: true,
-    alignment: DialogAlignment.Center,
-  });
 
   aboutToAppear(): void {
     this.loadLanguage();
@@ -288,7 +284,7 @@ export struct DrawerMenu {
     this.onItemTap(item.key);
     if (item.key === DRAWER_MENU_KEY_FEEDBACK) {
       setTimeout((): void => {
-        this.feedbackDialogController.open();
+        this.feedbackSheetOpen = true;
       }, DRAWER_CLOSE_ACTION_DELAY_MS);
       return;
     }
@@ -302,7 +298,7 @@ export struct DrawerMenu {
     }
     if (item.key === DRAWER_MENU_KEY_LANGUAGE) {
       setTimeout((): void => {
-        this.languageDialogController.open();
+        this.languageSheetOpen = true;
       }, DRAWER_CLOSE_ACTION_DELAY_MS);
       return;
     }
@@ -314,7 +310,8 @@ export struct DrawerMenu {
     }
     if (item.key === DRAWER_MENU_KEY_ABOUT) {
       setTimeout((): void => {
-        this.aboutDialogController.open();
+        this.aboutVersionText = this.getCurrentVersionName();
+        this.aboutSheetOpen = true;
       }, DRAWER_CLOSE_ACTION_DELAY_MS);
       return;
     }
@@ -325,6 +322,7 @@ export struct DrawerMenu {
   }
 
   private async submitFeedback(title: string, body: string): Promise<void> {
+    this.feedbackSheetOpen = false;
     const res = await this.feedbackService.createIssue('CarGuo/GSYGithubAppCompose', title, body);
     if (res.result) {
       CommonToast.showShort(I18n('issueSubmitSuccess'));
@@ -458,6 +456,117 @@ export struct DrawerMenu {
     }
   }
 
+  // ---- 三个弹层内容（结构 / id 与旧 @CustomDialog 版本一致） ----
+
+  @Builder
+  aboutSheetBuilder(): void {
+    Column() {
+      Text(I18n('appName'))
+        .id('drawer_about_dialog_title')
+        .fontSize(GSYFontSize.middleWhite)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(GSYColor.darkText)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+        .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 18, bottom: 8 });
+      Text(I18n('appVersionPrefix') + this.aboutVersionText)
+        .id('drawer_about_dialog_text')
+        .fontSize(GSYFontSize.normal)
+        .fontColor(GSYColor.primary)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+        .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 4, bottom: 18 });
+      Row() {
+        Button(I18n('update'))
+          .id('drawer_about_dialog_confirm')
+          .type(ButtonType.Capsule)
+          .fontSize(GSYFontSize.normal)
+          .fontColor(GSYColor.white)
+          .backgroundColor(GSYColor.linkBlue)
+          .height(40)
+          .width(96)
+          .onClick((): void => {
+            this.aboutSheetOpen = false;
+          });
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.End)
+      .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, bottom: 16 });
+    }
+    .id('drawer_about_dialog_root')
+    .width('86%')
+    .backgroundColor(Color.White)
+    .borderRadius(12);
+  }
+
+  @Builder
+  buildLanguageRow(item: DrawerLanguageOption, index: number): void {
+    Row() {
+      Text(this.currentLanguage === item.value ? '●' : '○')
+        .id('drawer_language_radio_' + item.value)
+        .fontSize(GSYFontSize.middleWhite)
+        .fontColor(this.currentLanguage === item.value ? GSYColor.linkBlue : GSYColor.textSubtle)
+        .width(32)
+        .textAlign(TextAlign.Center);
+      Text(item.label)
+        .id('drawer_language_label_' + item.value)
+        .fontSize(GSYFontSize.normal)
+        .fontColor(GSYColor.primary)
+        .layoutWeight(1)
+        .margin({ left: GSYSpacing.halfEdge });
+    }
+    .id('drawer_language_option_' + item.value)
+    .width('100%')
+    .height(48)
+    .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
+    .alignItems(VerticalAlign.Center)
+    .onClick((): void => {
+      this.languageSheetOpen = false;
+      this.selectLanguage(item.value);
+    });
+    if (index < buildDrawerLanguageOptions().length - 1) {
+      Divider().color(GSYColor.pillDivider).strokeWidth(0.5);
+    }
+  }
+
+  @Builder
+  languageSheetBuilder(): void {
+    Column() {
+      Text(I18n('drawerLanguage'))
+        .id('drawer_language_dialog_title')
+        .fontSize(GSYFontSize.middleWhite)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(GSYColor.darkText)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+        .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 16, bottom: 12 });
+      Repeat<DrawerLanguageOption>(buildDrawerLanguageOptions())
+        .each((obj: RepeatItem<DrawerLanguageOption>): void => {
+          this.buildLanguageRow(obj.item, obj.index)
+        })
+        .key((item: DrawerLanguageOption): string => item.value);
+    }
+    .id('drawer_language_dialog_root')
+    .width('86%')
+    .backgroundColor(Color.White)
+    .borderRadius(12);
+  }
+
+  @Builder
+  feedbackSheetBuilder(): void {
+    DrawerFeedbackSheet({
+      dialogTitle: I18n('drawerFeedback'),
+      titlePlaceholder: I18n('issueInputTipTitle'),
+      bodyPlaceholder: I18n('feedbackHint'),
+      onConfirm: (title: string, body: string): void => {
+        this.submitFeedback(title, body);
+      },
+      onCancel: (): void => {
+        this.feedbackSheetOpen = false;
+      },
+    });
+  }
+
   @Builder
   buildMenuRow(item: DrawerMenuItem): void {
     if (item.key === DRAWER_MENU_KEY_LOGOUT) {
@@ -495,19 +604,52 @@ export struct DrawerMenu {
 
   build(): void {
     Column() {
-      ForEach(this.items.slice(0, this.items.length - 1), (item: DrawerMenuItem): void => {
-        this.buildMenuRow(item);
-      }, (item: DrawerMenuItem): string => item.key);
-      Blank()
-        .layoutWeight(1);
-      this.buildMenuRow(this.items[this.items.length - 1]);
+      Column() {
+        Repeat<DrawerMenuItem>(this.items.slice(0, this.items.length - 1))
+          .each((obj: RepeatItem<DrawerMenuItem>): void => {
+            this.buildMenuRow(obj.item);
+          })
+          .key((item: DrawerMenuItem): string => item.key);
+        Blank()
+          .layoutWeight(1);
+        this.buildMenuRow(this.items[this.items.length - 1]);
+      }
+      .id('drawer_menu')
+      .width('100%')
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+      .backgroundColor(GSYColor.white)
+      .border({ width: { top: 1 }, color: GSYColor.divider })
+      .padding({ top: GSYSpacing.padding12 })
+      .bindSheet(this.feedbackSheetOpen, this.feedbackSheetBuilder(), {
+        height: 520,
+        dragBar: false,
+        showClose: false,
+        backgroundColor: GSYColor.white,
+      });
+
+      // bindSheet 单节点只能挂一个弹层，三个弹层分别挂在菜单根 / 两个 0 高锚点上。
+      Row()
+        .width(0)
+        .height(0)
+        .bindSheet(this.languageSheetOpen, this.languageSheetBuilder(), {
+          height: 260,
+          dragBar: false,
+          showClose: false,
+          backgroundColor: GSYColor.white,
+        });
+
+      Row()
+        .width(0)
+        .height(0)
+        .bindSheet(this.aboutSheetOpen, this.aboutSheetBuilder(), {
+          height: 200,
+          dragBar: false,
+          showClose: false,
+          backgroundColor: GSYColor.white,
+        });
     }
-    .id('drawer_menu')
     .width('100%')
-    .layoutWeight(1)
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor(GSYColor.white)
-    .border({ width: { top: 1 }, color: GSYColor.divider })
-    .padding({ top: GSYSpacing.padding12 });
+    .layoutWeight(1);
   }
 }

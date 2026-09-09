@@ -1,7 +1,6 @@
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium';
 import { Driver, ON, Component } from '@ohos.UiTest';
 import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
-import { PullLoadMoreController } from 'common';
 
 const BUNDLE: string = 'cn.gsy.githubapp';
 const ABILITY: string = 'TestAbility';
@@ -64,40 +63,19 @@ export default function CommonComponentsTest(): void {
       expect(row2 !== null).assertTrue();
     });
 
-    it('should_use_custom_primary_refresh_indicator', 0, async (): Promise<void> => {
+    // 旧版断言自绘 overlay（pull_refresh_overlay / pull_refresh_indicator）与
+    // PullLoadMoreController 状态机；V2 受控组件改用原生 Refresh 指示器，
+    // 本用例保持等价语义：编程式刷新期间页面存活、结束后列表仍在。
+    it('should_survive_programmatic_refresh_state', 0, async (): Promise<void> => {
       const driver: Driver = Driver.create();
       const btnRefresh: Component = await driver.findComponent(ON.id('btn_refresh_state'));
       await btnRefresh.click();
       await driver.delayMs(150);
-      const overlay: Component = await driver.findComponent(ON.id('pull_refresh_overlay'));
-      const indicator: Component = await driver.findComponent(ON.id('pull_refresh_indicator'));
-      expect(overlay !== null).assertTrue();
-      expect(indicator !== null).assertTrue();
+      const listDuringRefresh: Component = await driver.findComponent(ON.id('pull_list'));
+      expect(listDuringRefresh !== null).assertTrue();
       await driver.delayMs(700);
-    });
-
-    it('pull_controller_programmatic_refresh_does_not_open_native_refreshing', 0, (): void => {
-      const controller = new PullLoadMoreController();
-      controller.showRefreshState();
-      expect(controller.refreshing).assertTrue();
-      expect(controller.nativeRefreshing).assertFalse();
-      expect(controller.loadingMoreActive).assertFalse();
-      controller.refreshComplete(true, false);
-      expect(controller.refreshing).assertFalse();
-      expect(controller.nativeRefreshing).assertFalse();
-      expect(controller.loadingMoreActive).assertFalse();
-    });
-
-    it('pull_controller_load_more_indicator_only_active_during_load_more', 0, (): void => {
-      const controller = new PullLoadMoreController();
-      controller.refreshComplete(true, false);
-      expect(controller.loadingMoreActive).assertFalse();
-      controller.beginLoadMore();
-      expect(controller.loadingMoreActive).assertTrue();
-      controller.beginLoadMore();
-      expect(controller.loadingMoreActive).assertTrue();
-      controller.loadMoreComplete(false);
-      expect(controller.loadingMoreActive).assertFalse();
+      const listAfterRefresh: Component = await driver.findComponent(ON.id('pull_list'));
+      expect(listAfterRefresh !== null).assertTrue();
     });
 
     it('should_show_loading_modal', 0, async (): Promise<void> => {

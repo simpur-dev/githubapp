@@ -18,7 +18,7 @@ import {
   DYN_TABLE_USER_EVENT,
 } from 'common';
 import { DynamicService, FetchReceivedResult } from 'common';
-import { DynamicEvent, DynamicStore } from 'common';
+import { DynamicEvent } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 
@@ -305,7 +305,6 @@ export default function DynamicServiceTest(): void {
     let storage: FakeTokenStorage;
     let rdb: FakeRdbStore;
     let dao: DynamicDao;
-    let store: DynamicStore;
     let service: DynamicService;
 
     beforeEach((): void => {
@@ -313,8 +312,7 @@ export default function DynamicServiceTest(): void {
       storage = new FakeTokenStorage();
       rdb = buildStore();
       dao = new DynamicDao(rdb);
-      store = new DynamicStore();
-      service = new DynamicService(store, dao, PAGE_SIZE);
+      service = new DynamicService(dao, PAGE_SIZE);
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -351,11 +349,8 @@ export default function DynamicServiceTest(): void {
       expect(res.fromCache).assertFalse();
       expect(res.data.length).assertEqual(PAGE_SIZE);
       expect(rdb.insertCount).assertEqual(1);
-      expect(store.list.length).assertEqual(PAGE_SIZE);
-      expect(store.page).assertEqual(1);
-      expect(store.hasMore).assertTrue();
-      expect(store.loading).assertFalse();
-      expect(store.error).assertEqual('');
+      expect(res.page).assertEqual(1);
+      expect(res.hasMore).assertTrue();
 
       const cached = await dao.readReceivedEvent(TEST_USER);
       expect(cached.result).assertTrue();
@@ -376,9 +371,7 @@ export default function DynamicServiceTest(): void {
       expect(res.result).assertTrue();
       expect(res.fromCache).assertTrue();
       expect(res.data.length).assertEqual(2);
-      expect(store.list.length).assertEqual(2);
-      expect(store.hasMore).assertFalse();
-      expect(store.error).assertEqual('');
+      expect(res.hasMore).assertFalse();
     });
 
     it('failure_without_cache_sets_error_and_keeps_list_empty', 0, async (): Promise<void> => {
@@ -389,9 +382,8 @@ export default function DynamicServiceTest(): void {
 
       expect(res.result).assertFalse();
       expect(res.fromCache).assertFalse();
-      expect(store.list.length).assertEqual(0);
-      expect(store.error.length > 0).assertTrue();
-      expect(store.loading).assertFalse();
+      expect(res.data.length).assertEqual(0);
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('hasMore_true_when_full_page_and_false_when_short_page', 0, async (): Promise<void> => {
@@ -402,15 +394,15 @@ export default function DynamicServiceTest(): void {
 
       const r1: FetchReceivedResult = await service.fetchReceivedEvents(TEST_USER, 1);
       expect(r1.result).assertTrue();
-      expect(store.hasMore).assertTrue();
-      expect(store.list.length).assertEqual(PAGE_SIZE);
-      expect(store.page).assertEqual(1);
+      expect(r1.hasMore).assertTrue();
+      expect(r1.data.length).assertEqual(PAGE_SIZE);
+      expect(r1.page).assertEqual(1);
 
       const r2: FetchReceivedResult = await service.fetchReceivedEvents(TEST_USER, 2);
       expect(r2.result).assertTrue();
-      expect(store.hasMore).assertFalse();
-      expect(store.list.length).assertEqual(PAGE_SIZE + 1);
-      expect(store.page).assertEqual(2);
+      expect(r2.hasMore).assertFalse();
+      expect(r2.data.length).assertEqual(1);
+      expect(r2.page).assertEqual(2);
     });
 
     it('second_page_does_not_write_cache', 0, async (): Promise<void> => {
@@ -419,12 +411,13 @@ export default function DynamicServiceTest(): void {
       provider.pushResponse(SUCCESS, JSON.stringify(fullPage));
       provider.pushResponse(SUCCESS, JSON.stringify(secondPage));
 
-      await service.fetchReceivedEvents(TEST_USER, 1);
+      const r1: FetchReceivedResult = await service.fetchReceivedEvents(TEST_USER, 1);
       const writesAfterFirst: number = rdb.insertCount;
 
-      await service.fetchReceivedEvents(TEST_USER, 2);
+      const r2: FetchReceivedResult = await service.fetchReceivedEvents(TEST_USER, 2);
       expect(rdb.insertCount).assertEqual(writesAfterFirst);
-      expect(store.list.length).assertEqual(PAGE_SIZE * 2);
+      // 两页各自返回 PAGE_SIZE 条，拼接归调用方 ViewModel。
+      expect(r1.data.length + r2.data.length).assertEqual(PAGE_SIZE * 2);
     });
 
     it('on_401_publishes_login_expired_and_keeps_list_empty', 0, async (): Promise<void> => {
@@ -440,9 +433,8 @@ export default function DynamicServiceTest(): void {
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
       expect(fired).assertEqual(1);
-      expect(store.list.length).assertEqual(0);
-      expect(store.error.length > 0).assertTrue();
-      expect(store.loading).assertFalse();
+      expect(res.data.length).assertEqual(0);
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('on_401_keeps_cache_visible_after_cache_first_emit', 0, async (): Promise<void> => {
@@ -457,7 +449,8 @@ export default function DynamicServiceTest(): void {
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
       expect(res.fromCache).assertFalse();
-      expect(store.list.length).assertEqual(2);
+      // 401 时结果携带已读到的首页缓存，供 VM 维持「缓存仍可见」。
+      expect(res.data.length).assertEqual(2);
     });
 
     it('empty_user_does_not_request_network', 0, async (): Promise<void> => {
@@ -465,7 +458,7 @@ export default function DynamicServiceTest(): void {
 
       expect(res.result).assertFalse();
       expect(provider.callCount).assertEqual(0);
-      expect(store.error.length > 0).assertTrue();
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('fetchUserEvents_uses_user_event_url_with_page_and_per_page',
@@ -491,8 +484,8 @@ export default function DynamicServiceTest(): void {
 
         expect(res.result).assertTrue();
         expect(res.fromCache).assertFalse();
-        expect(store.list.length).assertEqual(PAGE_SIZE);
-        expect(store.page).assertEqual(1);
+        expect(res.data.length).assertEqual(PAGE_SIZE);
+        expect(res.page).assertEqual(1);
         expect(rdb.rowCountOf(DYN_TABLE_USER_EVENT)).assertEqual(1);
         expect(rdb.rowCountOf(DYN_TABLE_RECEIVED)).assertEqual(0);
       });
@@ -506,14 +499,14 @@ export default function DynamicServiceTest(): void {
 
         const r1: FetchReceivedResult = await service.fetchUserEvents(TEST_USER, 1);
         expect(r1.result).assertTrue();
-        expect(store.hasMore).assertTrue();
-        expect(store.page).assertEqual(1);
+        expect(r1.hasMore).assertTrue();
+        expect(r1.page).assertEqual(1);
 
         const r2: FetchReceivedResult = await service.fetchUserEvents(TEST_USER, 2);
         expect(r2.result).assertTrue();
-        expect(store.hasMore).assertFalse();
-        expect(store.list.length).assertEqual(PAGE_SIZE + 1);
-        expect(store.page).assertEqual(2);
+        expect(r2.hasMore).assertFalse();
+        expect(r2.data.length).assertEqual(1);
+        expect(r2.page).assertEqual(2);
       });
 
     it('fetchUserEvents_falls_back_to_user_event_cache_on_network_error',
@@ -528,7 +521,7 @@ export default function DynamicServiceTest(): void {
 
         expect(res.result).assertTrue();
         expect(res.fromCache).assertTrue();
-        expect(store.list.length).assertEqual(2);
+        expect(res.data.length).assertEqual(2);
       });
 
     it('fetchUserEvents_on_401_publishes_login_expired_and_keeps_list_empty',
@@ -545,7 +538,7 @@ export default function DynamicServiceTest(): void {
         expect(res.result).assertFalse();
         expect(res.code).assertEqual(UNAUTHORIZED);
         expect(fired).assertEqual(1);
-        expect(store.list.length).assertEqual(0);
+        expect(res.data.length).assertEqual(0);
       });
 
     it('fetchUserEvents_empty_user_does_not_request_network',
@@ -553,7 +546,7 @@ export default function DynamicServiceTest(): void {
         const res: FetchReceivedResult = await service.fetchUserEvents('', 1);
         expect(res.result).assertFalse();
         expect(provider.callCount).assertEqual(0);
-        expect(store.error.length > 0).assertTrue();
+        expect(res.msg.length > 0).assertTrue();
       });
   });
 }

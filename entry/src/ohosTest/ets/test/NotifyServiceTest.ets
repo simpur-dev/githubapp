@@ -17,7 +17,6 @@ import {
   resolveFilterParam,
 } from 'common';
 import {
-  NotifyStore,
   NotifyThread,
   NotifySubject,
   NotifyRepository,
@@ -135,14 +134,12 @@ export default function NotifyServiceTest(): void {
   describe('NotifyServiceTest', (): void => {
     let provider: FakeHttpProvider;
     let storage: FakeTokenStorage;
-    let store: NotifyStore;
     let service: NotifyService;
 
     beforeEach((): void => {
       provider = new FakeHttpProvider();
       storage = new FakeTokenStorage();
-      store = new NotifyStore();
-      service = new NotifyService(store, PAGE_SIZE);
+      service = new NotifyService(PAGE_SIZE);
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -185,10 +182,9 @@ export default function NotifyServiceTest(): void {
         const expected: string = Address.getNotifications(false, false, 1, PAGE_SIZE);
         expect(provider.captured.url).assertEqual(expected);
         expect(provider.captured.method).assertEqual('GET');
-        expect(store.list.length).assertEqual(PAGE_SIZE);
-        expect(store.filter).assertEqual(NOTIFY_FILTER_UNREAD);
-        expect(store.page).assertEqual(1);
-        expect(store.hasMore).assertTrue();
+        expect(res.data.length).assertEqual(PAGE_SIZE);
+        expect(res.page).assertEqual(1);
+        expect(res.hasMore).assertTrue();
       });
 
     it('getNotifications_participating_uses_all_false_and_participating_true_in_url', 0,
@@ -202,9 +198,8 @@ export default function NotifyServiceTest(): void {
         expect(res.result).assertTrue();
         const expected: string = Address.getNotifications(false, true, 1, PAGE_SIZE);
         expect(provider.captured.url).assertEqual(expected);
-        expect(store.filter).assertEqual(NOTIFY_FILTER_PARTICIPATING);
-        expect(store.list.length).assertEqual(2);
-        expect(store.hasMore).assertFalse();
+        expect(res.data.length).assertEqual(2);
+        expect(res.hasMore).assertFalse();
       });
 
     it('getNotifications_all_uses_all_true_and_participating_false_in_url', 0,
@@ -216,7 +211,6 @@ export default function NotifyServiceTest(): void {
         expect(res.result).assertTrue();
         const expected: string = Address.getNotifications(true, false, 1, PAGE_SIZE);
         expect(provider.captured.url).assertEqual(expected);
-        expect(store.filter).assertEqual(NOTIFY_FILTER_ALL);
       });
 
     it('getNotifications_appends_on_second_page', 0, async (): Promise<void> => {
@@ -229,14 +223,14 @@ export default function NotifyServiceTest(): void {
       provider.pushResponse(SUCCESS, JSON.stringify(secondPage));
 
       await service.getNotifications(NOTIFY_FILTER_UNREAD, 1);
-      await service.getNotifications(NOTIFY_FILTER_UNREAD, 2);
+      const r2: FetchNotifyResult = await service.getNotifications(NOTIFY_FILTER_UNREAD, 2);
 
       const expectedSecond: string = Address.getNotifications(false, false, 2, PAGE_SIZE);
       expect(provider.capturedAll.length).assertEqual(2);
       expect(provider.capturedAll[1].url).assertEqual(expectedSecond);
-      expect(store.list.length).assertEqual(PAGE_SIZE + 2);
-      expect(store.page).assertEqual(2);
-      expect(store.hasMore).assertFalse();
+      expect(r2.data.length).assertEqual(2);
+      expect(r2.page).assertEqual(2);
+      expect(r2.hasMore).assertFalse();
     });
 
     it('getNotifications_returns_unauthorized_and_sets_error_on_401', 0,
@@ -247,8 +241,8 @@ export default function NotifyServiceTest(): void {
         const res: FetchNotifyResult = await service.getNotifications(NOTIFY_FILTER_UNREAD, 1);
         expect(res.result).assertFalse();
         expect(res.code).assertEqual(UNAUTHORIZED);
-        expect(store.error.length > 0).assertTrue();
-        expect(store.list.length).assertEqual(0);
+        expect(res.msg.length > 0).assertTrue();
+        expect(res.data.length).assertEqual(0);
       });
 
     it('getNotifications_returns_failure_on_network_error', 0, async (): Promise<void> => {
@@ -257,7 +251,7 @@ export default function NotifyServiceTest(): void {
 
       const res: FetchNotifyResult = await service.getNotifications(NOTIFY_FILTER_UNREAD, 1);
       expect(res.result).assertFalse();
-      expect(store.error.length > 0).assertTrue();
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('markAsRead_uses_patch_threads_url_and_marks_thread_read', 0, async (): Promise<void> => {
@@ -271,14 +265,6 @@ export default function NotifyServiceTest(): void {
       const expected: string = Address.markNotificationsThread('t1');
       expect(provider.capturedAll[provider.capturedAll.length - 1].url).assertEqual(expected);
       expect(provider.capturedAll[provider.capturedAll.length - 1].method).assertEqual('PATCH');
-
-      let unreadAfter: boolean = true;
-      for (let i = 0; i < store.list.length; i++) {
-        if (store.list[i].id === 't1') {
-          unreadAfter = store.list[i].unread;
-        }
-      }
-      expect(unreadAfter).assertFalse();
     });
 
     it('markAsRead_returns_unauthorized_on_401', 0, async (): Promise<void> => {
@@ -322,15 +308,15 @@ export default function NotifyServiceTest(): void {
       expect(res.code).assertEqual(UNAUTHORIZED);
     });
 
-    it('store_filter_resets_list_when_filter_changes', 0, async (): Promise<void> => {
+    it('filter_change_maps_to_new_request_url', 0, async (): Promise<void> => {
       provider.pushResponse(SUCCESS, JSON.stringify(buildThreads(PAGE_SIZE)));
       await service.getNotifications(NOTIFY_FILTER_UNREAD, 1);
-      expect(store.list.length).assertEqual(PAGE_SIZE);
 
       provider.pushResponse(SUCCESS, JSON.stringify(buildThreads(1)));
-      await service.getNotifications(NOTIFY_FILTER_ALL, 1);
-      expect(store.filter).assertEqual(NOTIFY_FILTER_ALL);
-      expect(store.list.length).assertEqual(1);
+      const res: FetchNotifyResult = await service.getNotifications(NOTIFY_FILTER_ALL, 1);
+      const expectedAll: string = Address.getNotifications(true, false, 1, PAGE_SIZE);
+      expect(provider.capturedAll[provider.capturedAll.length - 1].url).assertEqual(expectedAll);
+      expect(res.data.length).assertEqual(1);
     });
   });
 }

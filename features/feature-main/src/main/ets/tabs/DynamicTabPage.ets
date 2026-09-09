@@ -1,57 +1,23 @@
 /**
  * DynamicTabPage —— 以 Android Compose DynamicScreen/EventItem 为准。
+ * View 只做组装（@ComponentV2），列表状态在 [DynamicTabViewModel]。
  */
 import { I18n } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
-import { DynamicEvent, DynamicStore } from 'common';
-import { DynamicService, FetchReceivedResult } from 'common';
+import { PullLoadMoreList } from 'common';
+import { DynamicEvent } from 'common';
 import { EventItem } from 'common';
 import { EventActionUtil } from 'common';
 import { EventActionDispatcher } from 'common';
 import { ExternalUrlUtil } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
-import { GlobalAuthStore } from 'common';
+import { GSYColor, GSYFontSize } from 'common';
+import { DynamicTabViewModel } from '../viewmodel/DynamicTabViewModel';
 
-const FALLBACK_USER: string = 'octocat';
-
-@Component
+@ComponentV2
 export struct DynamicTabPage {
-  @State store: DynamicStore = new DynamicStore();
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
-  private service: DynamicService = new DynamicService(this.store);
+  @Local vm: DynamicTabViewModel = new DynamicTabViewModel();
 
   aboutToAppear(): void {
-    this.service = new DynamicService(this.store);
-    this.triggerRefresh();
-  }
-
-  private resolveUser(): string {
-    const u: string | null = GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined
-      ? GlobalAuthStore.userInfo.login
-      : null;
-    if (u !== null && u !== undefined && u.length > 0) {
-      return u;
-    }
-    return FALLBACK_USER;
-  }
-
-  private async triggerRefresh(): Promise<void> {
-    this.plmController.showRefreshState();
-    const res: FetchReceivedResult = await this.service.fetchReceivedEvents(this.resolveUser(), 1);
-    this.plmController.refreshComplete(this.store.hasMore, false);
-    if (!res.result && res.data.length === 0) {
-      return;
-    }
-  }
-
-  private async triggerLoadMore(): Promise<void> {
-    if (!this.store.hasMore) {
-      this.plmController.loadMoreComplete(false);
-      return;
-    }
-    const next: number = this.store.page + 1;
-    await this.service.fetchReceivedEvents(this.resolveUser(), next);
-    this.plmController.loadMoreComplete(this.store.hasMore);
+    this.vm.init();
   }
 
   private dispatchEventTap(event: DynamicEvent): void {
@@ -100,15 +66,17 @@ export struct DynamicTabPage {
   build(): void {
     Column() {
       PullLoadMoreList({
-        dataSource: this.store.list,
-        controller: this.plmController,
+        dataSource: this.vm.items,
+        refreshing: this.vm.refreshing,
+        loadingMore: this.vm.loadingMore,
+        noMore: !this.vm.hasMore,
         renderRow: (item: Object, index: number): void => this.rowBuilder(item as DynamicEvent, index),
         renderEmpty: (): void => this.emptyBuilder(),
-        refresh: (): void => {
-          this.triggerRefresh();
+        onRefresh: (): void => {
+          this.vm.refresh();
         },
-        loadMore: (): void => {
-          this.triggerLoadMore();
+        onLoadMore: (): void => {
+          this.vm.loadMore();
         },
         refreshingText: I18n('refreshing'),
         loadingMoreText: I18n('loadMoreing'),

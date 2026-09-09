@@ -20,7 +20,7 @@
 
 import { AppBar } from 'common';
 import { CommonToast } from 'common';
-import { PullLoadMoreController, PullLoadMoreList } from 'common';
+import { PullLoadMoreList } from 'common';
 import {
   IconFont,
   FA_INFO_CIRCLE,
@@ -153,7 +153,9 @@ export struct PersonInfoPage {
   @State editLabel: string = '';
   @State editValue: string = '';
   @State infoData: PersonInfoListItem[] = [new PersonInfoListItem()];
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
+  @State plmRefreshing: boolean = false;
+  @State plmLoadingMore: boolean = false;
+  @State plmNoMore: boolean = false;
   private userDao: UserDao = new UserDao();
   private myService: MyService = new MyService(GlobalMyStore, GlobalAuthStore, this.userDao);
   private editDialogController: CustomDialogController = new CustomDialogController({
@@ -235,14 +237,20 @@ export struct PersonInfoPage {
   }
 
   private async triggerRefresh(): Promise<void> {
-    this.plmController.showRefreshState();
+    this.plmRefreshing = true;
+    this.plmLoadingMore = false;
+    this.plmNoMore = false;;
     const result: RefreshMeResult = await this.myService.refreshMe();
     if (result.result && result.data !== null) {
       this.applyUserToState();
-      this.plmController.refreshComplete(false, false);
+      this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
       return;
     }
-    this.plmController.refreshComplete(false, false);
+    this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
     if (result.msg.length > 0) {
       CommonToast.showShort(result.msg);
     }
@@ -418,14 +426,17 @@ export struct PersonInfoPage {
       });
       PullLoadMoreList({
         dataSource: this.infoData,
-        controller: this.plmController,
+        refreshing: this.plmRefreshing,
+        loadingMore: this.plmLoadingMore,
+        noMore: this.plmNoMore,
         renderHeader: (): void => this.buildPullHeader(),
         renderRow: (_item: Object, _index: number): void => this.buildInfoContent(),
-        refresh: (): void => {
+        onRefresh: (): void => {
           this.triggerRefresh();
         },
-        loadMore: (): void => {
-          this.plmController.loadMoreComplete(false);
+        onLoadMore: (): void => {
+          this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
         },
         refreshingText: I18n('refreshing'),
         loadingMoreText: I18n('loadMoreing'),

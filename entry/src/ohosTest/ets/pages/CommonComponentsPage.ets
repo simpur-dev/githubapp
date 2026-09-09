@@ -4,8 +4,6 @@ import { LoadingModal } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import {
   PullLoadMoreList,
-  PullLoadMoreController,
-  PullLoadMoreFooterState,
 } from 'common';
 
 interface DemoItem {
@@ -61,7 +59,10 @@ struct CommonComponentsPage {
     { id: 2, text: 'Item 2' },
     { id: 3, text: 'Item 3' },
   ];
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
+  // 受控列表状态（R9 V2 契约）：旧 PullLoadMoreController 已删除。
+  @State plmRefreshing: boolean = false;
+  @State plmLoadingMore: boolean = false;
+  @State plmNoMore: boolean = false;
 
   // 输入弹窗必须在 @Component 实例 build 上下文里 new CustomDialogController 才能弹。
   // 不能在 static 函数内 new（KI-046 已暴露过 → KI-047 收尾把 CommonModal.prompt 删掉）。
@@ -77,7 +78,6 @@ struct CommonComponentsPage {
   });
 
   aboutToAppear(): void {
-    this.plmController.setFooterState(PullLoadMoreFooterState.LOADING);
   }
 
   @Builder
@@ -153,9 +153,13 @@ struct CommonComponentsPage {
           .id('btn_refresh_state')
           .margin({ left: 8 })
           .onClick((): void => {
-            this.plmController.showRefreshState();
+            this.plmRefreshing = true;
+            this.plmLoadingMore = false;
+            this.plmNoMore = false;
             setTimeout((): void => {
-              this.plmController.refreshComplete(true, false);
+              this.plmRefreshing = false;
+              this.plmLoadingMore = false;
+              this.plmNoMore = false;
             }, 600);
           });
       }
@@ -165,16 +169,21 @@ struct CommonComponentsPage {
 
       PullLoadMoreList({
         dataSource: this.data,
-        controller: this.plmController,
+        refreshing: this.plmRefreshing,
+        loadingMore: this.plmLoadingMore,
+        noMore: this.plmNoMore,
         renderRow: (item: Object, index: number): void => this.rowBuilder(item as DemoItem, index),
-        refresh: (): void => {
+        onRefresh: (): void => {
           setTimeout((): void => {
-            this.plmController.refreshComplete(true, false);
+            this.plmRefreshing = false;
+            this.plmLoadingMore = false;
+            this.plmNoMore = false;
           }, 200);
         },
-        loadMore: (): void => {
+        onLoadMore: (): void => {
           setTimeout((): void => {
-            this.plmController.loadMoreComplete(false);
+            this.plmLoadingMore = false;
+            this.plmNoMore = true;
           }, 200);
         },
       })

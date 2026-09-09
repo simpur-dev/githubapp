@@ -298,13 +298,11 @@ export default function ReadHistoryServiceTest(): void {
 
   describe('ReadHistoryServiceTest_add_and_list', (): void => {
     let store: FakeRdbStore;
-    let uiStore: ReadHistoryStore;
     let service: ReadHistoryService;
 
     beforeEach((): void => {
       store = new FakeRdbStore();
-      uiStore = new ReadHistoryStore();
-      service = new ReadHistoryService(uiStore, store);
+      service = new ReadHistoryService(store);
     });
 
     it('add_persists_row_with_encoded_data', 0,
@@ -412,28 +410,28 @@ export default function ReadHistoryServiceTest(): void {
         done();
       });
 
-    it('list_syncs_into_ui_store', 0,
+    it('list_returns_full_item_payload', 0,
       async (done: Function): Promise<void> => {
         await service.add(buildAddParam(READ_HISTORY_TYPE_REPO, 'a/b', 't1', 'sub', 'av', 'pp'));
-        await service.list();
-        expect(uiStore.list.length).assertEqual(1);
-        expect(uiStore.list[0].title).assertEqual('t1');
-        expect(uiStore.list[0].subtitle).assertEqual('sub');
-        expect(uiStore.list[0].avatar).assertEqual('av');
-        expect(uiStore.list[0].payloadJson).assertEqual('pp');
+        const r: ReadHistoryServiceResult<ReadHistoryItem[]> = await service.list();
+        expect(r.result).assertTrue();
+        const items: ReadHistoryItem[] = r.data as ReadHistoryItem[];
+        expect(items.length).assertEqual(1);
+        expect(items[0].title).assertEqual('t1');
+        expect(items[0].subtitle).assertEqual('sub');
+        expect(items[0].avatar).assertEqual('av');
+        expect(items[0].payloadJson).assertEqual('pp');
         done();
       });
   });
 
   describe('ReadHistoryServiceTest_clear', (): void => {
     let store: FakeRdbStore;
-    let uiStore: ReadHistoryStore;
     let service: ReadHistoryService;
 
     beforeEach((): void => {
       store = new FakeRdbStore();
-      uiStore = new ReadHistoryStore();
-      service = new ReadHistoryService(uiStore, store);
+      service = new ReadHistoryService(store);
     });
 
     it('clear_all_removes_every_row', 0,
@@ -444,7 +442,6 @@ export default function ReadHistoryServiceTest(): void {
         expect(r.result).assertTrue();
         expect((r.data as number)).assertEqual(2);
         expect(store.rows.length).assertEqual(0);
-        expect(uiStore.list.length).assertEqual(0);
         done();
       });
 

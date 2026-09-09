@@ -1,4 +1,4 @@
-import { PullLoadMoreController } from 'common';
+
 import { SubUserItem } from 'common';
 import { GSYColor } from 'common';
 import { AppBar } from 'common';
@@ -28,7 +28,9 @@ export struct UserFollowedPage {
   @State page: number = 1;
   @State hasMore: boolean = true;
   @State error: string = '';
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
+  @State plmRefreshing: boolean = false;
+  @State plmLoadingMore: boolean = false;
+  @State plmNoMore: boolean = false;
   private store: UserDetailStore = new UserDetailStore();
   private service: UserService = new UserService(this.store);
   private pageSize: number = 30;
@@ -55,7 +57,9 @@ export struct UserFollowedPage {
     if (this.login.length === 0) {
       return;
     }
-    this.plmController.showRefreshState();
+    this.plmRefreshing = true;
+    this.plmLoadingMore = false;
+    this.plmNoMore = false;;
     const res: FetchSubUserListResult = await this.service.getUserFollowed(this.login, 1);
     if (res.result) {
       this.items = res.data.slice();
@@ -65,12 +69,15 @@ export struct UserFollowedPage {
     } else {
       this.error = res.msg;
     }
-    this.plmController.refreshComplete(this.hasMore, false);
+    this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
   }
 
   private async loadMoreList(): Promise<void> {
     if (!this.hasMore) {
-      this.plmController.loadMoreComplete(false);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
       return;
     }
     const next: number = this.page + 1;
@@ -84,7 +91,8 @@ export struct UserFollowedPage {
       this.page = next;
       this.hasMore = res.data.length >= this.pageSize;
     }
-    this.plmController.loadMoreComplete(this.hasMore);
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
   }
 
   private openUser(item: SubUserItem): void {
@@ -107,7 +115,9 @@ export struct UserFollowedPage {
           mode: SubListMode.USER,
           users: this.items,
           repos: [],
-          controller: this.plmController,
+          refreshing: this.plmRefreshing,
+        loadingMore: this.plmLoadingMore,
+        noMore: this.plmNoMore,
           idPrefix: 'user_followed',
           refresh: (): void => {
             this.refreshList();

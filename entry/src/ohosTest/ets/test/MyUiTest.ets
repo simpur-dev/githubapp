@@ -37,7 +37,6 @@ import {
 } from 'common';
 import { MyTabPageDeps } from 'feature_main';
 import { DynamicService, FetchReceivedResult } from 'common';
-import { DynamicStore } from 'common';
 import { SUCCESS } from 'common';
 import { LoginUseCase } from 'common';
 import { NavigationService, RouterLike } from 'common';
@@ -130,13 +129,12 @@ class StubMyService extends MyService {
 class StubDynamicService extends DynamicService {
   fetchUserEventsCalls: number = 0;
 
-  constructor(store: DynamicStore) {
-    super(store);
+  constructor() {
+    super();
   }
 
   async fetchUserEvents(_user: string, _page: number): Promise<FetchReceivedResult> {
     this.fetchUserEventsCalls = this.fetchUserEventsCalls + 1;
-    this.getStore().applyRefresh([], 30);
     return new FetchReceivedResult(true, SUCCESS, [], false, '');
   }
 }
@@ -196,8 +194,8 @@ export default function MyUiTest(): void {
       }
       MyTabPageDeps.setStore(testStore);
       MyTabPageDeps.setService(stubService);
-      MyTabPageDeps.setDynamicServiceFactory((s: DynamicStore): DynamicService => {
-        const stub: StubDynamicService = new StubDynamicService(s);
+      MyTabPageDeps.setDynamicServiceFactory((): DynamicService => {
+        const stub: StubDynamicService = new StubDynamicService();
         lastDynamic = stub;
         return stub;
       });
@@ -350,8 +348,8 @@ export default function MyUiTest(): void {
       expect(MyTabPageDeps.getStore() === GlobalMyStore).assertTrue();
       MyTabPageDeps.setStore(testStore);
       MyTabPageDeps.setService(stubService);
-      MyTabPageDeps.setDynamicServiceFactory((s: DynamicStore): DynamicService => {
-        const stub: StubDynamicService = new StubDynamicService(s);
+      MyTabPageDeps.setDynamicServiceFactory((): DynamicService => {
+        const stub: StubDynamicService = new StubDynamicService();
         lastDynamic = stub;
         return stub;
       });

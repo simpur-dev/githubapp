@@ -182,14 +182,12 @@ export default function SearchServiceTest(): void {
   describe('SearchServiceTest', (): void => {
     let provider: FakeHttpProvider;
     let storage: FakeTokenStorage;
-    let store: SearchStore;
     let service: SearchService;
 
     beforeEach((): void => {
       provider = new FakeHttpProvider();
       storage = new FakeTokenStorage();
-      store = new SearchStore();
-      service = new SearchService(store, PAGE_SIZE);
+      service = new SearchService(PAGE_SIZE);
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -208,27 +206,26 @@ export default function SearchServiceTest(): void {
       provider.nextBody = buildReposBody([buildRepo(1, 'CarGuo', 'r1'),
         buildRepo(2, 'CarGuo', 'r2'), buildRepo(3, 'CarGuo', 'r3')]);
 
-      await service.searchRepo('flutter', 'stars', 1);
+      const res: SearchRepoResult = await service.searchRepo('flutter', 'stars', 1);
 
       const expected: string = Address.getSearchRepos('flutter', 'stars', 1, PAGE_SIZE);
       expect(provider.captured.url).assertEqual(expected);
       expect(provider.captured.method).assertEqual('GET');
-      expect(store.repos.length).assertEqual(3);
-      expect(store.hasMore).assertTrue();
-      expect(store.error).assertEqual('');
+      expect(res.data.length).assertEqual(3);
+      expect(res.hasMore).assertTrue();
     });
 
     it('search_user_uses_search_users_url', 0, async (): Promise<void> => {
       provider.nextStatus = SUCCESS;
       provider.nextBody = buildUsersBody([buildUser(1, 'a'), buildUser(2, 'b')]);
 
-      await service.searchUser('octocat', null, 1);
+      const res: SearchUserResult = await service.searchUser('octocat', null, 1);
 
       const expected: string = Address.getSearchUsers('octocat', null, 1, PAGE_SIZE);
       expect(provider.captured.url).assertEqual(expected);
       expect(provider.captured.method).assertEqual('GET');
-      expect(store.users.length).assertEqual(2);
-      expect(store.hasMore).assertFalse();
+      expect(res.data.length).assertEqual(2);
+      expect(res.hasMore).assertFalse();
     });
 
     it('search_issue_uses_search_issues_url', 0, async (): Promise<void> => {
@@ -236,13 +233,13 @@ export default function SearchServiceTest(): void {
       provider.nextBody = buildIssuesBody([buildIssue(1, 1, 'i1'),
         buildIssue(2, 2, 'i2'), buildIssue(3, 3, 'i3')]);
 
-      await service.searchIssue('bug', null, 1);
+      const res: SearchIssueResult = await service.searchIssue('bug', null, 1);
 
       const expected: string = Address.getSearchIssues('bug', null, 1, PAGE_SIZE);
       expect(provider.captured.url).assertEqual(expected);
       expect(provider.captured.method).assertEqual('GET');
-      expect(store.issues.length).assertEqual(3);
-      expect(store.hasMore).assertTrue();
+      expect(res.data.length).assertEqual(3);
+      expect(res.hasMore).assertTrue();
     });
 
     it('search_repo_hasMore_true_full_then_false_short', 0, async (): Promise<void> => {
@@ -254,15 +251,15 @@ export default function SearchServiceTest(): void {
 
       const r1: SearchRepoResult = await service.searchRepo('q', 'stars', 1);
       expect(r1.result).assertTrue();
-      expect(store.hasMore).assertTrue();
-      expect(store.repos.length).assertEqual(PAGE_SIZE);
-      expect(store.page).assertEqual(1);
+      expect(r1.hasMore).assertTrue();
+      expect(r1.data.length).assertEqual(PAGE_SIZE);
+      expect(r1.page).assertEqual(1);
 
       const r2: SearchRepoResult = await service.searchRepo('q', 'stars', 2);
       expect(r2.result).assertTrue();
-      expect(store.hasMore).assertFalse();
-      expect(store.repos.length).assertEqual(PAGE_SIZE + 1);
-      expect(store.page).assertEqual(2);
+      expect(r2.hasMore).assertFalse();
+      expect(r2.data.length).assertEqual(PAGE_SIZE + 1);
+      expect(r2.page).assertEqual(2);
     });
 
     it('search_user_hasMore_paging', 0, async (): Promise<void> => {
@@ -274,13 +271,13 @@ export default function SearchServiceTest(): void {
 
       const r1: SearchUserResult = await service.searchUser('u', null, 1);
       expect(r1.result).assertTrue();
-      expect(store.hasMore).assertTrue();
-      expect(store.users.length).assertEqual(PAGE_SIZE);
+      expect(r1.hasMore).assertTrue();
+      expect(r1.data.length).assertEqual(PAGE_SIZE);
 
       const r2: SearchUserResult = await service.searchUser('u', null, 2);
       expect(r2.result).assertTrue();
-      expect(store.hasMore).assertFalse();
-      expect(store.users.length).assertEqual(PAGE_SIZE + 1);
+      expect(r2.hasMore).assertFalse();
+      expect(r2.data.length).assertEqual(PAGE_SIZE + 1);
     });
 
     it('search_issue_hasMore_paging', 0, async (): Promise<void> => {
@@ -292,13 +289,13 @@ export default function SearchServiceTest(): void {
 
       const r1: SearchIssueResult = await service.searchIssue('q', null, 1);
       expect(r1.result).assertTrue();
-      expect(store.hasMore).assertTrue();
-      expect(store.issues.length).assertEqual(PAGE_SIZE);
+      expect(r1.hasMore).assertTrue();
+      expect(r1.data.length).assertEqual(PAGE_SIZE);
 
       const r2: SearchIssueResult = await service.searchIssue('q', null, 2);
       expect(r2.result).assertTrue();
-      expect(store.hasMore).assertFalse();
-      expect(store.issues.length).assertEqual(PAGE_SIZE + 1);
+      expect(r2.hasMore).assertFalse();
+      expect(r2.data.length).assertEqual(PAGE_SIZE + 1);
     });
 
     it('search_repo_failure_sets_error_and_keeps_repos_empty', 0, async (): Promise<void> => {
@@ -308,9 +305,8 @@ export default function SearchServiceTest(): void {
       const res: SearchRepoResult = await service.searchRepo('q', null, 1);
 
       expect(res.result).assertFalse();
-      expect(store.repos.length).assertEqual(0);
-      expect(store.error.length > 0).assertTrue();
-      expect(store.loading).assertFalse();
+      expect(res.data.length).assertEqual(0);
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('search_repo_401_publishes_login_expired', 0, async (): Promise<void> => {
@@ -326,8 +322,8 @@ export default function SearchServiceTest(): void {
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
       expect(fired).assertEqual(1);
-      expect(store.repos.length).assertEqual(0);
-      expect(store.error.length > 0).assertTrue();
+      expect(res.data.length).assertEqual(0);
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('search_user_401_publishes_login_expired', 0, async (): Promise<void> => {
@@ -343,7 +339,7 @@ export default function SearchServiceTest(): void {
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
       expect(fired).assertEqual(1);
-      expect(store.users.length).assertEqual(0);
+      expect(res.data.length).assertEqual(0);
     });
 
     it('search_issue_401_publishes_login_expired', 0, async (): Promise<void> => {
@@ -359,7 +355,7 @@ export default function SearchServiceTest(): void {
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
       expect(fired).assertEqual(1);
-      expect(store.issues.length).assertEqual(0);
+      expect(res.data.length).assertEqual(0);
     });
 
     it('search_by_tab_dispatches_repo_user_issue', 0, async (): Promise<void> => {
@@ -381,6 +377,7 @@ export default function SearchServiceTest(): void {
     });
 
     it('store_set_tab_resets_page_and_hasMore', 0, (): void => {
+      const store: SearchStore = new SearchStore();
       store.applyReposRefresh([buildRepo(1, 'a', 'r')], PAGE_SIZE);
       store.page = 5;
       store.hasMore = false;

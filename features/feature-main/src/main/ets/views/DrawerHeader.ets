@@ -73,15 +73,15 @@ export class DrawerHeaderDeps {
   }
 }
 
-@Component
+@ComponentV2
 export struct DrawerHeader {
-  @State userRev: number = 0;
+  @Local userRev: number = 0;
   private offAuthChanged: (() => void) | null = null;
-  onAvatarTap: () => void = (): void => {
+  @Event onAvatarTap: () => void = (): void => {
   };
 
   aboutToAppear(): void {
-    // 登录态直读 GlobalAuthStore 单例；V1 组件无法自动订阅 @Trace，
+    // 登录态直读 GlobalAuthStore 单例；V2 @Local 无法自动订阅外部单例 @Trace，
     // 通过 EVENT_AUTH_STATE_CHANGED 事件驱动本组件重渲染（等价旧双向绑定响应）。
     this.offAuthChanged = EventBus.on(EVENT_AUTH_STATE_CHANGED, (_payload: ESObject): void => {
       this.userRev = this.userRev + 1;

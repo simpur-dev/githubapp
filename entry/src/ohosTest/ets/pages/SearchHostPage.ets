@@ -7,7 +7,6 @@ import {
 import { HttpHeaders } from 'common';
 import { SUCCESS } from 'common';
 import { SearchPage, SearchPageDeps } from 'feature_main';
-import { SearchStore } from 'common';
 import { SearchService } from 'common';
 import {
   SearchHistoryManager,
@@ -178,8 +177,7 @@ const HOST_STUB: HostStubProvider = new HostStubProvider();
 const HOST_HISTORY_STORAGE: HostMemoryHistoryStorage = new HostMemoryHistoryStorage();
 const HOST_HISTORY: SearchHistoryManager = new SearchHistoryManager(HOST_HISTORY_STORAGE,
   KEY_SEARCH_HISTORY, 20);
-const HOST_STORE: SearchStore = new SearchStore();
-const HOST_SERVICE: SearchService = new SearchService(HOST_STORE);
+const HOST_SERVICE: SearchService = new SearchService();
 
 @Entry
 @Component
@@ -188,8 +186,6 @@ struct SearchHostPage {
     HOST_HISTORY_STORAGE.data.clear();
     HOST_HISTORY_STORAGE.data.set(KEY_SEARCH_HISTORY,
       JSON.stringify(['react', 'flutter']));
-    HOST_STORE.reset();
-    SearchPageDeps.setStore(HOST_STORE);
     SearchPageDeps.setService(HOST_SERVICE);
     SearchPageDeps.setHistory(HOST_HISTORY);
     HttpManager.setMockProvider(HOST_STUB);

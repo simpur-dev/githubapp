@@ -4,7 +4,6 @@ import { HttpResult } from '../../base/net/Result';
 import { UNAUTHORIZED } from '../../base/net/NetworkCode';
 import {
   NotifyFilter,
-  NotifyStore,
   NotifyThread,
   NOTIFY_FILTER_ALL,
   NOTIFY_FILTER_PARTICIPATING,
@@ -34,19 +33,28 @@ export function resolveFilterParam(filter: NotifyFilter): NotifyFilterParam {
   return new NotifyFilterParam(false, false);
 }
 
+/**
+ * FetchNotifyResult —— 无状态取数结果（R9 V2 + MVVM）：分页信息 page / hasMore
+ * 随结果返回，UI 状态（列表、筛选、已读标记）归调用方 ViewModel。
+ */
 export class FetchNotifyResult {
   result: boolean;
   code: number;
   data: NotifyThread[];
   msg: string;
   fromCache: boolean;
+  page: number;
+  hasMore: boolean;
 
-  constructor(result: boolean, code: number, data: NotifyThread[], msg: string, fromCache: boolean = false) {
+  constructor(result: boolean, code: number, data: NotifyThread[], msg: string, fromCache: boolean = false,
+    page: number = 1, hasMore: boolean = false) {
     this.result = result;
     this.code = code;
     this.data = data;
     this.msg = msg;
     this.fromCache = fromCache;
+    this.page = page;
+    this.hasMore = hasMore;
   }
 }
 
@@ -65,17 +73,11 @@ export class MarkNotifyResult {
 }
 
 export class NotifyService {
-  private store: NotifyStore;
   private pageSize: number;
 
-  constructor(store: NotifyStore, pageSize?: number) {
-    this.store = store;
+  constructor(pageSize?: number) {
     this.pageSize = pageSize !== undefined && pageSize > 0
       ? pageSize : Address.getNotificationPageSize();
-  }
-
-  getStore(): NotifyStore {
-    return this.store;
   }
 
   getPageSize(): number {
@@ -94,33 +96,23 @@ export class NotifyService {
 
   async getNotifications(filter: NotifyFilter, page: number): Promise<FetchNotifyResult> {
     const finalPage: number = page > 0 ? page : 1;
-    if (this.store.filter !== filter) {
-      this.store.setFilter(filter);
-    }
-    this.store.startLoading();
 
     const url: string = this.buildUrl(filter, finalPage);
     const httpResult: HttpResult<NotifyThread[]> = await HttpManager.getFetch<NotifyThread[]>(url);
 
     if (httpResult.result && httpResult.data !== null) {
       const threads: NotifyThread[] = httpResult.data as NotifyThread[];
-      if (finalPage === 1) {
-        this.store.applyRefresh(threads, this.pageSize);
-      } else {
-        this.store.applyAppend(threads, finalPage, this.pageSize);
-      }
-      return new FetchNotifyResult(true, httpResult.code, threads, '');
+      return new FetchNotifyResult(true, httpResult.code, threads, '', false,
+        finalPage, threads.length >= this.pageSize);
     }
 
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
-      return new FetchNotifyResult(false, UNAUTHORIZED, [], msg);
+      return new FetchNotifyResult(false, UNAUTHORIZED, [], msg, false, finalPage, false);
     }
 
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
-    return new FetchNotifyResult(false, httpResult.code, [], failMsg);
+    return new FetchNotifyResult(false, httpResult.code, [], failMsg, false, finalPage, false);
   }
 
   async markAsRead(threadId: string): Promise<MarkNotifyResult> {
@@ -132,7 +124,6 @@ export class NotifyService {
     if (httpResult.result
       || httpResult.code === STATUS_NO_CONTENT
       || httpResult.code === STATUS_RESET_CONTENT) {
-      this.store.markThreadRead(threadId);
       return new MarkNotifyResult(true, httpResult.code, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
@@ -154,7 +145,6 @@ export class NotifyService {
     if (httpResult.result
       || httpResult.code === STATUS_NO_CONTENT
       || httpResult.code === STATUS_RESET_CONTENT) {
-      this.store.markAllRead();
       return new MarkNotifyResult(true, httpResult.code, '');
     }
     if (httpResult.code === UNAUTHORIZED) {

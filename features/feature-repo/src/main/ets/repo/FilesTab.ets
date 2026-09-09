@@ -1,5 +1,5 @@
 import { I18n } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { PullLoadMoreList } from 'common';
 import { RepositoryFileItem } from 'common';
 import { IconFont, FA_FOLDER, FA_CODE } from 'common';
 import { GSYSpacing, GSYColor, GSYFontSize } from 'common';
@@ -27,7 +27,9 @@ export struct FilesTab {
   @Prop currentPath: string = '';
   @Prop fullName: string = '';
   @Prop branch: string = '';
-  @Link controller: PullLoadMoreController;
+  @Prop refreshing: boolean = false;
+  @Prop loadingMore: boolean = false;
+  @Prop noMore: boolean = false;
   refresh: () => void = (): void => {};
   onFileClick: (item: RepositoryFileItem) => void = (_item: RepositoryFileItem): void => {};
   onBack: () => void = (): void => {};
@@ -151,13 +153,16 @@ export struct FilesTab {
       this.breadcrumbBuilder();
       PullLoadMoreList({
         dataSource: this.files,
-        controller: this.controller,
+        refreshing: this.refreshing,
+        loadingMore: this.loadingMore,
+        noMore: this.noMore,
+        showFooter: false,
         renderRow: (item: Object, index: number): void => this.rowBuilder(item as RepositoryFileItem, index),
         renderEmpty: (): void => this.emptyBuilder(),
-        refresh: (): void => {
+        onRefresh: (): void => {
           this.refresh();
         },
-        loadMore: (): void => {
+        onLoadMore: (): void => {
         },
         tailPadding: GSYSpacing.normalEdge * 5,
       })

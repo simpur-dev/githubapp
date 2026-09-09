@@ -4,261 +4,28 @@
  * Compose ProfileHeader 头像不可点击；通知铃铛进入 Notification。
  * Compose ProfileScreen 在 ProfileContent 下方保留 Logout 按钮；OH My 页同样保留
  * 该登出入口。调试探针（refresh-count/logout-click/entry-click）已移除。
+ * View 只做组装（@ComponentV2），状态在 [MyTabViewModel]（viewmodel/MyTabViewModel.ets）。
  */
 
 import { I18n } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
-import {
-  AuthUserInfo,
-  GlobalAuthStore,
-} from 'common';
-import { MyStore, GlobalMyStore } from 'common';
-import {
-  MyService,
-  DefaultMyService,
-  RefreshMeResult,
-  FetchUnReadResult,
-  FetchUserOrgsResult,
-  FetchStarredCountResult,
-  MyOrgItem,
-} from 'common';
-import { DynamicService, FetchReceivedResult } from 'common';
-import { DynamicEvent, DynamicStore } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { DynamicEvent } from 'common';
+import { PullLoadMoreList } from 'common';
 import { EventItem } from 'common';
-import { UserHeadItem, UserHeadOrgItem } from '../views/UserHeadItem';
 import { EventActionUtil } from 'common';
 import { EventActionDispatcher } from 'common';
 import { ExternalUrlUtil } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
-import { TimeUtil } from 'common';
-import { LoginUseCase, DefaultLoginUseCase } from 'common';
+import { UserHeadItem } from '../views/UserHeadItem';
+import { MyTabViewModel, MyTabPageDeps } from '../viewmodel/MyTabViewModel';
 
-export class MyTabPageDeps {
-  private static serviceImpl: MyService = DefaultMyService;
-  private static dynamicServiceFactory: ((store: DynamicStore) => DynamicService) | null = null;
-  private static storeImpl: MyStore = GlobalMyStore;
-  private static loginUseCaseImpl: LoginUseCase = DefaultLoginUseCase;
-
-  static setService(service: MyService): void {
-    MyTabPageDeps.serviceImpl = service;
-  }
-
-  static setDynamicServiceFactory(factory: ((store: DynamicStore) => DynamicService) | null): void {
-    MyTabPageDeps.dynamicServiceFactory = factory;
-  }
-
-  static setStore(store: MyStore): void {
-    MyTabPageDeps.storeImpl = store;
-  }
-
-  static setLoginUseCase(useCase: LoginUseCase): void {
-    MyTabPageDeps.loginUseCaseImpl = useCase;
-  }
-
-  static getService(): MyService {
-    return MyTabPageDeps.serviceImpl;
-  }
-
-  static buildDynamicService(store: DynamicStore): DynamicService {
-    if (MyTabPageDeps.dynamicServiceFactory !== null) {
-      return MyTabPageDeps.dynamicServiceFactory(store);
-    }
-    return new DynamicService(store);
-  }
-
-  static getStore(): MyStore {
-    return MyTabPageDeps.storeImpl;
-  }
-
-  static getLoginUseCase(): LoginUseCase {
-    return MyTabPageDeps.loginUseCaseImpl;
-  }
-
-  static reset(): void {
-    MyTabPageDeps.serviceImpl = DefaultMyService;
-    MyTabPageDeps.dynamicServiceFactory = null;
-    MyTabPageDeps.storeImpl = GlobalMyStore;
-    MyTabPageDeps.loginUseCaseImpl = DefaultLoginUseCase;
-  }
-}
-
-@Component
+@ComponentV2
 export struct MyTabPage {
-  @State eventStore: DynamicStore = new DynamicStore();
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
-  @State unRead: boolean = false;
-  @State orgsList: UserHeadOrgItem[] = [];
-  @State beStaredCount: string = '---';
-  @State starCount: string = '---';
-  @State reposCount: string = '---';
-  @State followerCount: string = '---';
-  @State followedCount: string = '---';
-  @State headerDisplayName: string = '';
-  @State headerLogin: string = '';
-  @State headerAvatar: string = '';
-  @State headerCompany: string = '';
-  @State headerLocation: string = '';
-  @State headerBlog: string = '';
-  @State headerDes: string = '';
-  @State headerJoinedText: string = '';
-  @State headerType: string = '';
-  @State errorMessage: string = '';
-  private dynamicService: DynamicService = MyTabPageDeps.buildDynamicService(this.eventStore);
+  @Local vm: MyTabViewModel = new MyTabViewModel();
 
   aboutToAppear(): void {
-    const store: MyStore = MyTabPageDeps.getStore();
-    this.syncAuthUserIntoStore(store);
-    this.dynamicService = MyTabPageDeps.buildDynamicService(this.eventStore);
-    this.applyUserToHeaderState();
-    this.triggerRefresh();
-  }
-
-  /**
-   * 登录态同步：直读 GlobalAuthStore 单例回填 MyStore，
-   * 等价旧版镜像同步方法读 auth.userInfo 镜像的语义。
-   */
-  private syncAuthUserIntoStore(store: MyStore): void {
-    if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined) {
-      store.applyRawUserInfo(GlobalAuthStore.userInfo.raw);
-    }
-  }
-
-  private applyUserToHeaderState(): void {
-    const user: AuthUserInfo | null = this.parseUser();
-    if (user === null) {
-      return;
-    }
-    this.headerDisplayName = user.name.length > 0 ? user.name : user.login;
-    this.headerLogin = user.login;
-    this.headerAvatar = user.avatarUrl;
-    this.headerCompany = user.company;
-    this.headerLocation = user.location;
-    this.headerBlog = user.blog;
-    this.headerType = user.type;
-    this.headerDes = user.bio.length > 0 ? user.bio : '';
-    this.headerJoinedText = this.buildJoinedText(user);
-    this.reposCount = user.publicRepos.toString();
-    this.followerCount = user.followers.toString();
-    this.followedCount = user.following.toString();
-    // star / beStared 由 fetchUserStarredCount / fetchUserBeStaredCount 单独写入，
-    // 不要在这里用 user.starred 覆盖（GitHub /user 接口本身不返回 starred 字段）。
-  }
-
-  /**
-   * 登录用户直读 GlobalAuthStore 单例（原 auth.userInfo 镜像通道已移除）。
-   */
-  private parseUser(): AuthUserInfo | null {
-    if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined) {
-      return GlobalAuthStore.userInfo;
-    }
-    return null;
-  }
-
-  private resolveLogin(): string {
-    const user: AuthUserInfo | null = this.parseUser();
-    if (user !== null && user.login.length > 0) {
-      return user.login;
-    }
-    return '';
-  }
-
-  private async triggerRefresh(): Promise<void> {
-    let login: string = this.resolveLogin();
-    this.plmController.showRefreshState();
-    this.errorMessage = '';
-
-    // bootToken 注入 / 冷启动场景下，GlobalAuthStore 里还没有 userInfo，login 为空。
-    // 先单独拉一次 GET /user 把 GlobalAuthStore.userInfo 填好（refreshMe 内部会写回单例），
-    // 拿到 login 之后再启动其它并行请求；否则会直接卡在「---」占位。
-    if (login.length === 0) {
-      const meFirst: RefreshMeResult = await MyTabPageDeps.getService().refreshMe();
-      if (meFirst.result && meFirst.data !== null) {
-        login = meFirst.data.login;
-      } else if (!meFirst.result && meFirst.msg.length > 0) {
-        this.errorMessage = meFirst.msg;
-      }
-      if (login.length === 0) {
-        this.plmController.refreshComplete(false, false);
-        return;
-      }
-    }
-
-    const refreshMe: Promise<RefreshMeResult> = MyTabPageDeps.getService().refreshMe();
-    const fetchUnRead: Promise<FetchUnReadResult> = MyTabPageDeps.getService().fetchUnRead();
-    const fetchStarred: Promise<FetchStarredCountResult>
-      = MyTabPageDeps.getService().fetchUserStarredCount(login);
-    const fetchEvents: Promise<FetchReceivedResult>
-      = this.dynamicService.fetchUserEvents(login, 1);
-
-    const meRes: RefreshMeResult = await refreshMe;
-    const unReadRes: FetchUnReadResult = await fetchUnRead;
-    const starredRes: FetchStarredCountResult = await fetchStarred;
-    const eventRes: FetchReceivedResult = await fetchEvents;
-
-    this.applyUserToHeaderState();
-    if (unReadRes.result) {
-      this.unRead = unReadRes.unRead;
-    }
-    this.orgsList = [];
-    if (starredRes.result) {
-      this.starCount = starredRes.count.toString();
-    }
-    if (!meRes.result && meRes.msg.length > 0) {
-      this.errorMessage = meRes.msg;
-    } else if (!eventRes.result && eventRes.msg.length > 0 && eventRes.data.length === 0) {
-      this.errorMessage = eventRes.msg;
-    } else {
-      this.errorMessage = '';
-    }
-    this.plmController.refreshComplete(this.eventStore.hasMore, false);
-  }
-
-  private async triggerLoadMore(): Promise<void> {
-    const login: string = this.resolveLogin();
-    if (login.length === 0) {
-      this.plmController.loadMoreComplete(false);
-      return;
-    }
-    if (!this.eventStore.hasMore) {
-      this.plmController.loadMoreComplete(false);
-      return;
-    }
-    const next: number = this.eventStore.page + 1;
-    await this.dynamicService.fetchUserEvents(login, next);
-    this.plmController.loadMoreComplete(this.eventStore.hasMore);
-  }
-
-  private static toOrgItems(list: MyOrgItem[]): UserHeadOrgItem[] {
-    const out: UserHeadOrgItem[] = [];
-    if (list === null || list === undefined) {
-      return out;
-    }
-    for (let i: number = 0; i < list.length; i++) {
-      const it: MyOrgItem = list[i];
-      if (it === null || it === undefined) {
-        continue;
-      }
-      out.push({
-        login: it.login !== null && it.login !== undefined ? it.login : '',
-        avatar_url: it.avatar_url !== null && it.avatar_url !== undefined ? it.avatar_url : '',
-      });
-    }
-    return out;
-  }
-
-  private buildJoinedText(user: AuthUserInfo | null): string {
-    if (user === null) {
-      return '';
-    }
-    const created: string = user.createdAt.length > 0
-      ? TimeUtil.resolveTime(user.createdAt)
-      : '';
-    if (created.length === 0) {
-      return '';
-    }
-    return I18n('profileJoined').replace('%s', created);
+    this.vm.init();
   }
 
   private dispatchEventTap(event: DynamicEvent): void {
@@ -279,8 +46,12 @@ export struct MyTabPage {
     NavigationService.replace(RouteName.Login);
   }
 
+  private resolveLoginForNav(): string {
+    return this.vm.resolveLogin();
+  }
+
   private handleCounterTap(key: string): void {
-    const login: string = this.resolveLogin();
+    const login: string = this.resolveLoginForNav();
     if (login.length === 0) {
       return;
     }
@@ -320,27 +91,27 @@ export struct MyTabPage {
   @Builder
   buildHeader(): void {
     UserHeadItem({
-      userDisplayName: this.headerDisplayName,
-      userName: this.headerLogin,
-      userPic: this.headerAvatar,
-      groupName: this.headerCompany,
-      location: this.headerLocation,
-      link: this.headerBlog,
-      des: this.headerDes,
-      joinedText: this.headerJoinedText,
-      star: this.starCount,
-      follower: this.followerCount,
-      followed: this.followedCount,
-      repos: this.reposCount,
-      beStared: this.beStaredCount,
+      userDisplayName: this.vm.headerDisplayName,
+      userName: this.vm.headerLogin,
+      userPic: this.vm.headerAvatar,
+      groupName: this.vm.headerCompany,
+      location: this.vm.headerLocation,
+      link: this.vm.headerBlog,
+      des: this.vm.headerDes,
+      joinedText: this.vm.headerJoinedText,
+      star: this.vm.starCount,
+      follower: this.vm.followerCount,
+      followed: this.vm.followedCount,
+      repos: this.vm.reposCount,
+      beStared: this.vm.beStaredCount,
       setting: true,
       settingNeed: false,
-      unRead: this.unRead,
-      isOrganizations: this.headerType === 'Organization',
+      unRead: this.vm.unRead,
+      isOrganizations: this.vm.headerType === 'Organization',
       needFollow: false,
       hadFollowed: false,
-      userType: this.headerType,
-      orgsList: this.orgsList,
+      userType: this.vm.headerType,
+      orgsList: this.vm.orgsList,
       onNotifyTap: (): void => {
         this.handleNotifyTap();
       },
@@ -395,8 +166,8 @@ export struct MyTabPage {
 
   build(): void {
     Column() {
-      if (this.errorMessage.length > 0) {
-        Text(this.errorMessage)
+      if (this.vm.errorMessage.length > 0) {
+        Text(this.vm.errorMessage)
           .id('my_error_text')
           .width('100%')
           .fontSize(GSYFontSize.small)
@@ -409,16 +180,18 @@ export struct MyTabPage {
           });
       }
       PullLoadMoreList({
-        dataSource: this.eventStore.list,
-        controller: this.plmController,
+        dataSource: this.vm.events,
+        refreshing: this.vm.refreshing,
+        loadingMore: this.vm.loadingMore,
+        noMore: !this.vm.hasMore,
         renderHeader: (): void => this.buildHeader(),
         renderRow: (item: Object, index: number): void => this.rowBuilder(item as DynamicEvent, index),
         renderEmpty: (): void => this.emptyBuilder(),
-        refresh: (): void => {
-          this.triggerRefresh();
+        onRefresh: (): void => {
+          this.vm.refresh();
         },
-        loadMore: (): void => {
-          this.triggerLoadMore();
+        onLoadMore: (): void => {
+          this.vm.loadMore();
         },
         refreshingText: I18n('refreshing'),
         loadingMoreText: I18n('loadMoreing'),

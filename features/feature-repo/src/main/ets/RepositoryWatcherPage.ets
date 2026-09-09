@@ -1,4 +1,4 @@
-import { PullLoadMoreController } from 'common';
+
 import { GSYColor } from 'common';
 import { AppBar } from 'common';
 import {
@@ -28,7 +28,9 @@ export struct RepositoryWatcherPage {
   @State page: number = 1;
   @State hasMore: boolean = true;
   @State error: string = '';
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
+  @State plmRefreshing: boolean = false;
+  @State plmLoadingMore: boolean = false;
+  @State plmNoMore: boolean = false;
   private store: RepositoryDetailStore = new RepositoryDetailStore();
   private service: RepositoryService = new RepositoryService(this.store);
   private pageSize: number = 30;
@@ -55,7 +57,9 @@ export struct RepositoryWatcherPage {
     if (this.fullName.length === 0) {
       return;
     }
-    this.plmController.showRefreshState();
+    this.plmRefreshing = true;
+    this.plmLoadingMore = false;
+    this.plmNoMore = false;;
     const res: SubListResult<SubUserItem> = await this.service.getWatchers(this.fullName, 1);
     if (res.result) {
       this.items = res.data.slice();
@@ -65,12 +69,15 @@ export struct RepositoryWatcherPage {
     } else {
       this.error = res.msg;
     }
-    this.plmController.refreshComplete(this.hasMore, false);
+    this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
   }
 
   private async loadMoreList(): Promise<void> {
     if (!this.hasMore) {
-      this.plmController.loadMoreComplete(false);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
       return;
     }
     const next: number = this.page + 1;
@@ -84,7 +91,8 @@ export struct RepositoryWatcherPage {
       this.page = next;
       this.hasMore = res.data.length >= this.pageSize;
     }
-    this.plmController.loadMoreComplete(this.hasMore);
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.hasMore);
   }
 
   private openUser(item: SubUserItem): void {
@@ -107,7 +115,9 @@ export struct RepositoryWatcherPage {
           mode: SubListMode.USER,
           users: this.items,
           repos: [],
-          controller: this.plmController,
+          refreshing: this.plmRefreshing,
+        loadingMore: this.plmLoadingMore,
+        noMore: this.plmNoMore,
           idPrefix: 'repo_watcher',
           refresh: (): void => {
             this.refreshList();

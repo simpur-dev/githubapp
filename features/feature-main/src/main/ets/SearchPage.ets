@@ -2,27 +2,21 @@
  * SearchPage follows the Compose SearchScreen:
  * top app bar, GitHub search input, search history for an empty query,
  * Repository/User type buttons, and a pull list for the selected result type.
+ * View 只做组装（@ComponentV2），状态在 [SearchViewModel]（viewmodel/SearchViewModel.ets）。
  */
 
 import { I18n } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { PullLoadMoreList } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RecommendRepo } from 'common';
-import {
-  SearchStore,
-  SearchTab,
-  SEARCH_TAB_REPO,
-  SEARCH_TAB_USER,
-  SearchUserItem,
-} from 'common';
-import { SearchService } from 'common';
+import { SearchTab, SEARCH_TAB_REPO, SEARCH_TAB_USER, SearchUserItem } from 'common';
 import { IconFont, FA_SEARCH, FA_TIMES } from 'common';
 import { AppBar } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { RepositoryItem } from 'common';
 import { UserItem, UserItemData } from 'common';
-import { SearchHistory, SearchHistoryManager } from 'common';
+import { SearchViewModel, SearchPageDeps } from './viewmodel/SearchViewModel';
 
 interface RepositoryDetailRouteParam {
   reposOwner: string;
@@ -42,135 +36,33 @@ const SEARCH_ICON_SIZE: number = 24;
 const SEARCH_PAGE_PADDING: number = 16;
 const SEARCH_TYPE_BUTTON_HEIGHT: number = 40;
 
-export class SearchPageDeps {
-  private static storeImpl: SearchStore = new SearchStore();
-  private static serviceImpl: SearchService | null = null;
-  private static historyImpl: SearchHistoryManager = SearchHistory;
-
-  static setStore(store: SearchStore): void {
-    SearchPageDeps.storeImpl = store;
-    SearchPageDeps.serviceImpl = null;
-  }
-
-  static setService(service: SearchService): void {
-    SearchPageDeps.serviceImpl = service;
-  }
-
-  static setHistory(history: SearchHistoryManager): void {
-    SearchPageDeps.historyImpl = history;
-  }
-
-  static getStore(): SearchStore {
-    return SearchPageDeps.storeImpl;
-  }
-
-  static getService(): SearchService {
-    if (SearchPageDeps.serviceImpl === null) {
-      SearchPageDeps.serviceImpl = new SearchService(SearchPageDeps.storeImpl);
-    }
-    return SearchPageDeps.serviceImpl;
-  }
-
-  static getHistory(): SearchHistoryManager {
-    return SearchPageDeps.historyImpl;
-  }
-
-  static reset(): void {
-    SearchPageDeps.storeImpl = new SearchStore();
-    SearchPageDeps.serviceImpl = null;
-    SearchPageDeps.historyImpl = SearchHistory;
-  }
-}
-
-@Component
+@ComponentV2
 export struct SearchPage {
-  @State store: SearchStore = SearchPageDeps.getStore();
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
-  @State queryText: string = '';
-  @State currentTab: SearchTab = SEARCH_TAB_REPO;
-  @State submittedQuery: string = '';
-  @State historyItems: string[] = [];
-  @State searchFocused: boolean = false;
-  private service: SearchService = SearchPageDeps.getService();
-  private history: SearchHistoryManager = SearchPageDeps.getHistory();
+  @Local vm: SearchViewModel = new SearchViewModel();
+  // 供新搜索提交后回到列表顶部（旧 PullLoadMoreController.refreshComplete(x, true) 语义）。
+  private listScroller: Scroller = new Scroller();
 
   aboutToAppear(): void {
-    this.service = SearchPageDeps.getService();
-    this.history = SearchPageDeps.getHistory();
-    this.loadSearchHistory();
+    // Host 页 / 测试在构造后可能重设 Deps，这里重读一次注入面再载入历史。
+    this.vm.rebindDeps();
+    this.vm.loadHistory();
   }
 
-  private isEmptyQuery(): boolean {
-    return this.submittedQuery === null || this.submittedQuery.length === 0;
-  }
-
-  private async loadSearchHistory(): Promise<void> {
-    this.historyItems = await this.history.list();
-  }
-
-  private hasTypedQuery(): boolean {
-    return this.queryText.trim().length > 0;
-  }
-
-  private clearSearchInput(): void {
-    this.queryText = '';
-    this.submittedQuery = '';
-    this.currentTab = SEARCH_TAB_REPO;
-    this.store.reset();
-    this.plmController.refreshComplete(false, false);
-  }
-
-  private async submitSearch(text: string): Promise<void> {
-    const trimmed: string = text !== null && text !== undefined ? text.trim() : '';
-    if (trimmed.length === 0) {
-      this.submittedQuery = '';
-      this.store.setQuery('');
-      this.plmController.refreshComplete(false, false);
-      return;
+  private scrollToTop(): void {
+    try {
+      this.listScroller.scrollToIndex(0);
+    } catch (_e) {
     }
-    this.queryText = trimmed;
-    this.submittedQuery = trimmed;
-    this.store.setQuery(trimmed);
-    this.plmController.showRefreshState();
-    const ok: boolean = await this.service.searchByTab(this.currentTab, trimmed, null, 1);
-    if (ok) {
-      this.historyItems = await this.history.add(trimmed);
-    }
-    this.plmController.refreshComplete(this.store.hasMore, true);
   }
 
-  private async switchTab(tab: SearchTab): Promise<void> {
-    if (tab !== this.currentTab) {
-      this.currentTab = tab;
-      this.store.setTab(tab);
-    }
-    if (!this.hasTypedQuery()) {
-      return;
-    }
-    await this.submitSearch(this.queryText);
+  private async submitFromUi(text: string): Promise<void> {
+    await this.vm.submitSearch(text);
+    this.scrollToTop();
   }
 
-  private async loadMore(): Promise<void> {
-    if (this.isEmptyQuery()) {
-      this.plmController.loadMoreComplete(false);
-      return;
-    }
-    if (!this.store.hasMore) {
-      this.plmController.loadMoreComplete(false);
-      return;
-    }
-    const next: number = this.store.page + 1;
-    await this.service.searchByTab(this.currentTab, this.submittedQuery, null, next);
-    this.plmController.loadMoreComplete(this.store.hasMore);
-  }
-
-  private async refresh(): Promise<void> {
-    if (this.isEmptyQuery()) {
-      this.plmController.refreshComplete(false, false);
-      return;
-    }
-    await this.service.searchByTab(this.currentTab, this.submittedQuery, null, 1);
-    this.plmController.refreshComplete(this.store.hasMore, true);
+  private async refreshFromUi(): Promise<void> {
+    await this.vm.refresh();
+    this.scrollToTop();
   }
 
   private onRepoRowTap(item: RecommendRepo): void {
@@ -248,25 +140,27 @@ export struct SearchPage {
         .fontColor(GSYColor.mainText)
         .width('100%')
         .margin({ bottom: GSYSpacing.halfEdge });
-      ForEach(this.historyItems, (item: string, index: number): void => {
-        Column() {
-          Text(item)
-            .id('search_history_text_' + index.toString())
-            .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.mainText)
-            .width('100%')
-            .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge });
-          Divider()
-            .color(GSYColor.line)
-            .strokeWidth(0.5);
-        }
-        .id('search_history_row_' + index.toString())
-        .width('100%')
-        .onClick((): void => {
-          this.queryText = item;
-          this.submitSearch(item);
-        });
-      }, (item: string): string => item);
+      Repeat<string>(this.vm.historyItems)
+        .each((obj: RepeatItem<string>): void => {
+          Column() {
+            Text(obj.item)
+              .id('search_history_text_' + obj.index.toString())
+              .fontSize(GSYFontSize.small)
+              .fontColor(GSYColor.mainText)
+              .width('100%')
+              .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge });
+            Divider()
+              .color(GSYColor.line)
+              .strokeWidth(0.5);
+          }
+          .id('search_history_row_' + obj.index.toString())
+          .width('100%')
+          .onClick((): void => {
+            this.vm.queryText = obj.item;
+            this.submitFromUi(obj.item);
+          });
+        })
+        .key((item: string): string => item)
     }
     .id('search_history_list')
     .width('100%')
@@ -285,13 +179,13 @@ export struct SearchPage {
         .layoutWeight(1)
         .height(SEARCH_TYPE_BUTTON_HEIGHT)
         .fontSize(GSYFontSize.small)
-        .fontColor(this.hasTypedQuery() && this.currentTab === SEARCH_TAB_REPO
+        .fontColor(this.vm.hasTypedQuery() && this.vm.currentTab === SEARCH_TAB_REPO
           ? GSYColor.textWhite : GSYColor.subText)
-        .backgroundColor(this.hasTypedQuery() && this.currentTab === SEARCH_TAB_REPO
+        .backgroundColor(this.vm.hasTypedQuery() && this.vm.currentTab === SEARCH_TAB_REPO
           ? GSYColor.primary : GSYColor.surfacePill)
-        .enabled(this.hasTypedQuery())
+        .enabled(this.vm.hasTypedQuery())
         .onClick((): void => {
-          this.switchTab(SEARCH_TAB_REPO);
+          this.vm.switchTab(SEARCH_TAB_REPO);
         });
 
       Blank()
@@ -302,13 +196,13 @@ export struct SearchPage {
         .layoutWeight(1)
         .height(SEARCH_TYPE_BUTTON_HEIGHT)
         .fontSize(GSYFontSize.small)
-        .fontColor(this.hasTypedQuery() && this.currentTab === SEARCH_TAB_USER
+        .fontColor(this.vm.hasTypedQuery() && this.vm.currentTab === SEARCH_TAB_USER
           ? GSYColor.textWhite : GSYColor.subText)
-        .backgroundColor(this.hasTypedQuery() && this.currentTab === SEARCH_TAB_USER
+        .backgroundColor(this.vm.hasTypedQuery() && this.vm.currentTab === SEARCH_TAB_USER
           ? GSYColor.primary : GSYColor.surfacePill)
-        .enabled(this.hasTypedQuery())
+        .enabled(this.vm.hasTypedQuery())
         .onClick((): void => {
-          this.switchTab(SEARCH_TAB_USER);
+          this.vm.switchTab(SEARCH_TAB_USER);
         });
     }
     .id('search_type_button_row')
@@ -323,7 +217,7 @@ export struct SearchPage {
   @Builder
   buildSearchHeader(): void {
     Row() {
-      TextInput({ text: this.queryText, placeholder: I18n('searchHint') })
+      TextInput({ text: this.vm.queryText, placeholder: I18n('searchHint') })
         .id('search_input')
         .layoutWeight(1)
         .height(SEARCH_INPUT_HEIGHT)
@@ -344,28 +238,25 @@ export struct SearchPage {
         })
         .enterKeyType(EnterKeyType.Search)
         .onChange((value: string): void => {
-          this.queryText = value;
-          if (value === null || value.length === 0) {
-            this.clearSearchInput();
-          }
+          this.vm.onInputChanged(value);
         })
         .onFocus((): void => {
-          this.searchFocused = true;
+          this.vm.markFocused(true);
         })
         .onBlur((): void => {
-          this.searchFocused = false;
+          this.vm.markFocused(false);
         })
         .onSubmit((): void => {
-          this.submitSearch(this.queryText);
+          this.submitFromUi(this.vm.queryText);
         });
 
       Column() {
         IconFont({
-          char: this.hasTypedQuery() ? FA_TIMES : FA_SEARCH,
+          char: this.vm.hasTypedQuery() ? FA_TIMES : FA_SEARCH,
           glyphSize: SEARCH_ICON_SIZE,
           glyphColor: GSYColor.mainText,
         })
-          .id(this.hasTypedQuery() ? 'search_clear_icon' : 'search_submit_icon');
+          .id(this.vm.hasTypedQuery() ? 'search_clear_icon' : 'search_submit_icon');
       }
       .id('search_submit_btn')
       .margin({
@@ -375,8 +266,8 @@ export struct SearchPage {
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
       .onClick((): void => {
-        if (this.hasTypedQuery()) {
-          this.clearSearchInput();
+        if (this.vm.hasTypedQuery()) {
+          this.vm.clearSearch();
         }
       });
     }
@@ -413,8 +304,8 @@ export struct SearchPage {
 
       this.buildSearchHeader();
 
-      if (this.queryText.trim().length === 0) {
-        if (this.searchFocused && this.historyItems.length > 0) {
+      if (this.vm.queryText.trim().length === 0) {
+        if (this.vm.searchFocused && this.vm.historyItems.length > 0) {
           this.buildHistory();
         } else {
           this.buildTypeButtons();
@@ -428,32 +319,38 @@ export struct SearchPage {
           .height(SPACER_HEIGHT)
           .opacity(0.3);
 
-        if (this.currentTab === SEARCH_TAB_REPO) {
+        if (this.vm.currentTab === SEARCH_TAB_REPO) {
           PullLoadMoreList({
-            dataSource: this.store.repos,
-            controller: this.plmController,
+            dataSource: this.vm.repos,
+            refreshing: this.vm.refreshing,
+            loadingMore: this.vm.loadingMore,
+            noMore: !this.vm.hasMore,
+            listScroller: this.listScroller,
             renderRow: (item: Object, index: number): void => this.buildRepoRow(item as RecommendRepo, index),
             renderEmpty: (): void => this.buildEmpty(),
-            refresh: (): void => {
-              this.refresh();
+            onRefresh: (): void => {
+              this.refreshFromUi();
             },
-            loadMore: (): void => {
-              this.loadMore();
+            onLoadMore: (): void => {
+              this.vm.loadMore();
             },
           })
             .id('search_pull_list_repo')
             .layoutWeight(1);
         } else {
           PullLoadMoreList({
-            dataSource: this.store.users,
-            controller: this.plmController,
+            dataSource: this.vm.users,
+            refreshing: this.vm.refreshing,
+            loadingMore: this.vm.loadingMore,
+            noMore: !this.vm.hasMore,
+            listScroller: this.listScroller,
             renderRow: (item: Object, index: number): void => this.buildUserRow(item as SearchUserItem, index),
             renderEmpty: (): void => this.buildEmpty(),
-            refresh: (): void => {
-              this.refresh();
+            onRefresh: (): void => {
+              this.refreshFromUi();
             },
-            loadMore: (): void => {
-              this.loadMore();
+            onLoadMore: (): void => {
+              this.vm.loadMore();
             },
           })
             .id('search_pull_list_user')

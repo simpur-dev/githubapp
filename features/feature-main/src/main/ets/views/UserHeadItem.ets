@@ -43,38 +43,38 @@ export interface UserHeadOrgItem {
   avatar_url: string;
 }
 
-@Component
+@ComponentV2
 export struct UserHeadItem {
-  @Prop userDisplayName: string = '';
-  @Prop userName: string = '';
-  @Prop userPic: string = '';
-  @Prop groupName: string = '';
-  @Prop location: string = '';
-  @Prop link: string = '';
-  @Prop des: string = '';
-  @Prop joinedText: string = '';
+  @Param userDisplayName: string = '';
+  @Param userName: string = '';
+  @Param userPic: string = '';
+  @Param groupName: string = '';
+  @Param location: string = '';
+  @Param link: string = '';
+  @Param des: string = '';
+  @Param joinedText: string = '';
 
-  @Prop star: string = '---';
-  @Prop follower: string = '---';
-  @Prop followed: string = '---';
-  @Prop repos: string = '---';
-  @Prop beStared: string = '---';
+  @Param star: string = '---';
+  @Param follower: string = '---';
+  @Param followed: string = '---';
+  @Param repos: string = '---';
+  @Param beStared: string = '---';
 
-  @Prop setting: boolean = false;
-  @Prop settingNeed: boolean = false;
-  @Prop unRead: boolean = false;
-  @Prop isOrganizations: boolean = true;
-  @Prop needFollow: boolean = false;
-  @Prop hadFollowed: boolean = false;
-  @Prop userType: string = '';
+  @Param setting: boolean = false;
+  @Param settingNeed: boolean = false;
+  @Param unRead: boolean = false;
+  @Param isOrganizations: boolean = true;
+  @Param needFollow: boolean = false;
+  @Param hadFollowed: boolean = false;
+  @Param userType: string = '';
 
-  @Prop orgsList: UserHeadOrgItem[] = [];
+  @Param orgsList: UserHeadOrgItem[] = [];
 
-  onAvatarTap: () => void = (): void => {};
-  onSettingTap: () => void = (): void => {};
-  onNotifyTap: () => void = (): void => {};
-  onFollowTap: () => void = (): void => {};
-  onCounterTap: (key: string) => void = (_k: string): void => {};
+  @Event onAvatarTap: () => void = (): void => {};
+  @Event onSettingTap: () => void = (): void => {};
+  @Event onNotifyTap: () => void = (): void => {};
+  @Event onFollowTap: () => void = (): void => {};
+  @Event onCounterTap: (key: string) => void = (_k: string): void => {};
 
   private resolveBellColor(): string {
     return this.unRead ? GSYColor.actionBlue : GSYColor.miWhite;
@@ -127,8 +127,8 @@ export struct UserHeadItem {
   /**
    * R-UI-05 inline 直读：buildIconLine 不再接收 text 值参（旧版 `text: string`
    * 触发 ArkTS @Builder 值参冻结陷阱）。lineKey 仅用作 cellId 路由 + 三元
-   * 内部直接读 this.groupName / this.location / this.link（@Prop string），
-   * 让 @Prop 响应式订阅链路在父 build 重渲染时自然驱动 cell 文案刷新。
+   * 内部直接读 this.groupName / this.location / this.link（@Param string），
+   * 让 @Param 响应式订阅链路在父 build 重渲染时自然驱动 cell 文案刷新。
    * 参考已有 inline 范式：[buildCounterCell](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/widget/UserHeadItem.ets#L153-L184)（key+三元 inline 读 this.repos 等）
    * KI-048 / R-UI-05 守则参考：[ui-parity-with-rn.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/rules/ui-parity-with-rn.md)
    */
@@ -210,27 +210,34 @@ export struct UserHeadItem {
   }
 
   @Builder
+  buildOrgAvatar(org: UserHeadOrgItem): void {
+    if (org.avatar_url && org.avatar_url.length > 0) {
+      Image(org.avatar_url)
+        .width(GSYIconSize.small)
+        .height(GSYIconSize.small)
+        .borderRadius(GSYIconSize.small / 2)
+        .margin({ right: GSYSpacing.halfEdge });
+    } else {
+      Text(org.login.substring(0, 1).toUpperCase())
+        .width(GSYIconSize.small)
+        .height(GSYIconSize.small)
+        .borderRadius(GSYIconSize.small / 2)
+        .textAlign(TextAlign.Center)
+        .fontColor(GSYColor.white)
+        .backgroundColor(GSYColor.primaryDark)
+        .margin({ right: GSYSpacing.halfEdge });
+    }
+  }
+
+  @Builder
   buildOrgsBar(): void {
     if (this.orgsList && this.orgsList.length > 0) {
       Row() {
-        ForEach(this.orgsList, (org: UserHeadOrgItem, idx: number): void => {
-          if (org.avatar_url && org.avatar_url.length > 0) {
-            Image(org.avatar_url)
-              .width(GSYIconSize.small)
-              .height(GSYIconSize.small)
-              .borderRadius(GSYIconSize.small / 2)
-              .margin({ right: GSYSpacing.halfEdge });
-          } else {
-            Text(org.login.substring(0, 1).toUpperCase())
-              .width(GSYIconSize.small)
-              .height(GSYIconSize.small)
-              .borderRadius(GSYIconSize.small / 2)
-              .textAlign(TextAlign.Center)
-              .fontColor(GSYColor.white)
-              .backgroundColor(GSYColor.primaryDark)
-              .margin({ right: GSYSpacing.halfEdge });
-          }
-        }, (org: UserHeadOrgItem, idx: number): string => 'org_' + idx.toString() + '_' + org.login);
+        Repeat<UserHeadOrgItem>(this.orgsList)
+          .each((obj: RepeatItem<UserHeadOrgItem>): void => {
+            this.buildOrgAvatar(obj.item)
+          })
+          .key((org: UserHeadOrgItem, idx: number): string => 'org_' + idx.toString() + '_' + org.login);
       }
       .id('user_head_orgs_bar')
       .width('100%')

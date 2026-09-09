@@ -14,7 +14,7 @@
 import { I18n } from 'common';
 import { TimeUtil } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing, GSYIconSize, GSYShadow } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { PullLoadMoreList } from 'common';
 import {
   RepositoryDetail,
   RepositoryDetailStore,
@@ -49,7 +49,9 @@ const HEADER_AVATAR_SIZE: number = 28;
 export struct ActivityTab {
   // 列表数据全部走 @ObjectLink store 直接读，保证 store 内字段更新立即触发 build 重渲。
   @Prop activity: RepositoryEventItem[] = [];
-  @Link controller: PullLoadMoreController;
+  @Prop refreshing: boolean = false;
+  @Prop loadingMore: boolean = false;
+  @Prop noMore: boolean = false;
   @ObjectLink store: RepositoryDetailStore;
   ownerName: string = '';
   repositoryName: string = '';
@@ -439,15 +441,17 @@ export struct ActivityTab {
     Column() {
       PullLoadMoreList({
         dataSource: this.currentDataSource(),
-        controller: this.controller,
+        refreshing: this.refreshing,
+        loadingMore: this.loadingMore,
+        noMore: this.noMore,
         renderHeader: (): void => this.headerBuilder(),
         renderRow: (item: Object, index: number): void =>
           this.rowBuilder(item, index),
         renderEmpty: (): void => this.emptyBuilder(),
-        refresh: (): void => {
+        onRefresh: (): void => {
           this.refresh();
         },
-        loadMore: (): void => {
+        onLoadMore: (): void => {
           this.loadMore();
         },
         tailPadding: GSYSpacing.tabBarHeight + GSYSpacing.normalEdge * 2,

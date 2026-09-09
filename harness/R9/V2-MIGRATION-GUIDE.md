@@ -120,7 +120,33 @@ struct XxxRow {
 4. **注意**：同文件里的 Model interface（数据实体）保留原处不动。跨 service 重复定义的实体（如 `FetchStarredCountResult` 同时在 MyService/UserService）统一收敛到一处，另一处 import。
 5. 改 service 签名时全工程搜调用点（含 ohosTest 的 *ServiceTest）一起改。**测试文件里的 service mock/注入路径要跟着签名走，但断言语义不许变。**
 
-## 4. 列表：ForEach → Repeat
+## 4. 列表：ForEach → Repeat + PullLoadMoreList V2 接口契约
+
+### PullLoadMoreList 已升级为 V2（common/ui/components/PullLoadMoreList.ets）
+
+V1 的 `PullLoadMoreController` 状态机已删除。新接口（受控式，状态归 ViewModel）：
+
+```typescript
+PullLoadMoreList({
+  dataSource: this.vm.items,            // @Param Object[]（必须）
+  refreshing: this.vm.refreshing,       // @Param boolean
+  noMore: !this.vm.hasMore,             // @Param boolean（footer 显示"没有更多"）
+  loadingMore: this.vm.loadingMore,     // @Param boolean
+  showEmpty: this.vm.showEmpty,         // @Param boolean（空态）
+  emptyText: '',                        // @Param string
+  onRefresh: (): void => { this.vm.refresh() },        // @Event
+  onLoadMore: (): void => { this.vm.loadMore() },      // @Event
+  renderRow: (item: Object, index: number): void => this.rowBuilder(item, index),  // 行渲染（沿用闭包模式）
+  renderHeader: ...,                    // 可选，同旧
+  renderEmpty: ...,                     // 可选，同旧
+})
+  .id('xxx_pull_list')                  // 调用方 id 原样保留
+```
+
+ViewModel 侧负责在 refresh/loadMore 完成后把 `refreshing/loadingMore` 置回 false（指示器随之收起）。
+**调用方迁移要点**：删掉 `new PullLoadMoreController()`、`@Link controller`、`refreshComplete/loadMoreComplete/setFooterState/showRefreshState` 全部调用；`dataSource` 替换旧的 `dataSource` 传法一致；行渲染闭包写法保持。ohosTest 宿主页同样迁移。
+
+### Repeat 写法
 
 V2 组件里一律用 Repeat（长列表必须 virtualScroll）：
 

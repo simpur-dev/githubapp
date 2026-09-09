@@ -28,11 +28,11 @@ import { GSYColor, GSYFontSize, GSYIconSize } from 'common';
 
 export type TabIconKey = 'aperture' | 'activity' | 'user';
 
-@Component
+@ComponentV2
 export struct TabIcon {
-  @Prop iconKey: TabIconKey = 'aperture';
-  @Prop selected: boolean = false;
-  @Prop title: string = '';
+  @Param iconKey: TabIconKey = 'aperture';
+  @Param selected: boolean = false;
+  @Param title: string = '';
   iconSize: number = GSYIconSize.tab;
 
   private resolveColor(): string {

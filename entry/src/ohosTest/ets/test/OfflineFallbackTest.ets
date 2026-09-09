@@ -23,7 +23,7 @@ import { ValueType, ValuesBucket } from 'common';
 import { RdbStoreLike } from 'common';
 import { DynamicDao, DYN_TABLE_RECEIVED } from 'common';
 import { DynamicService, FetchReceivedResult } from 'common';
-import { DynamicEvent, DynamicStore } from 'common';
+import { DynamicEvent } from 'common';
 import { NetworkMonitor, NetworkProvider } from 'common';
 
 type FakeRow = Record<string, ValueType>;
@@ -311,7 +311,6 @@ export default function OfflineFallbackTest(): void {
     let storage: FakeTokenStorage;
     let rdb: FakeRdbStore;
     let dao: DynamicDao;
-    let store: DynamicStore;
     let service: DynamicService;
     let netProvider: FakeNetworkProvider;
 
@@ -320,8 +319,7 @@ export default function OfflineFallbackTest(): void {
       storage = new FakeTokenStorage();
       rdb = buildRdb();
       dao = new DynamicDao(rdb);
-      store = new DynamicStore();
-      service = new DynamicService(store, dao, PAGE_SIZE);
+      service = new DynamicService(dao, PAGE_SIZE);
       netProvider = new FakeNetworkProvider();
 
       HttpManager.setMockProvider(provider);
@@ -355,10 +353,6 @@ export default function OfflineFallbackTest(): void {
         expect(res.fromCache).assertTrue();
         expect(res.data.length).assertEqual(2);
         expect(res.data[0].id).assertEqual('cache-0');
-        expect(store.list.length).assertEqual(2);
-        expect(store.list[0].id).assertEqual('cache-0');
-        expect(store.list[1].id).assertEqual('cache-1');
-        expect(store.error).assertEqual('');
       });
 
     it('dynamic_service_no_cache_returns_from_cache_false_and_error', 0,
@@ -370,8 +364,8 @@ export default function OfflineFallbackTest(): void {
 
         expect(res.result).assertFalse();
         expect(res.fromCache).assertFalse();
-        expect(store.list.length).assertEqual(0);
-        expect(store.error.length > 0).assertTrue();
+        expect(res.data.length).assertEqual(0);
+        expect(res.msg.length > 0).assertTrue();
       });
 
     it('network_monitor_onChange_receives_false_when_provider_loses', 0,

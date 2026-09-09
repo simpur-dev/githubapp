@@ -99,6 +99,8 @@ export class GSYColor {
   // LoadingModal 全屏遮罩（80% alpha 黑底）
   static readonly loadingMaskBg: string = '#CC000000';
   static readonly loadingLightMaskBg: string = '#33000000';
+  // HomePage 抽屉打开时的底层遮罩（20% alpha 黑）
+  static readonly drawerScrim: string = '#33000000';
 }
 
 // R7-N：暗色主题 9 项调色板 token（OH 增强：RN 端无主题切换系统）

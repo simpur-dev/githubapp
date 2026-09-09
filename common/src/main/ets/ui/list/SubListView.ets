@@ -5,7 +5,7 @@
  * RN [RepositoryItem.js](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/widget/RepositoryItem.js)
  * HARD-LAW-2 token-only：所有字面量 fontSize/padding/iconSize/borderRadius 已迁移至 Theme.ets
  */
-import { PullLoadMoreList, PullLoadMoreController } from '../components/PullLoadMoreList';
+import { PullLoadMoreList } from '../components/PullLoadMoreList';
 import { SubUserItem, SubRepositoryItem } from '../../model/service/RepositoryService';
 import { RepositoryItem } from '../widget/RepositoryItem';
 import { UserItem } from '../widget/UserItem';
@@ -22,7 +22,10 @@ export struct SubListView {
   @Prop mode: SubListMode = SubListMode.USER;
   @Prop users: SubUserItem[] = [];
   @Prop repos: SubRepositoryItem[] = [];
-  @ObjectLink controller: PullLoadMoreController;
+  // 受控列表状态（R9 V2 契约）：旧 PullLoadMoreController 已删除，由调用方 @State 驱动。
+  @Prop refreshing: boolean = false;
+  @Prop loadingMore: boolean = false;
+  @Prop noMore: boolean = false;
   @Prop idPrefix: string = 'sub_list';
   refresh: () => void = (): void => {};
   loadMore: () => void = (): void => {};
@@ -114,13 +117,15 @@ export struct SubListView {
   buildUserList(): void {
     PullLoadMoreList({
       dataSource: this.users,
-      controller: this.controller,
+      refreshing: this.refreshing,
+      loadingMore: this.loadingMore,
+      noMore: this.noMore,
       renderRow: (item: Object, index: number): void => this.buildUserRow(item as SubUserItem, index),
       renderHeader: (): void => this.buildHeader(),
-      refresh: (): void => {
+      onRefresh: (): void => {
         this.refresh();
       },
-      loadMore: (): void => {
+      onLoadMore: (): void => {
         this.loadMore();
       },
     })
@@ -131,13 +136,15 @@ export struct SubListView {
   buildRepoList(): void {
     PullLoadMoreList({
       dataSource: this.repos,
-      controller: this.controller,
+      refreshing: this.refreshing,
+      loadingMore: this.loadingMore,
+      noMore: this.noMore,
       renderRow: (item: Object, index: number): void => this.buildRepoRow(item as SubRepositoryItem, index),
       renderHeader: (): void => this.buildHeader(),
-      refresh: (): void => {
+      onRefresh: (): void => {
         this.refresh();
       },
-      loadMore: (): void => {
+      onLoadMore: (): void => {
         this.loadMore();
       },
     })

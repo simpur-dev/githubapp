@@ -1,7 +1,7 @@
 import { I18n } from 'common';
 import router from '@ohos.router';
 import pasteboard from '@ohos.pasteboard';
-import { PullLoadMoreController } from 'common';
+
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RouteParamStore } from 'common';
@@ -80,9 +80,15 @@ export struct RepositoryDetailPage {
   @State store: RepositoryDetailStore = new RepositoryDetailStore();
   @State currentIndex: number = 0;
   @State activitySelect: number = 0;
-  @State activityController: PullLoadMoreController = new PullLoadMoreController();
-  @State issueController: PullLoadMoreController = new PullLoadMoreController();
-  @State filesController: PullLoadMoreController = new PullLoadMoreController();
+  @State activityRefreshing: boolean = false;
+  @State activityLoadingMore: boolean = false;
+  @State activityNoMore: boolean = false;
+  @State issueRefreshing: boolean = false;
+  @State issueLoadingMore: boolean = false;
+  @State issueNoMore: boolean = false;
+  @State filesRefreshing: boolean = false;
+  @State filesLoadingMore: boolean = false;
+  @State filesNoMore: boolean = false;
   @State currentFilePath: string = '';
   @State filePathStack: string[] = [];
   @State branchMenuVisible: boolean = false;
@@ -250,19 +256,25 @@ export struct RepositoryDetailPage {
     if (this.fullName.length === 0) {
       return;
     }
-    this.activityController.showRefreshState();
+    this.activityRefreshing = true;
+    this.activityLoadingMore = false;
+    this.activityNoMore = false;;
     await this.service.getRepositoryEvents(this.fullName, 1);
-    this.activityController.refreshComplete(this.store.activityHasMore, false);
+    this.activityRefreshing = false;
+    this.activityLoadingMore = false;
+    this.activityNoMore = !(this.store.activityHasMore);
   }
 
   private async loadMoreActivity(): Promise<void> {
     if (!this.store.activityHasMore) {
-      this.activityController.loadMoreComplete(false);
+      this.activityLoadingMore = false;
+    this.activityNoMore = !(false);
       return;
     }
     const next: number = this.store.activityPage + 1;
     await this.service.getRepositoryEvents(this.fullName, next);
-    this.activityController.loadMoreComplete(this.store.activityHasMore);
+    this.activityLoadingMore = false;
+    this.activityNoMore = !(this.store.activityHasMore);
   }
 
   /**
@@ -273,9 +285,13 @@ export struct RepositoryDetailPage {
       return;
     }
     if (sel === 1) {
-      this.activityController.showRefreshState();
+      this.activityRefreshing = true;
+    this.activityLoadingMore = false;
+    this.activityNoMore = false;;
       await this.service.getRepositoryCommits(this.fullName, 1);
-      this.activityController.refreshComplete(this.store.commitsHasMore, false);
+      this.activityRefreshing = false;
+    this.activityLoadingMore = false;
+    this.activityNoMore = !(this.store.commitsHasMore);
       return;
     }
   }
@@ -291,12 +307,14 @@ export struct RepositoryDetailPage {
   private async loadMoreCurrentActivityTab(): Promise<void> {
     if (this.activitySelect === 1) {
       if (!this.store.commitsHasMore) {
-        this.activityController.loadMoreComplete(false);
+        this.activityLoadingMore = false;
+    this.activityNoMore = !(false);
         return;
       }
       const next: number = this.store.commitsPage + 1;
       await this.service.getRepositoryCommits(this.fullName, next);
-      this.activityController.loadMoreComplete(this.store.commitsHasMore);
+      this.activityLoadingMore = false;
+    this.activityNoMore = !(this.store.commitsHasMore);
       return;
     }
     await this.loadMoreActivity();
@@ -306,19 +324,25 @@ export struct RepositoryDetailPage {
     if (this.fullName.length === 0) {
       return;
     }
-    this.issueController.showRefreshState();
+    this.issueRefreshing = true;
+    this.issueLoadingMore = false;
+    this.issueNoMore = false;;
     await this.service.getIssues(this.fullName, this.store.issueState, 1, this.store.issueSearchQuery);
-    this.issueController.refreshComplete(this.store.issuesHasMore, false);
+    this.issueRefreshing = false;
+    this.issueLoadingMore = false;
+    this.issueNoMore = !(this.store.issuesHasMore);
   }
 
   private async loadMoreIssues(): Promise<void> {
     if (!this.store.issuesHasMore) {
-      this.issueController.loadMoreComplete(false);
+      this.issueLoadingMore = false;
+    this.issueNoMore = !(false);
       return;
     }
     const next: number = this.store.issuesPage + 1;
     await this.service.getIssues(this.fullName, this.store.issueState, next, this.store.issueSearchQuery);
-    this.issueController.loadMoreComplete(this.store.issuesHasMore);
+    this.issueLoadingMore = false;
+    this.issueNoMore = !(this.store.issuesHasMore);
   }
 
   private async handleIssueStateChange(state: string): Promise<void> {
@@ -362,9 +386,13 @@ export struct RepositoryDetailPage {
     // 先把 currentFilePath 落到目标路径，避免 PullLoadMoreList 内部
     // refresh 回调把旧路径（root）再带回来覆盖（dir 点进去刷回 root 的根因）。
     this.currentFilePath = path;
-    this.filesController.showRefreshState();
+    this.filesRefreshing = true;
+    this.filesLoadingMore = false;
+    this.filesNoMore = false;;
     await this.service.getFiles(this.fullName, this.resolveCurrentBranch(), path);
-    this.filesController.refreshComplete(false, false);
+    this.filesRefreshing = false;
+    this.filesLoadingMore = false;
+    this.filesNoMore = !(false);
   }
 
   private async openFile(item: RepositoryFileItem): Promise<void> {
@@ -827,7 +855,9 @@ export struct RepositoryDetailPage {
             TabContent() {
               ActivityTab({
                 activity: this.store.activity,
-                controller: this.activityController,
+                refreshing: this.activityRefreshing,
+        loadingMore: this.activityLoadingMore,
+        noMore: this.activityNoMore,
                 store: this.store,
                 ownerName: this.resolveOwnerName(),
                 repositoryName: this.resolveRepositoryName(),
@@ -887,7 +917,9 @@ export struct RepositoryDetailPage {
                 currentState: this.store.issueState,
                 searchQuery: this.store.issueSearchQuery,
                 showCreateFab: false,
-                controller: this.issueController,
+                refreshing: this.issueRefreshing,
+        loadingMore: this.issueLoadingMore,
+        noMore: this.issueNoMore,
                 refresh: (): void => {
                   this.refreshIssues();
                 },
@@ -917,7 +949,9 @@ export struct RepositoryDetailPage {
               FilesTab({
                 files: this.store.files,
                 currentPath: this.currentFilePath,
-                controller: this.filesController,
+                refreshing: this.filesRefreshing,
+        loadingMore: this.filesLoadingMore,
+        noMore: this.filesNoMore,
                 refresh: (): void => {
                   this.refreshFiles(this.currentFilePath);
                 },

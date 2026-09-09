@@ -6,7 +6,6 @@ import { TrendDao } from '../../base/dao/TrendDao';
 import { ReadResult } from '../../base/dao/DaoBase';
 import {
   TrendRepo,
-  TrendStore,
   TrendSince,
   TREND_LANGUAGE_ALL,
 } from '../store/TrendStore';
@@ -140,32 +139,23 @@ export class FetchTrendingResult {
 }
 
 export class TrendService {
-  private store: TrendStore;
   private dao: TrendDao;
 
-  constructor(store: TrendStore, dao?: TrendDao) {
-    this.store = store;
+  constructor(dao?: TrendDao) {
     this.dao = dao !== undefined ? dao : new TrendDao();
-  }
-
-  getStore(): TrendStore {
-    return this.store;
   }
 
   getDao(): TrendDao {
     return this.dao;
   }
 
+  /**
+   * 无状态取趋势列表（R9 V2 + MVVM）：since / language 归调用方 ViewModel 持有，
+   * 本方法只做缓存回退 + 网络取数 + 缓存写回，结果原样返回。
+   */
   async fetchTrending(since: TrendSince, language: string): Promise<FetchTrendingResult> {
     const finalLanguage: string = language && language.length > 0 ? language : TREND_LANGUAGE_ALL;
-    this.store.setSince(since);
-    this.store.setLanguage(finalLanguage);
-    this.store.startLoading();
     const cached: TrendRepo[] = await this.readCache(since, finalLanguage);
-    if (cached.length > 0) {
-      this.store.applyCachedFallback(cached);
-    }
-    this.store.startLoading();
 
     const lang: string | null = finalLanguage.length > 0 ? finalLanguage : null;
     // 对齐 RN：[repositoryDao.js#L15-L23] 用 https://guoshuyu.cn/github/trend/list + api-token header
@@ -186,24 +176,20 @@ export class TrendService {
         await this.dao.saveTrend(since, finalLanguage, JSON.stringify(repos));
       } catch (_e) {
       }
-      this.store.applyRefresh(repos);
       return new FetchTrendingResult(true, httpResult.code, repos, false, '');
     }
 
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
       return new FetchTrendingResult(false, UNAUTHORIZED, [], false, msg);
     }
 
     if (cached.length > 0) {
-      this.store.applyCachedFallback(cached);
       return new FetchTrendingResult(true, httpResult.code, cached, true,
         httpResult.msg !== null ? httpResult.msg : '');
     }
 
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
     return new FetchTrendingResult(false, httpResult.code, [], false, failMsg);
   }
 

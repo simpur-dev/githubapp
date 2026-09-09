@@ -14,7 +14,7 @@ import { I18n } from 'common';
 import { AppBar } from 'common';
 import { NavigationService } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
-import { PullLoadMoreController, PullLoadMoreList } from 'common';
+import { PullLoadMoreList } from 'common';
 import { ReleaseItem } from './views/ReleaseItem';
 import {
   RepositoryService,
@@ -50,8 +50,12 @@ export struct ReleasePage {
   @State tagPage: number = 1;
   @State releaseHasMore: boolean = true;
   @State tagHasMore: boolean = true;
-  @State releaseController: PullLoadMoreController = new PullLoadMoreController();
-  @State tagController: PullLoadMoreController = new PullLoadMoreController();
+  @State releaseRefreshing: boolean = false;
+  @State releaseLoadingMore: boolean = false;
+  @State releaseNoMore: boolean = false;
+  @State tagRefreshing: boolean = false;
+  @State tagLoadingMore: boolean = false;
+  @State tagNoMore: boolean = false;
 
   private tabsController: TabsController = new TabsController();
   private tabs: ReleaseTabItem[] = [
@@ -86,7 +90,9 @@ export struct ReleasePage {
     if (this.ownerName.length === 0 || this.repositoryName.length === 0) {
       return;
     }
-    this.releaseController.showRefreshState();
+    this.releaseRefreshing = true;
+    this.releaseLoadingMore = false;
+    this.releaseNoMore = false;;
     const res: FetchReleaseListResult = await RepositoryService.fetchRepositoryRelease(
       this.ownerName, this.repositoryName, 1);
     if (res.result) {
@@ -96,12 +102,15 @@ export struct ReleasePage {
     } else {
       Logger.w('ReleasePage', 'refreshRelease failed code=' + res.code + ' msg=' + res.msg);
     }
-    this.releaseController.refreshComplete(this.releaseHasMore, false);
+    this.releaseRefreshing = false;
+    this.releaseLoadingMore = false;
+    this.releaseNoMore = !(this.releaseHasMore);
   }
 
   private async loadMoreRelease(): Promise<void> {
     if (!this.releaseHasMore) {
-      this.releaseController.loadMoreComplete(false);
+      this.releaseLoadingMore = false;
+    this.releaseNoMore = !(false);
       return;
     }
     const next: number = this.releasePage + 1;
@@ -116,14 +125,17 @@ export struct ReleasePage {
       this.releasePage = next;
       this.releaseHasMore = res.data.length >= PAGE_SIZE;
     }
-    this.releaseController.loadMoreComplete(this.releaseHasMore);
+    this.releaseLoadingMore = false;
+    this.releaseNoMore = !(this.releaseHasMore);
   }
 
   private async refreshTag(): Promise<void> {
     if (this.ownerName.length === 0 || this.repositoryName.length === 0) {
       return;
     }
-    this.tagController.showRefreshState();
+    this.tagRefreshing = true;
+    this.tagLoadingMore = false;
+    this.tagNoMore = false;;
     const res: FetchReleaseListResult = await RepositoryService.fetchRepositoryTag(
       this.ownerName, this.repositoryName, 1);
     if (res.result) {
@@ -133,12 +145,15 @@ export struct ReleasePage {
     } else {
       Logger.w('ReleasePage', 'refreshTag failed code=' + res.code + ' msg=' + res.msg);
     }
-    this.tagController.refreshComplete(this.tagHasMore, false);
+    this.tagRefreshing = false;
+    this.tagLoadingMore = false;
+    this.tagNoMore = !(this.tagHasMore);
   }
 
   private async loadMoreTag(): Promise<void> {
     if (!this.tagHasMore) {
-      this.tagController.loadMoreComplete(false);
+      this.tagLoadingMore = false;
+    this.tagNoMore = !(false);
       return;
     }
     const next: number = this.tagPage + 1;
@@ -153,7 +168,8 @@ export struct ReleasePage {
       this.tagPage = next;
       this.tagHasMore = res.data.length >= PAGE_SIZE;
     }
-    this.tagController.loadMoreComplete(this.tagHasMore);
+    this.tagLoadingMore = false;
+    this.tagNoMore = !(this.tagHasMore);
   }
 
   @Builder
@@ -215,11 +231,13 @@ export struct ReleasePage {
           TabContent() {
             PullLoadMoreList({
               dataSource: this.releaseItems,
-              controller: this.releaseController,
-              refresh: (): void => {
+              refreshing: this.releaseRefreshing,
+        loadingMore: this.releaseLoadingMore,
+        noMore: this.releaseNoMore,
+              onRefresh: (): void => {
                 this.refreshRelease();
               },
-              loadMore: (): void => {
+              onLoadMore: (): void => {
                 this.loadMoreRelease();
               },
               renderRow: (item: Object, index: number): void => {
@@ -233,11 +251,13 @@ export struct ReleasePage {
           TabContent() {
             PullLoadMoreList({
               dataSource: this.tagItems,
-              controller: this.tagController,
-              refresh: (): void => {
+              refreshing: this.tagRefreshing,
+        loadingMore: this.tagLoadingMore,
+        noMore: this.tagNoMore,
+              onRefresh: (): void => {
                 this.refreshTag();
               },
-              loadMore: (): void => {
+              onLoadMore: (): void => {
                 this.loadMoreTag();
               },
               renderRow: (item: Object, index: number): void => {

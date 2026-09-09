@@ -7,9 +7,7 @@ import {
 import { HttpHeaders } from 'common';
 import { SUCCESS } from 'common';
 import { Address } from 'common';
-import {
-  PullLoadMoreController,
-} from 'common';
+
 import {
   RepositoryDetailStore,
   RepositoryEventItem,
@@ -310,9 +308,15 @@ struct RepoTabsHostPage {
   @State navStack: NavPathStack = new NavPathStack();
   @State store: RepositoryDetailStore = new RepositoryDetailStore();
   @State currentTab: number = 0;
-  @State issueController: PullLoadMoreController = new PullLoadMoreController();
-  @State eventController: PullLoadMoreController = new PullLoadMoreController();
-  @State filesController: PullLoadMoreController = new PullLoadMoreController();
+  @State issueRefreshing: boolean = false;
+  @State issueLoadingMore: boolean = false;
+  @State issueNoMore: boolean = false;
+  @State eventRefreshing: boolean = false;
+  @State eventLoadingMore: boolean = false;
+  @State eventNoMore: boolean = false;
+  @State filesRefreshing: boolean = false;
+  @State filesLoadingMore: boolean = false;
+  @State filesNoMore: boolean = false;
   private service: RepositoryService = new RepositoryService(this.store);
 
   aboutToAppear(): void {
@@ -333,47 +337,67 @@ struct RepoTabsHostPage {
   }
 
   private async refreshIssues(): Promise<void> {
-    this.issueController.showRefreshState();
+    this.issueRefreshing = true;
+    this.issueLoadingMore = false;
+    this.issueNoMore = false;;
     await this.service.getIssues(TARGET_FULL_NAME, this.store.issueState, 1, this.store.issueSearchQuery);
-    this.issueController.refreshComplete(this.store.issueHasMore, false);
+    this.issueRefreshing = false;
+    this.issueLoadingMore = false;
+    this.issueNoMore = !(this.store.issueHasMore);
   }
 
   private async loadMoreIssues(): Promise<void> {
     if (!this.store.issueHasMore) {
-      this.issueController.loadMoreComplete(false);
+      this.issueLoadingMore = false;
+    this.issueNoMore = !(false);
       return;
     }
     const next: number = this.store.issuePage + 1;
     await this.service.getIssues(TARGET_FULL_NAME, this.store.issueState, next, this.store.issueSearchQuery);
-    this.issueController.loadMoreComplete(this.store.issueHasMore);
+    this.issueLoadingMore = false;
+    this.issueNoMore = !(this.store.issueHasMore);
   }
 
   private async refreshEvents(): Promise<void> {
-    this.eventController.showRefreshState();
+    this.eventRefreshing = true;
+    this.eventLoadingMore = false;
+    this.eventNoMore = false;;
     await this.service.getEvents(TARGET_FULL_NAME, 1);
-    this.eventController.refreshComplete(this.store.eventHasMore, false);
+    this.eventRefreshing = false;
+    this.eventLoadingMore = false;
+    this.eventNoMore = !(this.store.eventHasMore);
   }
 
   private async loadMoreEvents(): Promise<void> {
     if (!this.store.eventHasMore) {
-      this.eventController.loadMoreComplete(false);
+      this.eventLoadingMore = false;
+    this.eventNoMore = !(false);
       return;
     }
     const next: number = this.store.eventPage + 1;
     await this.service.getEvents(TARGET_FULL_NAME, next);
-    this.eventController.loadMoreComplete(this.store.eventHasMore);
+    this.eventLoadingMore = false;
+    this.eventNoMore = !(this.store.eventHasMore);
   }
 
   private async refreshCommits(): Promise<void> {
-    this.eventController.showRefreshState();
+    this.eventRefreshing = true;
+    this.eventLoadingMore = false;
+    this.eventNoMore = false;;
     await this.service.getRepositoryCommits(TARGET_FULL_NAME, 1);
-    this.eventController.refreshComplete(this.store.commitsHasMore, false);
+    this.eventRefreshing = false;
+    this.eventLoadingMore = false;
+    this.eventNoMore = !(this.store.commitsHasMore);
   }
 
   private async refreshFiles(): Promise<void> {
-    this.filesController.showRefreshState();
+    this.filesRefreshing = true;
+    this.filesLoadingMore = false;
+    this.filesNoMore = false;;
     await this.service.getFiles(TARGET_FULL_NAME, null, this.store.currentPath);
-    this.filesController.refreshComplete(false, false);
+    this.filesRefreshing = false;
+    this.filesLoadingMore = false;
+    this.filesNoMore = !(false);
   }
 
   private async handleStateChange(state: string): Promise<void> {
@@ -476,7 +500,9 @@ struct RepoTabsHostPage {
               fullName: TARGET_FULL_NAME,
               currentState: this.store.issueState,
               searchQuery: this.store.issueSearchQuery,
-              controller: this.issueController,
+              refreshing: this.issueRefreshing,
+        loadingMore: this.issueLoadingMore,
+        noMore: this.issueNoMore,
               refresh: (): void => {
                 this.refreshIssues();
               },
@@ -500,7 +526,9 @@ struct RepoTabsHostPage {
           } else if (this.currentTab === 1) {
             ActivityTab({
               activity: this.store.eventList,
-              controller: this.eventController,
+              refreshing: this.eventRefreshing,
+        loadingMore: this.eventLoadingMore,
+        noMore: this.eventNoMore,
               store: this.store,
               ownerName: TARGET_OWNER,
               repositoryName: TARGET_REPO,
@@ -523,7 +551,9 @@ struct RepoTabsHostPage {
               currentPath: this.store.currentPath,
               fullName: TARGET_FULL_NAME,
               branch: '',
-              controller: this.filesController,
+              refreshing: this.filesRefreshing,
+        loadingMore: this.filesLoadingMore,
+        noMore: this.filesNoMore,
               refresh: (): void => {
                 this.refreshFiles();
               },

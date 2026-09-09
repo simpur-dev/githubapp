@@ -3,7 +3,7 @@ import pasteboard from '@ohos.pasteboard';
 import common from '@ohos.app.ability.common';
 import Want from '@ohos.app.ability.Want';
 import hilog from '@ohos.hilog';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { PullLoadMoreList } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
 import { AppBar, AppBarAction } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
@@ -24,7 +24,7 @@ import {
   FetchSubUserListResult
 } from 'common';
 import { SubUserItem } from 'common';
-import { DynamicService } from 'common';
+import { DynamicService, FetchReceivedResult } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RouteParamStore } from 'common';
@@ -79,15 +79,17 @@ export struct UserDetailPage {
   @State orgMembers: SubUserItem[] = [];
   @State orgMemberPage: number = 1;
   @State orgMemberHasMore: boolean = true;
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
+  @State plmRefreshing: boolean = false;
+  @State plmLoadingMore: boolean = false;
+  @State plmNoMore: boolean = false;
   private service: UserService = new UserService(this.store);
-  private dynamicService: DynamicService = new DynamicService(this.dynamicStore);
+  private dynamicService: DynamicService = new DynamicService();
   private readHistoryService: ReadHistoryService = new ReadHistoryService();
   private pathStack: NavPathStack = new NavPathStack();
 
   aboutToAppear(): void {
     this.service = new UserService(this.store);
-    this.dynamicService = new DynamicService(this.dynamicStore);
+    this.dynamicService = new DynamicService();
     this.tryAdoptRouteParam();
     if (this.login.length === 0) {
       this.tryAdoptBootUser();
@@ -154,7 +156,9 @@ export struct UserDetailPage {
     if (this.login.length === 0) {
       return;
     }
-    this.plmController.showRefreshState();
+    this.plmRefreshing = true;
+    this.plmLoadingMore = false;
+    this.plmNoMore = false;;
     const userRes: FetchUserResult = await this.service.getUser(this.login);
     if (userRes.result && userRes.fromCache && safeStr(this.store.user.starred).length === 0) {
       // Old local user rows may not include the Compose `starred` field yet.
@@ -178,15 +182,43 @@ export struct UserDetailPage {
         this.orgMemberHasMore = false;
       }
       this.dynamicStore.list = [];
-      this.plmController.refreshComplete(this.orgMemberHasMore, false);
+      this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.orgMemberHasMore);
     } else {
       this.orgMembers = [];
       await this.dynamicService.fetchUserEvents(this.login, 1);
-      this.plmController.refreshComplete(this.dynamicStore.hasMore, false);
+      this.plmRefreshing = false;
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.dynamicStore.hasMore);
     }
     await this.writeReadHistory();
     if (!userRes.result) {
       return;
+    }
+  }
+
+  /**
+   * DynamicService 无状态化适配：把取数结果写入页面级 DynamicStore
+   * （等价旧 service 直写 store 的 refresh/append 语义；失败时携带首页缓存则兜底展示）。
+   */
+  private applyDynamicResult(res: FetchReceivedResult, append: boolean): void {
+    if (res.result) {
+      if (append) {
+        const merged: DynamicEvent[] = this.dynamicStore.list.slice();
+        for (let i: number = 0; i < res.data.length; i++) {
+          merged.push(res.data[i]);
+        }
+        this.dynamicStore.list = merged;
+      } else {
+        this.dynamicStore.list = res.data.slice();
+      }
+      this.dynamicStore.page = res.page;
+      this.dynamicStore.hasMore = res.hasMore;
+    } else if (this.dynamicStore.list.length === 0 && res.data.length > 0) {
+      this.dynamicStore.list = res.data.slice();
+      this.dynamicStore.page = res.page;
+      this.dynamicStore.hasMore = res.hasMore;
     }
   }
 
@@ -217,7 +249,8 @@ export struct UserDetailPage {
   private async triggerLoadMore(): Promise<void> {
     if (this.isOrganizationProfile()) {
       if (!this.orgMemberHasMore) {
-        this.plmController.loadMoreComplete(false);
+        this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
         return;
       }
       const next: number = this.orgMemberPage + 1;
@@ -233,16 +266,19 @@ export struct UserDetailPage {
       } else {
         this.orgMemberHasMore = false;
       }
-      this.plmController.loadMoreComplete(this.orgMemberHasMore);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(this.orgMemberHasMore);
       return;
     }
     if (!this.dynamicStore.hasMore) {
-      this.plmController.loadMoreComplete(false);
+      this.plmLoadingMore = false;
+    this.plmNoMore = !(false);
       return;
     }
     const next: number = this.dynamicStore.page + 1;
     await this.dynamicService.fetchUserEvents(this.login, next);
-    this.plmController.loadMoreComplete(this.dynamicStore.hasMore);
+    this.plmLoadingMore = false;
+    this.plmNoMore = !(this.dynamicStore.hasMore);
   }
 
   private async toggleFollow(): Promise<void> {
@@ -643,7 +679,9 @@ export struct UserDetailPage {
           });
           PullLoadMoreList({
             dataSource: this.currentDataSource(),
-            controller: this.plmController,
+            refreshing: this.plmRefreshing,
+        loadingMore: this.plmLoadingMore,
+        noMore: this.plmNoMore,
             renderRow: (item: Object, index: number): void => {
               if (this.isOrganizationProfile()) {
                 this.orgMemberRowBuilder(item as SubUserItem, index);
@@ -653,10 +691,10 @@ export struct UserDetailPage {
             },
             renderHeader: (): void => this.buildHeader(),
             renderEmpty: (): void => this.emptyBuilder(),
-            refresh: (): void => {
+            onRefresh: (): void => {
               this.loadAll();
             },
-            loadMore: (): void => {
+            onLoadMore: (): void => {
               this.triggerLoadMore();
             },
           })

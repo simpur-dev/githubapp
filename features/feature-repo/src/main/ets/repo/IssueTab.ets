@@ -1,6 +1,6 @@
 import { I18n } from 'common';
 import type { TranslationMap } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { PullLoadMoreList } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { GSYSpacing, GSYColor, GSYFontSize, GSYShadow } from 'common';
@@ -29,7 +29,9 @@ export struct IssueTab {
   @Prop currentState: string = ISSUE_STATE_ALL;
   @Prop searchQuery: string = '';
   @Prop showCreateFab: boolean = true;
-  @Link controller: PullLoadMoreController;
+  @Prop refreshing: boolean = false;
+  @Prop loadingMore: boolean = false;
+  @Prop noMore: boolean = false;
   refresh: () => void = (): void => {};
   loadMore: () => void = (): void => {};
   onIssueClick: (item: RepositoryIssueItem) => void = (_item: RepositoryIssueItem): void => {};
@@ -341,13 +343,15 @@ export struct IssueTab {
         this.chipBarBuilder();
         PullLoadMoreList({
           dataSource: this.issues,
-          controller: this.controller,
+          refreshing: this.refreshing,
+        loadingMore: this.loadingMore,
+        noMore: this.noMore,
           renderRow: (item: Object, index: number): void => this.rowBuilder(item as RepositoryIssueItem, index),
           renderEmpty: (): void => this.emptyBuilder(),
-          refresh: (): void => {
+          onRefresh: (): void => {
             this.refresh();
           },
-          loadMore: (): void => {
+          onLoadMore: (): void => {
             this.loadMore();
           },
           tailPadding: GSYSpacing.normalEdge * 5,

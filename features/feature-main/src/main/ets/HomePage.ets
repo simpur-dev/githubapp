@@ -77,11 +77,11 @@ interface BootCommonListRouteParam {
 
 const DOUBLE_TAP_INTERVAL_MS: number = 300;
 
-@Component
+@ComponentV2
 export struct HomePage {
-  @State currentIndex: number = 0;
-  @State drawerOpen: boolean = false;
-  @State safeAreaBottom: number = 0;
+  @Local currentIndex: number = 0;
+  @Local drawerOpen: boolean = false;
+  @Local safeAreaBottom: number = 0;
   private tabsController: HdsTabsController = new HdsTabsController();
   private lastTapAt: Map<number, number> = new Map<number, number>();
   private unsubscribeLoginExpired: (() => void) | null = null;
@@ -469,7 +469,7 @@ export struct HomePage {
   /**
    * RN 端 TabIcon 内部同时绘制图标 + title（参考 [TabIcon.js#L52-L55](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/widget/TabIcon.js#L52-L55)）。
    * 选中态 / 未选中态颜色由 TabIcon 根据 GSYColor.tabSelected / tabUnSelect 切换。
-   * 注意：selected 必须以 @Prop 传入，currentIndex 切换才会触发子组件 rebuild。
+   * 注意：selected 必须以响应式入参（V2 @Param）传入，currentIndex 切换才会触发子组件 rebuild。
    */
   @Builder
   buildTabBar(item: HomeTabItem): void {
@@ -570,7 +570,7 @@ export struct HomePage {
           .id('home_drawer_scrim')
           .width('100%')
           .height('100%')
-          .backgroundColor('#33000000')
+          .backgroundColor(GSYColor.drawerScrim)
           .zIndex(8)
           .onClick((): void => {
             this.drawerOpen = false;

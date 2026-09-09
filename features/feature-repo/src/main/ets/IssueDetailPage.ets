@@ -1,7 +1,7 @@
 import { I18n } from 'common';
 import { AppBar, AppBarAction } from 'common';
 import { MarkdownText } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { PullLoadMoreList } from 'common';
 import { Logger } from 'common';
 import { BOOT_ISSUE_KEY, BootChannel, GlobalAuthStore } from 'common';
 import { NavigationService } from 'common';
@@ -205,7 +205,9 @@ export struct IssueDetailPage {
   @State fullName: string = FALLBACK_FULL_NAME;
   @State issueNumber: number = FALLBACK_NUMBER;
   @State store: IssueDetailStore = new IssueDetailStore();
-  @State commentController: PullLoadMoreController = new PullLoadMoreController();
+  @State commentRefreshing: boolean = false;
+  @State commentLoadingMore: boolean = false;
+  @State commentNoMore: boolean = false;
   @State pendingTitle: string = '';
   @State pendingBody: string = '';
   @State pendingCommentBody: string = '';
@@ -324,19 +326,25 @@ export struct IssueDetailPage {
     if (this.fullName.length === 0 || this.issueNumber <= 0) {
       return;
     }
-    this.commentController.showRefreshState();
+    this.commentRefreshing = true;
+    this.commentLoadingMore = false;
+    this.commentNoMore = false;;
     await this.service.getComments(this.fullName, this.issueNumber, 1);
-    this.commentController.refreshComplete(this.store.hasMore, false);
+    this.commentRefreshing = false;
+    this.commentLoadingMore = false;
+    this.commentNoMore = !(this.store.hasMore);
   }
 
   private async loadMoreComments(): Promise<void> {
     if (!this.store.hasMore) {
-      this.commentController.loadMoreComplete(false);
+      this.commentLoadingMore = false;
+    this.commentNoMore = !(false);
       return;
     }
     const next: number = this.store.page + 1;
     await this.service.getComments(this.fullName, this.issueNumber, next);
-    this.commentController.loadMoreComplete(this.store.hasMore);
+    this.commentLoadingMore = false;
+    this.commentNoMore = !(this.store.hasMore);
   }
 
   private currentLogin(): string {
@@ -947,15 +955,17 @@ export struct IssueDetailPage {
 
         PullLoadMoreList({
           dataSource: this.store.comments,
-          controller: this.commentController,
+          refreshing: this.commentRefreshing,
+        loadingMore: this.commentLoadingMore,
+        noMore: this.commentNoMore,
           renderRow: (item: Object, index: number): void =>
             this.buildCommentRow(item as IssueCommentModel, index),
           renderHeader: (): void => this.buildHeader(),
           renderEmpty: (): void => this.buildEmpty(),
-          refresh: (): void => {
+          onRefresh: (): void => {
             this.refreshComments();
           },
-          loadMore: (): void => {
+          onLoadMore: (): void => {
             this.loadMoreComments();
           },
         })

@@ -2,7 +2,7 @@ import { ReadHistoryPage, setReadHistoryServiceFactory } from 'feature_main';
 import { RepositoryDetailPage } from 'feature_repo';
 import { UserDetailPage } from 'feature_user';
 import { ReadHistoryService, ReadHistoryAddParam, ReadHistoryServiceResult } from 'common';
-import { ReadHistoryStore, ReadHistoryItem, READ_HISTORY_TYPE_REPO, READ_HISTORY_TYPE_USER } from 'common';
+import { ReadHistoryItem, READ_HISTORY_TYPE_REPO, READ_HISTORY_TYPE_USER } from 'common';
 import { RouteName } from 'common';
 import { HttpManager, HttpProvider, RawResponse } from 'common';
 import { HttpHeaders } from 'common';
@@ -24,15 +24,9 @@ class FakeReadHistoryService extends ReadHistoryService {
   clearCount: number = 0;
   lastClearType: string = '';
   injected: ReadHistoryItem[] = [];
-  uiStore: ReadHistoryStore | null = null;
 
   constructor() {
     super();
-  }
-
-  bindStore(store: ReadHistoryStore): void {
-    this.uiStore = store;
-    super.bindStore(store);
   }
 
   setInjected(items: ReadHistoryItem[]): void {
@@ -54,9 +48,6 @@ class FakeReadHistoryService extends ReadHistoryService {
         filtered.push(this.injected[i]);
       }
     }
-    if (this.uiStore !== null) {
-      (this.uiStore as ReadHistoryStore).applyRefresh(filtered, filtered.length + 1);
-    }
     return new ReadHistoryServiceResult<ReadHistoryItem[]>(true, filtered, '');
   }
 
@@ -74,9 +65,6 @@ class FakeReadHistoryService extends ReadHistoryService {
         }
       }
       this.injected = next;
-    }
-    if (this.uiStore !== null) {
-      (this.uiStore as ReadHistoryStore).clearList();
     }
     return new ReadHistoryServiceResult<number>(true, 1, '');
   }
@@ -127,8 +115,7 @@ struct ReadHistoryHostPage {
     READ_HISTORY_HOST_FAKE.listCount = 0;
     READ_HISTORY_HOST_FAKE.clearCount = 0;
     READ_HISTORY_HOST_FAKE.lastClearType = '';
-    setReadHistoryServiceFactory((uiStore: ReadHistoryStore): ReadHistoryService => {
-      READ_HISTORY_HOST_FAKE.bindStore(uiStore);
+    setReadHistoryServiceFactory((): ReadHistoryService => {
       return READ_HISTORY_HOST_FAKE;
     });
     HttpManager.setMockProvider(new ReadHistoryFakeProvider());

@@ -16,7 +16,6 @@ import { TrendDao, TREND_TABLE } from 'common';
 import { TrendService, FetchTrendingResult } from 'common';
 import {
   TrendRepo,
-  TrendStore,
   TrendSince,
   TREND_SINCE_DAILY,
   TREND_SINCE_WEEKLY,
@@ -308,7 +307,6 @@ export default function TrendServiceTest(): void {
     let storage: FakeTokenStorage;
     let rdb: FakeRdbStore;
     let dao: TrendDao;
-    let store: TrendStore;
     let service: TrendService;
 
     beforeEach((): void => {
@@ -316,8 +314,7 @@ export default function TrendServiceTest(): void {
       storage = new FakeTokenStorage();
       rdb = buildStore();
       dao = new TrendDao(rdb);
-      store = new TrendStore();
-      service = new TrendService(store, dao);
+      service = new TrendService(dao);
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -365,11 +362,6 @@ export default function TrendServiceTest(): void {
       expect(res.fromCache).assertFalse();
       expect(res.data.length).assertEqual(3);
       expect(rdb.insertCount).assertEqual(1);
-      expect(store.list.length).assertEqual(3);
-      expect(store.since).assertEqual(TREND_SINCE_DAILY);
-      expect(store.language).assertEqual('go');
-      expect(store.loading).assertFalse();
-      expect(store.error).assertEqual('');
 
       const cached = await dao.readTrend(TREND_SINCE_DAILY, 'go');
       expect(cached.result).assertTrue();
@@ -406,10 +398,6 @@ export default function TrendServiceTest(): void {
       expect(res.result).assertTrue();
       expect(res.fromCache).assertTrue();
       expect(res.data.length).assertEqual(2);
-      expect(store.list.length).assertEqual(2);
-      expect(store.since).assertEqual(TREND_SINCE_WEEKLY);
-      expect(store.language).assertEqual('python');
-      expect(store.error).assertEqual('');
     });
 
     it('failure_without_cache_sets_error', 0, async (): Promise<void> => {
@@ -420,9 +408,8 @@ export default function TrendServiceTest(): void {
 
       expect(res.result).assertFalse();
       expect(res.fromCache).assertFalse();
-      expect(store.list.length).assertEqual(0);
-      expect(store.error.length > 0).assertTrue();
-      expect(store.loading).assertFalse();
+      expect(res.data.length).assertEqual(0);
+      expect(res.msg.length > 0).assertTrue();
     });
 
     it('on_401_keeps_cache_visible_after_cache_first_emit', 0, async (): Promise<void> => {
@@ -437,8 +424,7 @@ export default function TrendServiceTest(): void {
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
       expect(res.fromCache).assertFalse();
-      expect(store.list.length).assertEqual(2);
-      expect(store.error.length > 0).assertTrue();
+      expect(res.data.length).assertEqual(2);
     });
 
     it('switching_since_and_language_uses_distinct_cache_keys', 0, async (): Promise<void> => {
@@ -447,11 +433,11 @@ export default function TrendServiceTest(): void {
       provider.pushResponse(SUCCESS, JSON.stringify(dayRepos));
       provider.pushResponse(SUCCESS, JSON.stringify(weekRepos));
 
-      await service.fetchTrending(TREND_SINCE_DAILY, 'java');
-      expect(store.list.length).assertEqual(2);
+      const dayRes: FetchTrendingResult = await service.fetchTrending(TREND_SINCE_DAILY, 'java');
+      expect(dayRes.data.length).assertEqual(2);
 
-      await service.fetchTrending(TREND_SINCE_WEEKLY, 'typescript');
-      expect(store.list.length).assertEqual(3);
+      const weekRes: FetchTrendingResult = await service.fetchTrending(TREND_SINCE_WEEKLY, 'typescript');
+      expect(weekRes.data.length).assertEqual(3);
 
       const dayCache = await dao.readTrend(TREND_SINCE_DAILY, 'java');
       const weekCache = await dao.readTrend(TREND_SINCE_WEEKLY, 'typescript');
@@ -463,15 +449,14 @@ export default function TrendServiceTest(): void {
       expect(weekParsed.length).assertEqual(3);
     });
 
-    it('store_marks_loading_during_request', 0, async (): Promise<void> => {
+    it('empty_trend_list_resolves_successfully', 0, async (): Promise<void> => {
       provider.nextStatus = SUCCESS;
       provider.nextBody = '[]';
 
-      const promise: Promise<FetchTrendingResult> = service.fetchTrending(TREND_SINCE_DAILY,
+      const res: FetchTrendingResult = await service.fetchTrending(TREND_SINCE_DAILY,
         TREND_LANGUAGE_ALL);
-      expect(store.loading).assertTrue();
-      await promise;
-      expect(store.loading).assertFalse();
+      expect(res.result).assertTrue();
+      expect(res.data.length).assertEqual(0);
     });
   });
 }

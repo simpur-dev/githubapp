@@ -3,49 +3,29 @@
  *
  * Compose 版固定加载 daily + all-language 趋势仓库，不渲染 RN 版的
  * daily/weekly/monthly 与 language 双下拉过滤条，也不支持 load more。
+ * View 只做组装（@ComponentV2），列表状态在 [TrendTabViewModel]。
  */
 import { I18n } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { PullLoadMoreList } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import {
   TrendRepo,
-  TrendStore,
-  TREND_SINCE_DAILY,
-  TREND_LANGUAGE_ALL,
   fullNameOf,
 } from 'common';
-import { TrendService, FetchTrendingResult } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from 'common';
 import { UserImage } from 'common';
 import { HTMLView } from 'common';
 import { CommonIconButton } from 'common';
 import { FA_CODE_FORK, FA_STAR_O } from 'common';
+import { TrendTabViewModel } from '../viewmodel/TrendTabViewModel';
 
-@Component
+@ComponentV2
 export struct TrendTabPage {
-  @State store: TrendStore = new TrendStore();
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
-  // page 直接持有数组快照，每次 fetch 完整体替换。
-  // 原因：@State store 这个整对象引用未变 → build 不重跑 → PullLoadMoreList 一直
-  // 拿的是首次 build 时的 store.list 引用，store 内部 this.list = repos.slice()
-  // 改动检测不到。
-  @State displayList: TrendRepo[] = [];
-  private service: TrendService = new TrendService(this.store);
+  @Local vm: TrendTabViewModel = new TrendTabViewModel();
 
   aboutToAppear(): void {
-    this.service = new TrendService(this.store);
-    this.triggerRefresh();
-  }
-
-  private async triggerRefresh(): Promise<void> {
-    this.plmController.showRefreshState();
-    const res: FetchTrendingResult = await this.service.fetchTrending(TREND_SINCE_DAILY, TREND_LANGUAGE_ALL);
-    this.plmController.refreshComplete(false, false);
-    this.displayList = this.store.list.slice();
-    if (!res.result && res.data.length === 0) {
-      return;
-    }
+    this.vm.init();
   }
 
   private onRowClick(item: TrendRepo): void {
@@ -187,15 +167,15 @@ export struct TrendTabPage {
   build(): void {
     Column() {
       PullLoadMoreList({
-        dataSource: this.displayList,
-        controller: this.plmController,
+        dataSource: this.vm.items,
+        refreshing: this.vm.refreshing,
+        loadingMore: false,
+        noMore: true,
+        showFooter: false,
         renderRow: (item: Object, index: number): void => this.rowBuilder(item as TrendRepo, index),
         renderEmpty: (): void => this.emptyBuilder(),
-        refresh: (): void => {
-          this.triggerRefresh();
-        },
-        loadMore: (): void => {
-          this.plmController.loadMoreComplete(false);
+        onRefresh: (): void => {
+          this.vm.refresh();
         },
         refreshingText: I18n('refreshing'),
         loadingMoreText: I18n('loadMoreing'),

@@ -1,39 +1,16 @@
 import { I18n } from 'common';
 import { AppBar } from 'common';
-import { PullLoadMoreList, PullLoadMoreController } from 'common';
+import { PullLoadMoreList } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { GSYColor } from 'common';
 import { RepositoryItem } from 'common';
-import {
-  ReadHistoryStore,
-  ReadHistoryItem,
-  READ_HISTORY_TYPE_REPO,
-  READ_HISTORY_TYPE_USER
-} from 'common';
-import {
-  ReadHistoryService,
-  READ_HISTORY_PAGE_SIZE
-} from 'common';
+import { ReadHistoryItem, READ_HISTORY_TYPE_REPO, READ_HISTORY_TYPE_USER } from 'common';
+import { ReadHistoryViewModel } from './viewmodel/ReadHistoryViewModel';
 
 export const READ_HISTORY_TAB_ALL: string = 'all';
 export const READ_HISTORY_TAB_REPO: string = 'repo';
 export const READ_HISTORY_TAB_USER: string = 'user';
-
-export type ReadHistoryServiceFactory = (uiStore: ReadHistoryStore) => ReadHistoryService;
-
-let readHistoryServiceFactory: ReadHistoryServiceFactory | null = null;
-
-export function setReadHistoryServiceFactory(factory: ReadHistoryServiceFactory | null): void {
-  readHistoryServiceFactory = factory;
-}
-
-function buildReadHistoryService(uiStore: ReadHistoryStore): ReadHistoryService {
-  if (readHistoryServiceFactory !== null) {
-    return (readHistoryServiceFactory as ReadHistoryServiceFactory)(uiStore);
-  }
-  return new ReadHistoryService(uiStore);
-}
 
 interface ReadHistoryRepoNavParam {
   fullName: string;
@@ -43,12 +20,6 @@ interface ReadHistoryRepoNavParam {
 
 interface ReadHistoryUserNavParam {
   login: string;
-}
-
-interface ReadHistoryTabItem {
-  key: string;
-  title: string;
-  filterType: string;
 }
 
 interface ReadHistoryRepoPayloadOwner {
@@ -67,52 +38,10 @@ interface ReadHistoryRepoPayload {
   owner?: ReadHistoryRepoPayloadOwner | null;
 }
 
-@Component
+@ComponentV2
 export struct ReadHistoryPage {
-  @State store: ReadHistoryStore = new ReadHistoryStore();
-  @State plmController: PullLoadMoreController = new PullLoadMoreController();
-  private service: ReadHistoryService = buildReadHistoryService(this.store);
+  @Local vm: ReadHistoryViewModel = new ReadHistoryViewModel();
   private pathStack: NavPathStack = new NavPathStack();
-
-  aboutToAppear(): void {
-    this.service = buildReadHistoryService(this.store);
-  }
-
-  setServiceForTest(service: ReadHistoryService): void {
-    this.service = service;
-    this.service.bindStore(this.store);
-  }
-
-  private currentFilterType(): string {
-    return READ_HISTORY_TYPE_REPO;
-  }
-
-  private async refreshList(): Promise<void> {
-    this.plmController.showRefreshState();
-    const filterType: string = this.currentFilterType();
-    const res = await this.service.list(filterType.length > 0 ? filterType : undefined, 1,
-      READ_HISTORY_PAGE_SIZE);
-    const showLoadMore: boolean = res.result && this.store.list.length > 0 && this.store.hasMore;
-    this.plmController.refreshComplete(showLoadMore, false);
-  }
-
-  private async loadMore(): Promise<void> {
-    if (!this.store.hasMore) {
-      this.plmController.loadMoreComplete(false);
-      return;
-    }
-    const next: number = this.store.page + 1;
-    const filterType: string = this.currentFilterType();
-    await this.service.list(filterType.length > 0 ? filterType : undefined, next,
-      READ_HISTORY_PAGE_SIZE);
-    this.plmController.loadMoreComplete(this.store.hasMore);
-  }
-
-  private async onClearTap(): Promise<void> {
-    const filterType: string = this.currentFilterType();
-    await this.service.clear(filterType.length > 0 ? filterType : undefined);
-    await this.refreshList();
-  }
 
   private onRowTap(item: ReadHistoryItem): void {
     if (item.type === READ_HISTORY_TYPE_REPO) {
@@ -277,16 +206,18 @@ export struct ReadHistoryPage {
           .id('read_history_appbar');
 
         PullLoadMoreList({
-          dataSource: this.store.list,
-          controller: this.plmController,
+          dataSource: this.vm.items,
+          refreshing: this.vm.refreshing,
+          loadingMore: this.vm.loadingMore,
+          noMore: !this.vm.hasMore,
           renderRow: (item: Object, index: number): void =>
             this.rowBuilder(item as ReadHistoryItem, index),
           renderEmpty: (): void => this.emptyBuilder(),
-          refresh: (): void => {
-            this.refreshList();
+          onRefresh: (): void => {
+            this.vm.refresh();
           },
-          loadMore: (): void => {
-            this.loadMore();
+          onLoadMore: (): void => {
+            this.vm.loadMore();
           },
         })
           .id('read_history_pull_list')
@@ -302,7 +233,7 @@ export struct ReadHistoryPage {
       if (stack !== undefined && stack !== null) {
         this.pathStack = stack;
       }
-      this.refreshList();
+      this.vm.refresh();
     });
   }
 }
