@@ -1,3 +1,10 @@
+/**
+ * ReadmeTab —— README 双通道渲染（V2）。
+ * native markdown 渲染优先（MarkdownRenderer）+ WebView 兜底（readmeHtml 写本地文件加载）。
+ * R9 V2 + MVVM：删除 @ObjectLink RepositoryDetailStore，readme 状态由调用方
+ * （RepositoryDetailPage 的 VM）经 @Param 传入；@Watch → @Monitor。
+ * 全部 readme_tab_* / readme_markdown_renderer 测试 id 原样保留。
+ */
 import webview from '@ohos.web.webview';
 import common from '@ohos.app.ability.common';
 import Want from '@ohos.app.ability.Want';
@@ -8,7 +15,6 @@ import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { Logger } from 'common';
-import { RepositoryDetailStore } from 'common';
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
 
 interface ReadmeTabUserRouteParam {
@@ -27,34 +33,35 @@ interface ReadmeTabWebRouteParam {
 
 const README_TAB_FALLBACK_BRANCH: string = 'master';
 
-@Component
+@ComponentV2
 export struct ReadmeTab {
-  @ObjectLink store: RepositoryDetailStore;
-  @Prop fullName: string = '';
-  @Prop branch: string = README_TAB_FALLBACK_BRANCH;
-  @Watch('onReadmeHtmlChange') @Prop readmeHtml: string = '';
-  @Prop readmeLoading: boolean = false;
-  @Prop readmeError: string = '';
-  @Watch('onReadmeMarkdownChange') @Prop readmeMarkdown: string = '';
-  @State loadedHtml: string = '';
-  @State webSrc: string = 'about:blank';
-  @State controllerAttached: boolean = false;
+  @Param fullName: string = '';
+  @Param branch: string = README_TAB_FALLBACK_BRANCH;
+  @Param readmeHtml: string = '';
+  @Param readmeLoading: boolean = false;
+  @Param readmeError: string = '';
+  @Param readmeMarkdown: string = '';
+  @Local loadedHtml: string = '';
+  @Local webSrc: string = 'about:blank';
+  @Local controllerAttached: boolean = false;
   private webController: webview.WebviewController = new webview.WebviewController();
 
+  @Monitor('readmeMarkdown')
   onReadmeMarkdownChange(): void {
     Logger.i('ReadmeTab', `onReadmeMarkdownChange len=${this.readmeMarkdown.length}`);
   }
 
-  aboutToAppear(): void {
-    if (this.readmeHtml.length > 0) {
-      this.safeLoad(this.readmeHtml);
-    }
-  }
-
+  @Monitor('readmeHtml')
   onReadmeHtmlChange(): void {
     Logger.i('ReadmeTab', `onReadmeHtmlChange len=${this.readmeHtml.length}`
       + ` attached=${this.controllerAttached}`);
     if (this.readmeHtml.length > 0 && this.loadedHtml !== this.readmeHtml) {
+      this.safeLoad(this.readmeHtml);
+    }
+  }
+
+  aboutToAppear(): void {
+    if (this.readmeHtml.length > 0) {
       this.safeLoad(this.readmeHtml);
     }
   }

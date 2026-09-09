@@ -6,7 +6,6 @@ import {
   SubUserItem,
   SubListResult
 } from 'common';
-import { RepositoryDetailStore } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { SubListView, SubListMode } from 'common';
@@ -21,22 +20,23 @@ interface UserDetailRouteParam {
 
 const FALLBACK_FULL_NAME: string = '';
 
-@Component
+/**
+ * RepositoryStarPage（V2 薄壳）：stargazers 子列表；本批不抽 VM，
+ * 列表状态以 @Local 受控字段直驱 SubListView（V2 契约）。
+ */
+@ComponentV2
 export struct RepositoryStarPage {
-  @State fullName: string = FALLBACK_FULL_NAME;
-  @State items: SubUserItem[] = [];
-  @State page: number = 1;
-  @State hasMore: boolean = true;
-  @State error: string = '';
-  @State plmRefreshing: boolean = false;
-  @State plmLoadingMore: boolean = false;
-  @State plmNoMore: boolean = false;
-  private store: RepositoryDetailStore = new RepositoryDetailStore();
-  private service: RepositoryService = new RepositoryService(this.store);
+  @Local fullName: string = FALLBACK_FULL_NAME;
+  @Local items: SubUserItem[] = [];
+  @Local plmRefreshing: boolean = false;
+  @Local plmLoadingMore: boolean = false;
+  @Local plmNoMore: boolean = false;
+  private page: number = 1;
+  private hasMore: boolean = true;
+  private service: RepositoryService = new RepositoryService();
   private pageSize: number = 30;
 
   aboutToAppear(): void {
-    this.service = new RepositoryService(this.store);
     this.pageSize = this.service.getPageSize();
   }
 
@@ -59,15 +59,12 @@ export struct RepositoryStarPage {
     }
     this.plmRefreshing = true;
     this.plmLoadingMore = false;
-    this.plmNoMore = false;;
+    this.plmNoMore = false;
     const res: SubListResult<SubUserItem> = await this.service.getStars(this.fullName, 1);
     if (res.result) {
       this.items = res.data.slice();
       this.page = 1;
       this.hasMore = res.data.length >= this.pageSize;
-      this.error = '';
-    } else {
-      this.error = res.msg;
     }
     this.plmRefreshing = false;
     this.plmLoadingMore = false;
@@ -77,7 +74,7 @@ export struct RepositoryStarPage {
   private async loadMoreList(): Promise<void> {
     if (!this.hasMore) {
       this.plmLoadingMore = false;
-    this.plmNoMore = !(false);
+      this.plmNoMore = true;
       return;
     }
     const next: number = this.page + 1;
@@ -116,8 +113,8 @@ export struct RepositoryStarPage {
           users: this.items,
           repos: [],
           refreshing: this.plmRefreshing,
-        loadingMore: this.plmLoadingMore,
-        noMore: this.plmNoMore,
+          loadingMore: this.plmLoadingMore,
+          noMore: this.plmNoMore,
           idPrefix: 'repo_star',
           refresh: (): void => {
             this.refreshList();

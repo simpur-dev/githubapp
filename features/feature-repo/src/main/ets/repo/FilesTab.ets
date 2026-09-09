@@ -21,19 +21,24 @@ export function isImageOrArchiveFile(fileName: string): boolean {
     || ext === '7z' || ext === 'tar' || ext === 'gz';
 }
 
-@Component
+/**
+ * FilesTab（V2）：@ComponentV2 + @Param/@Event；文件列表数据由调用方
+ * （RepositoryDetailPage 的 VM）传入，面包屑 ForEach → Repeat。
+ */
+@ComponentV2
 export struct FilesTab {
-  @Prop files: RepositoryFileItem[] = [];
-  @Prop currentPath: string = '';
-  @Prop fullName: string = '';
-  @Prop branch: string = '';
-  @Prop refreshing: boolean = false;
-  @Prop loadingMore: boolean = false;
-  @Prop noMore: boolean = false;
-  refresh: () => void = (): void => {};
-  onFileClick: (item: RepositoryFileItem) => void = (_item: RepositoryFileItem): void => {};
-  onBack: () => void = (): void => {};
-  onPathChange: (path: string) => void = (_path: string): void => {};
+  @Param files: RepositoryFileItem[] = [];
+  @Param currentPath: string = '';
+  @Param fullName: string = '';
+  @Param branch: string = '';
+  @Param refreshing: boolean = false;
+  @Param loadingMore: boolean = false;
+  @Param noMore: boolean = false;
+
+  @Event refresh: () => void = (): void => {};
+  @Event onFileClick: (item: RepositoryFileItem) => void = (_item: RepositoryFileItem): void => {};
+  @Event onBack: () => void = (): void => {};
+  @Event onPathChange: (path: string) => void = (_path: string): void => {};
 
   private buildCrumbs(): BreadcrumbItem[] {
     const list: BreadcrumbItem[] = [];
@@ -125,21 +130,23 @@ export struct FilesTab {
   @Builder
   breadcrumbBuilder(): void {
     Row() {
-      ForEach(this.buildCrumbs(), (crumb: BreadcrumbItem): void => {
-        Text(crumb.label)
-          .id('repo_file_breadcrumb_seg_' + crumb.index.toString())
-          .fontSize(GSYFontSize.small)
-          .fontColor(crumb.path === this.currentPath ? GSYColor.primary : GSYColor.actionBlue)
-          .fontWeight(crumb.path === this.currentPath ? FontWeight.Bold : FontWeight.Normal)
-          .onClick((): void => {
-            this.handleCrumbTap(crumb);
-          });
-        Text('>')
-          .id('repo_file_breadcrumb_sep_' + crumb.index.toString())
-          .fontSize(GSYFontSize.small)
-          .fontColor(GSYColor.tabUnSelect)
-          .margin({ left: 4, right: 4 });
-      }, (crumb: BreadcrumbItem): string => crumb.index.toString() + '_' + crumb.path);
+      Repeat<BreadcrumbItem>(this.buildCrumbs())
+        .each((obj: RepeatItem<BreadcrumbItem>): void => {
+          Text(obj.item.label)
+            .id('repo_file_breadcrumb_seg_' + obj.item.index.toString())
+            .fontSize(GSYFontSize.small)
+            .fontColor(obj.item.path === this.currentPath ? GSYColor.primary : GSYColor.actionBlue)
+            .fontWeight(obj.item.path === this.currentPath ? FontWeight.Bold : FontWeight.Normal)
+            .onClick((): void => {
+              this.handleCrumbTap(obj.item);
+            });
+          Text('>')
+            .id('repo_file_breadcrumb_sep_' + obj.item.index.toString())
+            .fontSize(GSYFontSize.small)
+            .fontColor(GSYColor.tabUnSelect)
+            .margin({ left: 4, right: 4 });
+        })
+        .key((crumb: BreadcrumbItem): string => crumb.index.toString() + '_' + crumb.path);
     }
     .id('repo_file_breadcrumb')
     .width('100%')
@@ -152,7 +159,7 @@ export struct FilesTab {
     Column() {
       this.breadcrumbBuilder();
       PullLoadMoreList({
-        dataSource: this.files,
+        dataSource: this.files as Object[],
         refreshing: this.refreshing,
         loadingMore: this.loadingMore,
         noMore: this.noMore,

@@ -1,14 +1,18 @@
 /**
  * ActivityTab —— RepositoryDetail Info body，对齐 Compose 版 Info Screen
- * [RepoDetailInfoScreen.kt](https://github.com/CarGuo/GSYGithubAppCompose/blob/master/feature/detail/src/main/java/com/shuyu/gsygithubappcompose/feature/detail/info/RepoDetailInfoScreen.kt)
+ * [RepoDetailInfoScreen.kt](https://github.com/CarGuo/GSYGithubAppCompose/blob/master/feature/detail/info/RepoDetailInfoScreen.kt)
  *
  * 结构（PullLoadMoreList renderHeader 模板）：
  *   ┌─ RepositoryHeader  （仓库元数据卡片）
  *   ├─ CommonBottomBar   （Events / Commits 二选一）
  *   └─ ListItem * N      （Events 使用 EventItem；Commits 使用 Compose-style CommitItem）
  *
+ * R9 V2 + MVVM：@ComponentV2 + @Param/@Event。删除 @ObjectLink RepositoryDetailStore，
+ * 数据（事件 / 提交 / detail）由调用方（RepositoryDetailPage 的 VM 或 ohosTest 宿主）按
+ * @Param 传入；内部 PullLoadMoreList 已是 V2 受控组件。
+ *
  * 所有 token 走 [Theme.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/style/Theme.ets)，
- * 严禁字面量颜色 / 字号 / 间距（HARD-LAW-2）。
+ * 严禁字面量颜色 / 字号 / 间距。
  */
 
 import { I18n } from 'common';
@@ -17,7 +21,6 @@ import { GSYColor, GSYFontSize, GSYSpacing, GSYIconSize, GSYShadow } from 'commo
 import { PullLoadMoreList } from 'common';
 import {
   RepositoryDetail,
-  RepositoryDetailStore,
   RepositoryEventItem,
   RepositoryCommitItem,
   RepositoryCommitUser,
@@ -43,56 +46,36 @@ import {
 
 const ACTIVITY_SELECT_ACTIVITY: number = 0;
 const ACTIVITY_SELECT_PUSH: number = 1;
-const HEADER_AVATAR_SIZE: number = 28;
 
-@Component
+@ComponentV2
 export struct ActivityTab {
-  // 列表数据全部走 @ObjectLink store 直接读，保证 store 内字段更新立即触发 build 重渲。
-  @Prop activity: RepositoryEventItem[] = [];
-  @Prop refreshing: boolean = false;
-  @Prop loadingMore: boolean = false;
-  @Prop noMore: boolean = false;
-  @ObjectLink store: RepositoryDetailStore;
-  ownerName: string = '';
-  repositoryName: string = '';
-  refresh: () => void = (): void => {};
-  loadMore: () => void = (): void => {};
-  onTapStar: () => void = (): void => {};
-  onTapFork: () => void = (): void => {};
-  onTapWatch: () => void = (): void => {};
-  onTapIssue: () => void = (): void => {};
-  onTapForkSource: () => void = (): void => {};
-  onTapOwner: () => void = (): void => {};
-  onTapTopic: (topic: string) => void = (_topic: string): void => {};
-  onSelectChange: (sel: number) => void = (_sel: number): void => {};
+  /** 事件列表（select=0 数据源）。 */
+  @Param activity: RepositoryEventItem[] = [];
+  /** 提交列表（select=1 数据源）。 */
+  @Param commits: RepositoryCommitItem[] = [];
+  /** 仓库详情（头部卡片数据源；宿主页可能为 null）。 */
+  @Param detail: RepositoryDetail | null = null;
+  @Param refreshing: boolean = false;
+  @Param loadingMore: boolean = false;
+  @Param noMore: boolean = false;
+  @Param ownerName: string = '';
+  @Param repositoryName: string = '';
 
-  @State select: number = ACTIVITY_SELECT_ACTIVITY;
+  @Event refresh: () => void = (): void => {};
+  @Event loadMore: () => void = (): void => {};
+  @Event onSelectChange: (sel: number) => void = (_sel: number): void => {};
+  @Event onTapStar: () => void = (): void => {};
+  @Event onTapFork: () => void = (): void => {};
+  @Event onTapWatch: () => void = (): void => {};
+  @Event onTapIssue: () => void = (): void => {};
+  @Event onTapForkSource: () => void = (): void => {};
+  @Event onTapOwner: () => void = (): void => {};
+  @Event onTapTopic: (topic: string) => void = (_topic: string): void => {};
 
-  private formatSize(size: number | undefined): string {
-    if (size === undefined || size === null) {
-      return '---';
-    }
-    return (size / 1024).toFixed(2) + 'M';
-  }
+  @Local select: number = ACTIVITY_SELECT_ACTIVITY;
 
-  private resolveLicense(): string {
-    const d: RepositoryDetail | null = this.store.detail;
-    if (d === null || d.license === null || d.license === undefined) {
-      return '';
-    }
-    return d.license.name;
-  }
-
-  private resolveParentName(): string {
-    const d: RepositoryDetail | null = this.store.detail;
-    if (d === null || d.parent === null || d.parent === undefined) {
-      return '---';
-    }
-    return d.parent.full_name;
-  }
-
-  private resolveTimeText(value: string | undefined): string {
-    if (value === undefined || value === null || value.length === 0) {
+  private resolveTimeText(value: string): string {
+    if (value === null || value === undefined || value.length === 0) {
       return '';
     }
     return TimeUtil.resolveTime(value);
@@ -139,8 +122,8 @@ export struct ActivityTab {
 
   /**
    * 当前 select 下要展示的列表数据：
-   * - select=0（动态）：store.activity（RepositoryEventItem[]）
-   * - select=1（提交）：store.commits（RepositoryCommitItem[]）
+   * - select=0（动态）：activity（RepositoryEventItem[]）
+   * - select=1（提交）：commits（RepositoryCommitItem[]）
    * 与 Compose RepoDetailInfoScreen 的 Events / Commits 切换语义一致。
    */
   private currentDataSource(): Object[] {
@@ -148,7 +131,7 @@ export struct ActivityTab {
       return this.activity as Object[];
     }
     if (this.select === ACTIVITY_SELECT_PUSH) {
-      return this.store.commits as Object[];
+      return this.commits as Object[];
     }
     return [];
   }
@@ -247,7 +230,7 @@ export struct ActivityTab {
     if (this.ownerName.length > 0 && this.repositoryName.length > 0) {
       return this.ownerName + '/' + this.repositoryName;
     }
-    const d: RepositoryDetail | null = this.store.detail;
+    const d: RepositoryDetail | null = this.detail;
     if (d !== null && d !== undefined && d.full_name !== null && d.full_name !== undefined) {
       return d.full_name;
     }
@@ -374,12 +357,9 @@ export struct ActivityTab {
   headerBuilder(): void {
     Column() {
       RepositoryHeader({
-        store: this.store,
+        detail: this.detail,
         ownerName: this.ownerName,
         repositoryName: this.repositoryName,
-        createdAtText: this.resolveTimeText(this.store.detail !== null ? this.store.detail.created_at : ''),
-        pushAtText: this.resolveTimeText(this.store.detail !== null ? this.store.detail.pushed_at : ''),
-        parentName: this.resolveParentName(),
         onTapOwner: (): void => {
           this.onTapOwner();
         },

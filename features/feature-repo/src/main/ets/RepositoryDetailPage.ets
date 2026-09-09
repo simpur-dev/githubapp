@@ -12,26 +12,17 @@ import { CommonModal, CommonOptionItem } from 'common';
 import { LoadingModal } from 'common';
 import { Logger } from 'common';
 import {
-  RepositoryDetailStore,
-  RepositoryEventItem,
   RepositoryFileItem,
-  RepositoryIssueItem
-} from 'common';
-import {
-  RepositoryService,
+  RepositoryIssueItem,
   RepositoryServiceResult
 } from 'common';
-import { RepositoryDetail } from 'common';
 import { ReadmeTab } from './repo/ReadmeTab';
 import { IssueTab } from './repo/IssueTab';
 import { ActivityTab } from './repo/ActivityTab';
 import { FilesTab, isImageOrArchiveFile } from './repo/FilesTab';
-import { ReadHistoryService, ReadHistoryAddParam } from 'common';
-import { READ_HISTORY_TYPE_REPO } from 'common';
 import { ExternalUrlUtil } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { CommonBottomBar, CommonBottomBarItem } from 'common';
-import { CreateIssueDialog } from 'common';
 import {
   FA_STAR,
   FA_STAR_O,
@@ -42,6 +33,7 @@ import {
   FA_PLUS,
   IconFont,
 } from 'common';
+import { RepositoryDetailViewModel } from './viewmodel/RepositoryDetailViewModel';
 
 interface RepositoryDetailRouteParam {
   fullName?: string;
@@ -71,41 +63,148 @@ const FALLBACK_FULL_NAME: string = '';
 const TAB_BAR_HEIGHT: number = 48;
 const BRANCH_MENU_WIDTH: number = 220;
 const BRANCH_MENU_MAX_HEIGHT: number = 300;
+const CREATE_ISSUE_SHEET_HEIGHT: number = 520;
 const COMMON_LIST_SHOW_TYPE_USER: string = 'user';
 const COMMON_LIST_SHOW_TYPE_REPOSITORY: string = 'repository';
 
-@Component
+/**
+ * 创建 Issue 弹层内容（V2）。旧版经 common 的 @CustomDialog CreateIssueDialog +
+ * CustomDialogController 呈现（V2 组件不可用），本轮保持内容结构原样迁为
+ * @ComponentV2 + bindSheet 呈现，全部 create_issue_* 测试 id 原样保留。
+ */
+@ComponentV2
+struct RepoCreateIssueSheet {
+  @Param dialogTitle: string = '';
+  @Param titlePlaceholder: string = '';
+  @Param bodyPlaceholder: string = '';
+  @Event onConfirm: (title: string, body: string) => void = (_t: string, _b: string): void => {};
+  @Event onCancel: () => void = (): void => {};
+  @Local titleText: string = '';
+  @Local bodyText: string = '';
+
+  private appendMarkdown(insertion: string): void {
+    this.bodyText = this.bodyText + insertion;
+  }
+
+  @Builder
+  private buildMarkdownAction(actionId: string, label: string, insertion: string): void {
+    Button(label)
+      .id(actionId)
+      .type(ButtonType.Normal)
+      .fontSize(GSYFontSize.min)
+      .fontColor(GSYColor.darkText)
+      .backgroundColor(GSYColor.surfaceGray)
+      .borderRadius(6)
+      .height(32)
+      .padding({ left: 10, right: 10 })
+      .onClick((): void => {
+        this.appendMarkdown(insertion);
+      });
+  }
+
+  build(): void {
+    Column() {
+      Text(this.dialogTitle)
+        .id('create_issue_dialog_title')
+        .fontSize(GSYFontSize.middleNormal)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(GSYColor.primary)
+        .margin({ bottom: GSYSpacing.normalEdge });
+
+      TextInput({ placeholder: this.titlePlaceholder, text: this.titleText })
+        .id('create_issue_dialog_title_input')
+        .fontSize(GSYFontSize.normal)
+        .fontColor(GSYColor.primary)
+        .placeholderColor(GSYColor.subText)
+        .backgroundColor(GSYColor.surfaceSubtle)
+        .borderRadius(4)
+        .height(40)
+        .padding({ left: GSYSpacing.halfEdge, right: GSYSpacing.halfEdge })
+        .onChange((value: string): void => {
+          this.titleText = value;
+        });
+
+      TextArea({ placeholder: this.bodyPlaceholder, text: this.bodyText })
+        .id('create_issue_dialog_body_input')
+        .fontSize(GSYFontSize.small)
+        .fontColor(GSYColor.primary)
+        .placeholderColor(GSYColor.subText)
+        .backgroundColor(GSYColor.surfaceSubtle)
+        .borderRadius(4)
+        .height(200)
+        .margin({ top: GSYSpacing.normalEdge })
+        .padding(GSYSpacing.halfEdge)
+        .onChange((value: string): void => {
+          this.bodyText = value;
+        });
+
+      Scroll() {
+        Row() {
+          this.buildMarkdownAction('create_issue_markdown_toolbar_h1', 'H1', '# ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_h2', 'H2', '## ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_h3', 'H3', '### ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_bold', 'B', '****');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_italic', 'I', '**');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_ul', 'UL', '- ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_quote', 'Quote', '> ');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_code', 'Code', '``');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_image', 'IMG', '![]()');
+          this.buildMarkdownAction('create_issue_markdown_toolbar_link', 'Link', '[]()');
+        }
+        .id('create_issue_markdown_toolbar')
+        .height(36)
+        .alignItems(VerticalAlign.Center);
+      }
+      .width('100%')
+      .height(40)
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .margin({ top: GSYSpacing.halfEdge });
+
+      Row() {
+        Button(I18n('cancel'))
+          .id('create_issue_dialog_cancel')
+          .fontSize(GSYFontSize.normal)
+          .fontColor(GSYColor.subText)
+          .backgroundColor(Color.Transparent)
+          .layoutWeight(1)
+          .onClick((): void => {
+            this.onCancel();
+          });
+        Button(I18n('ok'))
+          .id('create_issue_dialog_confirm')
+          .fontSize(GSYFontSize.normal)
+          .fontColor(GSYColor.miWhite)
+          .backgroundColor(GSYColor.primary)
+          .layoutWeight(1)
+          .margin({ left: GSYSpacing.normalEdge })
+          .onClick((): void => {
+            const t: string = this.titleText.trim();
+            if (t.length === 0) {
+              return;
+            }
+            this.onConfirm(t, this.bodyText);
+          });
+      }
+      .width('100%')
+      .margin({ top: GSYSpacing.normalEdge });
+    }
+    .id('create_issue_dialog_root')
+    .width('100%')
+    .padding(GSYSpacing.normalEdge)
+    .backgroundColor(GSYColor.white)
+    .borderRadius(8);
+  }
+}
+
+@ComponentV2
 export struct RepositoryDetailPage {
-  @State fullName: string = FALLBACK_FULL_NAME;
-  @State store: RepositoryDetailStore = new RepositoryDetailStore();
-  @State currentIndex: number = 0;
-  @State activitySelect: number = 0;
-  @State activityRefreshing: boolean = false;
-  @State activityLoadingMore: boolean = false;
-  @State activityNoMore: boolean = false;
-  @State issueRefreshing: boolean = false;
-  @State issueLoadingMore: boolean = false;
-  @State issueNoMore: boolean = false;
-  @State filesRefreshing: boolean = false;
-  @State filesLoadingMore: boolean = false;
-  @State filesNoMore: boolean = false;
-  @State currentFilePath: string = '';
-  @State filePathStack: string[] = [];
-  @State branchMenuVisible: boolean = false;
+  @Local vm: RepositoryDetailViewModel = new RepositoryDetailViewModel();
+  @Local currentIndex: number = 0;
+  @Local branchMenuVisible: boolean = false;
+  @Local createIssueSheetOpen: boolean = false;
   private tabsController: TabsController = new TabsController();
-  private service: RepositoryService = new RepositoryService(this.store);
-  private readHistoryService: ReadHistoryService = new ReadHistoryService();
   private pathStack: NavPathStack = new NavPathStack();
-  private createIssueDialogController: CustomDialogController = new CustomDialogController({
-    builder: CreateIssueDialog({
-      onConfirm: (title: string, body: string): void => {
-        this.submitCreateIssue(title, body);
-      },
-    }),
-    autoCancel: true,
-    customStyle: true,
-    alignment: DialogAlignment.Center,
-  });
 
   private tabs: RepoTabItem[] = [
     { key: 'info', title: I18n('reposActivity'), index: 0 },
@@ -115,10 +214,9 @@ export struct RepositoryDetailPage {
   ];
 
   aboutToAppear(): void {
-    this.service = new RepositoryService(this.store);
     this.applyRouterParams();
-    Logger.i('boot/ts', `RepositoryDetailPage.aboutToAppear t=${Date.now()} fullName='${this.fullName}'`);
-    if (this.fullName.length > 0) {
+    Logger.i('boot/ts', `RepositoryDetailPage.aboutToAppear t=${Date.now()} fullName='${this.vm.fullName}'`);
+    if (this.vm.fullName.length > 0) {
       this.loadAll();
     }
   }
@@ -153,7 +251,7 @@ export struct RepositoryDetailPage {
     if (routeRaw !== null) {
       const resolvedFromRoute: string = this.resolveFullNameFromObject(routeRaw);
       if (resolvedFromRoute.length > 0) {
-        this.fullName = resolvedFromRoute;
+        this.vm.setFullName(resolvedFromRoute);
         Logger.i('repo/route', `RepositoryDetailPage adopted via RouteParamStore fullName=${resolvedFromRoute}`);
         return;
       }
@@ -162,15 +260,15 @@ export struct RepositoryDetailPage {
       const raw: Object | undefined = router.getParams() as Object | undefined;
       const resolved: string = this.resolveFullNameFromObject(raw === undefined ? null : raw);
       if (resolved.length > 0) {
-        this.fullName = resolved;
+        this.vm.setFullName(resolved);
         return;
       }
     } catch (_e) {
     }
-    if (this.fullName.length === 0) {
+    if (this.vm.fullName.length === 0) {
       const bootRepo: string = BootChannel.get(BOOT_REPO_KEY);
       if (bootRepo.length > 0) {
-        this.fullName = bootRepo;
+        this.vm.setFullName(bootRepo);
       }
     }
   }
@@ -188,188 +286,50 @@ export struct RepositoryDetailPage {
     }
   }
 
-  private resolveOwnerName(): string {
-    const idx: number = this.fullName.indexOf('/');
-    if (idx <= 0) {
-      return '';
-    }
-    return this.fullName.substring(0, idx);
-  }
-
-  private resolveRepositoryName(): string {
-    const idx: number = this.fullName.indexOf('/');
-    if (idx < 0 || idx >= this.fullName.length - 1) {
-      return '';
-    }
-    return this.fullName.substring(idx + 1);
-  }
-
   private async loadAll(): Promise<void> {
-    if (this.fullName.length === 0) {
+    if (this.vm.fullName.length === 0) {
       return;
     }
     // 首次进入要让用户看到"正在加载"——这一批请求里 README 最慢，
     // 之前没有任何加载提示导致整个详情页空白十几秒。LoadingModal 全屏遮罩 + 自动 hide。
     LoadingModal.show(I18n('loading'), false);
     try {
-      await this.service.getReposInfo(this.fullName);
-      await this.service.getStarStatus(this.fullName);
-      await this.service.getReadme(this.fullName, null);
-      await this.refreshActivity();
-      await this.refreshIssues();
-      await this.refreshFiles('');
-      await this.writeReadHistory();
+      await this.vm.loadAll();
     } finally {
       LoadingModal.hide();
     }
   }
 
-  private async writeReadHistory(): Promise<void> {
-    if (this.fullName.length === 0) {
-      return;
-    }
-    const detail: RepositoryDetail | null = this.store.detail;
-    let title: string = this.fullName;
-    let subtitle: string = '';
-    let avatar: string = '';
-    let payloadJson: string = '';
-    if (detail !== null) {
-      const d: RepositoryDetail = detail as RepositoryDetail;
-      title = d.full_name.length > 0 ? d.full_name : this.fullName;
-      subtitle = d.description.length > 0 ? d.description : d.language;
-      avatar = d.owner !== null && d.owner !== undefined ? d.owner.avatar_url : '';
-      payloadJson = JSON.stringify(d);
-    }
-    const param: ReadHistoryAddParam = {
-      'type': READ_HISTORY_TYPE_REPO,
-      'key': this.fullName,
-      'title': title,
-      'subtitle': subtitle,
-      'avatar': avatar,
-      'payloadJson': payloadJson,
-      'time': Date.now(),
-    } as ReadHistoryAddParam;
-    await this.readHistoryService.add(param);
-  }
-
-  private async refreshActivity(): Promise<void> {
-    if (this.fullName.length === 0) {
-      return;
-    }
-    this.activityRefreshing = true;
-    this.activityLoadingMore = false;
-    this.activityNoMore = false;;
-    await this.service.getRepositoryEvents(this.fullName, 1);
-    this.activityRefreshing = false;
-    this.activityLoadingMore = false;
-    this.activityNoMore = !(this.store.activityHasMore);
-  }
-
-  private async loadMoreActivity(): Promise<void> {
-    if (!this.store.activityHasMore) {
-      this.activityLoadingMore = false;
-    this.activityNoMore = !(false);
-      return;
-    }
-    const next: number = this.store.activityPage + 1;
-    await this.service.getRepositoryEvents(this.fullName, next);
-    this.activityLoadingMore = false;
-    this.activityNoMore = !(this.store.activityHasMore);
-  }
-
-  /**
-   * ActivityTab 子 tab 切换：Compose 版 Info 仅包含 Events / Commits。
-   */
-  private async handleActivitySelectChange(sel: number): Promise<void> {
-    if (this.fullName.length === 0) {
-      return;
-    }
-    if (sel === 1) {
-      this.activityRefreshing = true;
-    this.activityLoadingMore = false;
-    this.activityNoMore = false;;
-      await this.service.getRepositoryCommits(this.fullName, 1);
-      this.activityRefreshing = false;
-    this.activityLoadingMore = false;
-    this.activityNoMore = !(this.store.commitsHasMore);
-      return;
-    }
-  }
-
-  private async refreshCurrentActivityTab(): Promise<void> {
-    if (this.activitySelect === 1) {
-      await this.handleActivitySelectChange(1);
-      return;
-    }
-    await this.refreshActivity();
-  }
-
-  private async loadMoreCurrentActivityTab(): Promise<void> {
-    if (this.activitySelect === 1) {
-      if (!this.store.commitsHasMore) {
-        this.activityLoadingMore = false;
-    this.activityNoMore = !(false);
-        return;
-      }
-      const next: number = this.store.commitsPage + 1;
-      await this.service.getRepositoryCommits(this.fullName, next);
-      this.activityLoadingMore = false;
-    this.activityNoMore = !(this.store.commitsHasMore);
-      return;
-    }
-    await this.loadMoreActivity();
-  }
-
   private async refreshIssues(): Promise<void> {
-    if (this.fullName.length === 0) {
-      return;
-    }
-    this.issueRefreshing = true;
-    this.issueLoadingMore = false;
-    this.issueNoMore = false;;
-    await this.service.getIssues(this.fullName, this.store.issueState, 1, this.store.issueSearchQuery);
-    this.issueRefreshing = false;
-    this.issueLoadingMore = false;
-    this.issueNoMore = !(this.store.issuesHasMore);
+    await this.vm.refreshIssues();
   }
 
   private async loadMoreIssues(): Promise<void> {
-    if (!this.store.issuesHasMore) {
-      this.issueLoadingMore = false;
-    this.issueNoMore = !(false);
-      return;
-    }
-    const next: number = this.store.issuesPage + 1;
-    await this.service.getIssues(this.fullName, this.store.issueState, next, this.store.issueSearchQuery);
-    this.issueLoadingMore = false;
-    this.issueNoMore = !(this.store.issuesHasMore);
+    await this.vm.loadMoreIssues();
   }
 
   private async handleIssueStateChange(state: string): Promise<void> {
-    this.store.issueState = state;
-    this.store.resetIssuePage();
-    await this.refreshIssues();
+    await this.vm.handleIssueStateChange(state);
   }
 
   private handleIssueSearchQueryChange(query: string): void {
-    this.store.setIssueSearchQuery(query);
+    this.vm.setIssueSearchQuery(query);
   }
 
   private async handleIssueSearch(): Promise<void> {
-    this.store.resetIssuePage();
-    await this.refreshIssues();
+    await this.vm.handleIssueSearch();
   }
 
-  private openCreateIssueDialog(): void {
-    this.createIssueDialogController.open();
+  private openCreateIssueSheet(): void {
+    this.createIssueSheetOpen = true;
   }
 
   private async submitCreateIssue(title: string, body: string): Promise<void> {
-    if (this.fullName.length === 0) {
+    if (this.vm.fullName.length === 0) {
       return;
     }
     const res: RepositoryServiceResult<RepositoryIssueItem | null> =
-      await this.service.createIssue(this.fullName, title, body);
+      await this.vm.createIssue(title, body);
     if (res.result) {
       CommonToast.showShort(I18n('createIssue'));
     } else {
@@ -380,37 +340,23 @@ export struct RepositoryDetailPage {
   }
 
   private async refreshFiles(path: string): Promise<void> {
-    if (this.fullName.length === 0) {
-      return;
-    }
-    // 先把 currentFilePath 落到目标路径，避免 PullLoadMoreList 内部
-    // refresh 回调把旧路径（root）再带回来覆盖（dir 点进去刷回 root 的根因）。
-    this.currentFilePath = path;
-    this.filesRefreshing = true;
-    this.filesLoadingMore = false;
-    this.filesNoMore = false;;
-    await this.service.getFiles(this.fullName, this.resolveCurrentBranch(), path);
-    this.filesRefreshing = false;
-    this.filesLoadingMore = false;
-    this.filesNoMore = !(false);
+    await this.vm.refreshFiles(path);
   }
 
   private async openFile(item: RepositoryFileItem): Promise<void> {
     if (item.type === 'dir') {
-      this.filePathStack.push(this.currentFilePath);
-      await this.refreshFiles(item.path);
+      await this.vm.openDir(item.path);
       return;
     }
     // Compose FileItem 对图片和压缩包禁用点击，其余文件进入 CodeDetail。
     if (isImageOrArchiveFile(item.name)) {
       return;
     }
-    const branch: string = this.store.currentBranch.length > 0
-      ? this.store.currentBranch : this.resolveDefaultBranch();
-    Logger.i('FilesTab', `openFile push CodeDetail fullName=${this.fullName}`
+    const branch: string = this.vm.currentBranchName();
+    Logger.i('FilesTab', `openFile push CodeDetail fullName=${this.vm.fullName}`
       + ` branch=${branch} path=${item.path}`);
     const codeParam: Record<string, Object> = {
-      'fullName': this.fullName,
+      'fullName': this.vm.fullName,
       'branch': branch,
       'path': item.path,
     };
@@ -418,32 +364,22 @@ export struct RepositoryDetailPage {
   }
 
   private async backFiles(): Promise<void> {
-    if (this.filePathStack.length === 0) {
-      await this.refreshFiles('');
-      return;
-    }
-    const previous: string = this.filePathStack.pop() as string;
-    await this.refreshFiles(previous);
+    await this.vm.backFiles();
   }
 
   private async toggleStar(): Promise<void> {
-    if (this.fullName.length === 0) {
+    if (this.vm.fullName.length === 0) {
       return;
     }
     LoadingModal.show(I18n('loading'), false);
     let res: RepositoryServiceResult<boolean>;
     try {
-      if (this.store.starred) {
-        res = await this.service.unstar(this.fullName);
-      } else {
-        res = await this.service.star(this.fullName);
-      }
+      res = await this.vm.toggleStar();
     } finally {
       LoadingModal.hide();
     }
     if (res.result) {
-      await this.service.getReposInfo(this.fullName);
-      CommonToast.showShort(this.store.starred ? I18n('reposStar') : I18n('reposUnStar'));
+      CommonToast.showShort(this.vm.starred ? I18n('reposStar') : I18n('reposUnStar'));
     } else {
       const msg: string = (res.msg !== null && res.msg !== undefined && res.msg.length > 0)
         ? res.msg : I18n('netError');
@@ -452,23 +388,18 @@ export struct RepositoryDetailPage {
   }
 
   private async toggleWatch(): Promise<void> {
-    if (this.fullName.length === 0) {
+    if (this.vm.fullName.length === 0) {
       return;
     }
     LoadingModal.show(I18n('loading'), false);
     let res: RepositoryServiceResult<boolean>;
     try {
-      if (this.store.watching) {
-        res = await this.service.unwatch(this.fullName);
-      } else {
-        res = await this.service.watch(this.fullName);
-      }
+      res = await this.vm.toggleWatch();
     } finally {
       LoadingModal.hide();
     }
     if (res.result) {
-      await this.service.getReposInfo(this.fullName);
-      CommonToast.showShort(this.store.watching ? I18n('reposWatcher') : I18n('reposUnWatcher'));
+      CommonToast.showShort(this.vm.watching ? I18n('reposWatcher') : I18n('reposUnWatcher'));
     } else {
       const msg: string = (res.msg !== null && res.msg !== undefined && res.msg.length > 0)
         ? res.msg : I18n('netError');
@@ -477,63 +408,54 @@ export struct RepositoryDetailPage {
   }
 
   private async doFork(): Promise<void> {
-    if (this.fullName.length === 0) {
+    if (this.vm.fullName.length === 0) {
       return;
     }
     LoadingModal.show(I18n('loading'), false);
     let res: RepositoryServiceResult<boolean>;
     try {
-      res = await this.service.forkRepository(this.fullName);
+      res = await this.vm.doFork();
     } finally {
       LoadingModal.hide();
     }
-    if (res.result) {
-      await this.service.getReposInfo(this.fullName);
-    } else {
+    if (!res.result) {
       CommonToast.showShort(I18n('netError'));
     }
   }
 
   private async openBranchSelector(): Promise<void> {
-    if (this.fullName.length === 0) {
+    if (this.vm.fullName.length === 0) {
       return;
     }
-    if (this.store.branches.length === 0) {
+    if (this.vm.branches.length === 0) {
       LoadingModal.show(I18n('loading'), false);
       try {
-        await this.service.getBranches(this.fullName);
+        const ok: boolean = await this.vm.ensureBranchesLoaded();
+        if (!ok) {
+          CommonToast.showShort(I18n('netError'));
+          return;
+        }
       } finally {
         LoadingModal.hide();
       }
     }
-    const list: string[] = this.store.branches;
+    const list: string[] = this.vm.branches;
     if (list.length === 0) {
       CommonToast.showShort(I18n('netError'));
       return;
     }
     if (list.length === 1) {
-      this.applyBranchChange(list[0]);
+      await this.handleBranchChange(list[0]);
       return;
     }
     this.branchMenuVisible = true;
   }
 
-  private async applyBranchChange(branch: string): Promise<void> {
-    if (branch.length === 0) {
-      return;
-    }
-    this.store.setCurrentBranch(branch);
-    Logger.i('RepositoryDetailPage', `applyBranchChange branch=${branch}`);
-    // 切换分支后重拉 README + files + commits，对齐 Compose selectedBranch LaunchedEffect。
+  private async handleBranchChange(branch: string): Promise<void> {
+    this.branchMenuVisible = false;
     LoadingModal.show(I18n('loading'), false);
     try {
-      await this.service.getReadme(this.fullName, branch);
-      this.currentFilePath = '';
-      this.filePathStack = [];
-      await this.service.getFiles(this.fullName, branch, '');
-      if (this.activitySelect === 1) {
-        await this.service.getRepositoryCommits(this.fullName, 1);
-      }
+      await this.vm.applyBranchChange(branch);
     } finally {
       LoadingModal.hide();
     }
@@ -545,70 +467,98 @@ export struct RepositoryDetailPage {
     this.tabsController.changeIndex(index);
   }
 
-  private resolveDefaultBranch(): string {
-    const detail: RepositoryDetail | null = this.store.detail;
-    if (detail !== null
-      && detail.default_branch !== null
-      && detail.default_branch !== undefined
-      && detail.default_branch.length > 0) {
-      return detail.default_branch;
+  private buildAppBarTitle(): string {
+    if (this.vm.fullName.length > 0) {
+      return this.vm.fullName;
     }
-    return 'master';
+    return '';
   }
 
-  private resolveCurrentBranch(): string {
-    return this.store.currentBranch.length > 0
-      ? this.store.currentBranch : this.resolveDefaultBranch();
+  private resolveHtmlUrl(): string {
+    return this.vm.htmlUrl();
   }
 
-  private buildBottomBarItems(): CommonBottomBarItem[] {
-    const items: CommonBottomBarItem[] = [];
+  private copyToPasteboard(text: string): void {
+    if (text.length === 0) {
+      return;
+    }
+    try {
+      const data: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
+      const board: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      board.setData(data);
+      CommonToast.showShort(I18n('hadCopy'));
+    } catch (_e) {
+      CommonToast.showShort(I18n('hadCopy'));
+    }
+  }
 
-    const starItem: CommonBottomBarItem = new CommonBottomBarItem();
-    starItem.itemId = 'star';
-    starItem.itemName = this.store.starred ? I18n('reposUnStar') : I18n('reposStar');
-    starItem.icon = this.store.starred ? FA_STAR : FA_STAR_O;
-    starItem.iconColor = GSYColor.primary;
-    starItem.itemTextColor = GSYColor.primary;
-    starItem.itemClick = (): void => {
-      this.toggleStar();
+  private showMoreMenu(): void {
+    const htmlUrl: string = this.resolveHtmlUrl();
+    const items: CommonOptionItem[] = [
+      { itemName: I18n('browserOpen') } as CommonOptionItem,
+      { itemName: I18n('copy') } as CommonOptionItem,
+      { itemName: I18n('share') } as CommonOptionItem,
+    ];
+    CommonModal.options(
+      { title: this.vm.fullName, items: items },
+      (index: number, _item: CommonOptionItem): void => {
+        if (htmlUrl.length === 0) {
+          return;
+        }
+        if (index === 0) {
+          ExternalUrlUtil.openUrlInBrowser(this, htmlUrl, 'RepositoryDetailPage');
+        } else if (index === 1) {
+          this.copyToPasteboard(htmlUrl);
+        } else if (index === 2) {
+          ExternalUrlUtil.openUrlInBrowser(this, htmlUrl, 'RepositoryDetailPage');
+        }
+      }
+    );
+  }
+
+  private buildRightActions(): AppBarAction[] {
+    return [
+      {
+        iconKey: 'more',
+        onAction: (): void => {
+          this.showMoreMenu();
+        },
+      } as AppBarAction,
+    ];
+  }
+
+  private openRepositoryCommonList(dataType: string, showType: string, titlePrefix: string): void {
+    const owner: string = this.vm.ownerName();
+    const repo: string = this.vm.repositoryName();
+    if (owner.length === 0 || repo.length === 0) {
+      Logger.w('RepositoryDetailPage', 'openRepositoryCommonList skipped, fullName=' + this.vm.fullName + ' type=' + dataType);
+      return;
+    }
+    const param: CommonListRouteParam = {
+      dataType: dataType,
+      showType: showType,
+      currentUser: owner,
+      repoName: repo,
+      title: repo + ' ' + titlePrefix,
     };
-    items.push(starItem);
+    Logger.i('RepositoryDetailPage', 'openRepositoryCommonList type=' + dataType + ' owner=' + owner + ' repo=' + repo);
+    NavigationService.push(RouteName.CommonList, param as Object);
+  }
 
-    const watchItem: CommonBottomBarItem = new CommonBottomBarItem();
-    watchItem.itemId = 'watch';
-    watchItem.itemName = this.store.watching ? I18n('reposUnWatcher') : I18n('reposWatcher');
-    watchItem.icon = this.store.watching ? FA_EYE_SLASH : FA_EYE;
-    watchItem.iconColor = GSYColor.primary;
-    watchItem.itemTextColor = GSYColor.primary;
-    watchItem.itemClick = (): void => {
-      this.toggleWatch();
-    };
-    items.push(watchItem);
-
-    const forkItem: CommonBottomBarItem = new CommonBottomBarItem();
-    forkItem.itemId = 'fork';
-    forkItem.itemName = I18n('reposFork');
-    forkItem.icon = FA_CODE_FORK;
-    forkItem.iconColor = GSYColor.primary;
-    forkItem.itemTextColor = GSYColor.primary;
-    forkItem.itemClick = (): void => {
-      this.doFork();
-    };
-    items.push(forkItem);
-
-    const branchItem: CommonBottomBarItem = new CommonBottomBarItem();
-    branchItem.itemId = 'branch';
-    branchItem.itemName = this.resolveCurrentBranch();
-    branchItem.icon = FA_CHEVRON_DOWN;
-    branchItem.iconColor = GSYColor.primary;
-    branchItem.itemTextColor = GSYColor.primary;
-    branchItem.itemClick = (): void => {
-      this.openBranchSelector();
-    };
-    items.push(branchItem);
-
-    return items;
+  private openTopicList(topic: string): void {
+    const safeTopic: string = topic !== null && topic !== undefined ? topic.trim() : '';
+    if (safeTopic.length === 0) {
+      return;
+    }
+    const param: CommonListRouteParam = {
+      dataType: 'topics',
+      showType: COMMON_LIST_SHOW_TYPE_REPOSITORY,
+      currentUser: safeTopic,
+      repoName: '',
+      title: I18n('listTopics').replace('%s', safeTopic),
+    } as CommonListRouteParam;
+    Logger.i('RepositoryDetailPage', 'openTopicList topic=' + safeTopic);
+    NavigationService.push(RouteName.CommonList, param as Object);
   }
 
   @Builder
@@ -625,29 +575,31 @@ export struct RepositoryDetailPage {
 
       Scroll() {
         Column() {
-          ForEach(this.store.branches, (branch: string, index: number): void => {
-            Row() {
-              Text(branch)
-                .id('repo_branch_menu_item_text_' + index.toString())
-                .fontSize(GSYFontSize.small)
-                .fontColor(GSYColor.primary)
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .layoutWeight(1);
-            }
-            .id('repo_branch_menu_item_' + index.toString())
-            .width('100%')
-            .height(44)
-            .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
-            .alignItems(VerticalAlign.Center)
-            .onClick((): void => {
-              this.branchMenuVisible = false;
-              this.applyBranchChange(branch);
-            });
-            if (index < this.store.branches.length - 1) {
-              Divider().color(GSYColor.line).strokeWidth(0.5);
-            }
-          }, (branch: string, index: number): string => index.toString() + ':' + branch);
+          Repeat<string>(this.vm.branches)
+            .each((obj: RepeatItem<string>): void => {
+              Row() {
+                Text(obj.item)
+                  .id('repo_branch_menu_item_text_' + obj.index.toString())
+                  .fontSize(GSYFontSize.small)
+                  .fontColor(GSYColor.primary)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .layoutWeight(1);
+              }
+              .id('repo_branch_menu_item_' + obj.index.toString())
+              .width('100%')
+              .height(44)
+              .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
+              .alignItems(VerticalAlign.Center)
+              .onClick((): void => {
+                this.branchMenuVisible = false;
+                this.handleBranchChange(obj.item);
+              });
+              if (obj.index < this.vm.branches.length - 1) {
+                Divider().color(GSYColor.line).strokeWidth(0.5);
+              }
+            })
+            .key((branch: string, index: number): string => index.toString() + ':' + branch);
         }
         .width('100%');
       }
@@ -701,69 +653,6 @@ export struct RepositoryDetailPage {
     });
   }
 
-  private buildAppBarTitle(): string {
-    if (this.fullName.length > 0) {
-      return this.fullName;
-    }
-    return '';
-  }
-
-  private resolveHtmlUrl(): string {
-    if (this.fullName.length === 0) {
-      return '';
-    }
-    return 'https://github.com/' + this.fullName;
-  }
-
-  private copyToPasteboard(text: string): void {
-    if (text.length === 0) {
-      return;
-    }
-    try {
-      const data: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
-      const board: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      board.setData(data);
-      CommonToast.showShort(I18n('hadCopy'));
-    } catch (_e) {
-      CommonToast.showShort(I18n('hadCopy'));
-    }
-  }
-
-  private showMoreMenu(): void {
-    const htmlUrl: string = this.resolveHtmlUrl();
-    const items: CommonOptionItem[] = [
-      { itemName: I18n('browserOpen') } as CommonOptionItem,
-      { itemName: I18n('copy') } as CommonOptionItem,
-      { itemName: I18n('share') } as CommonOptionItem,
-    ];
-    CommonModal.options(
-      { title: this.fullName, items: items },
-      (index: number, _item: CommonOptionItem): void => {
-        if (htmlUrl.length === 0) {
-          return;
-        }
-        if (index === 0) {
-          ExternalUrlUtil.openUrlInBrowser(this, htmlUrl, 'RepositoryDetailPage');
-        } else if (index === 1) {
-          this.copyToPasteboard(htmlUrl);
-        } else if (index === 2) {
-          ExternalUrlUtil.openUrlInBrowser(this, htmlUrl, 'RepositoryDetailPage');
-        }
-      }
-    );
-  }
-
-  private buildRightActions(): AppBarAction[] {
-    return [
-      {
-        iconKey: 'more',
-        onAction: (): void => {
-          this.showMoreMenu();
-        },
-      } as AppBarAction,
-    ];
-  }
-
   @Builder
   buildCreateIssueFab(): void {
     Row() {
@@ -796,42 +685,74 @@ export struct RepositoryDetailPage {
       bottom: GSYSpacing.normalEdge,
     })
     .onClick((): void => {
-      this.openCreateIssueDialog();
+      this.openCreateIssueSheet();
     });
   }
 
-  private openRepositoryCommonList(dataType: string, showType: string, titlePrefix: string): void {
-    const owner: string = this.resolveOwnerName();
-    const repo: string = this.resolveRepositoryName();
-    if (owner.length === 0 || repo.length === 0) {
-      Logger.w('RepositoryDetailPage', 'openRepositoryCommonList skipped, fullName=' + this.fullName + ' type=' + dataType);
-      return;
-    }
-    const param: CommonListRouteParam = {
-      dataType: dataType,
-      showType: showType,
-      currentUser: owner,
-      repoName: repo,
-      title: repo + ' ' + titlePrefix,
-    };
-    Logger.i('RepositoryDetailPage', 'openRepositoryCommonList type=' + dataType + ' owner=' + owner + ' repo=' + repo);
-    NavigationService.push(RouteName.CommonList, param as Object);
+  @Builder
+  buildCreateIssueSheet(): void {
+    RepoCreateIssueSheet({
+      dialogTitle: I18n('createIssue'),
+      titlePlaceholder: I18n('issueInputTipTitle'),
+      bodyPlaceholder: I18n('issueInputTip'),
+      onConfirm: (title: string, body: string): void => {
+        this.createIssueSheetOpen = false;
+        this.submitCreateIssue(title, body);
+      },
+      onCancel: (): void => {
+        this.createIssueSheetOpen = false;
+      },
+    });
   }
 
-  private openTopicList(topic: string): void {
-    const safeTopic: string = topic !== null && topic !== undefined ? topic.trim() : '';
-    if (safeTopic.length === 0) {
-      return;
-    }
-    const param: CommonListRouteParam = {
-      dataType: 'topics',
-      showType: COMMON_LIST_SHOW_TYPE_REPOSITORY,
-      currentUser: safeTopic,
-      repoName: '',
-      title: I18n('listTopics').replace('%s', safeTopic),
-    } as CommonListRouteParam;
-    Logger.i('RepositoryDetailPage', 'openTopicList topic=' + safeTopic);
-    NavigationService.push(RouteName.CommonList, param as Object);
+  private buildBottomBarItems(): CommonBottomBarItem[] {
+    const items: CommonBottomBarItem[] = [];
+
+    const starItem: CommonBottomBarItem = new CommonBottomBarItem();
+    starItem.itemId = 'star';
+    starItem.itemName = this.vm.starred ? I18n('reposUnStar') : I18n('reposStar');
+    starItem.icon = this.vm.starred ? FA_STAR : FA_STAR_O;
+    starItem.iconColor = GSYColor.primary;
+    starItem.itemTextColor = GSYColor.primary;
+    starItem.itemClick = (): void => {
+      this.toggleStar();
+    };
+    items.push(starItem);
+
+    const watchItem: CommonBottomBarItem = new CommonBottomBarItem();
+    watchItem.itemId = 'watch';
+    watchItem.itemName = this.vm.watching ? I18n('reposUnWatcher') : I18n('reposWatcher');
+    watchItem.icon = this.vm.watching ? FA_EYE_SLASH : FA_EYE;
+    watchItem.iconColor = GSYColor.primary;
+    watchItem.itemTextColor = GSYColor.primary;
+    watchItem.itemClick = (): void => {
+      this.toggleWatch();
+    };
+    items.push(watchItem);
+
+    const forkItem: CommonBottomBarItem = new CommonBottomBarItem();
+    forkItem.itemId = 'fork';
+    forkItem.itemName = I18n('reposFork');
+    forkItem.icon = FA_CODE_FORK;
+    forkItem.iconColor = GSYColor.primary;
+    forkItem.itemTextColor = GSYColor.primary;
+    forkItem.itemClick = (): void => {
+      this.doFork();
+    };
+    items.push(forkItem);
+
+    const branchItem: CommonBottomBarItem = new CommonBottomBarItem();
+    branchItem.itemId = 'branch';
+    branchItem.itemName = this.vm.currentBranchName();
+    branchItem.icon = FA_CHEVRON_DOWN;
+    branchItem.iconColor = GSYColor.primary;
+    branchItem.itemTextColor = GSYColor.primary;
+    branchItem.itemClick = (): void => {
+      this.openBranchSelector();
+    };
+    items.push(branchItem);
+
+    return items;
   }
 
   build(): void {
@@ -854,22 +775,22 @@ export struct RepositoryDetailPage {
           }) {
             TabContent() {
               ActivityTab({
-                activity: this.store.activity,
-                refreshing: this.activityRefreshing,
-        loadingMore: this.activityLoadingMore,
-        noMore: this.activityNoMore,
-                store: this.store,
-                ownerName: this.resolveOwnerName(),
-                repositoryName: this.resolveRepositoryName(),
+                activity: this.vm.activity,
+                commits: this.vm.commits,
+                detail: this.vm.detail,
+                refreshing: this.vm.activityRefreshing,
+                loadingMore: this.vm.activityLoadingMore,
+                noMore: this.vm.activityNoMore,
+                ownerName: this.vm.ownerName(),
+                repositoryName: this.vm.repositoryName(),
                 refresh: (): void => {
-                  this.refreshCurrentActivityTab();
+                  this.vm.refreshCurrentActivityTab();
                 },
                 loadMore: (): void => {
-                  this.loadMoreCurrentActivityTab();
+                  this.vm.loadMoreCurrentActivityTab();
                 },
                 onSelectChange: (sel: number): void => {
-                  this.activitySelect = sel;
-                  this.handleActivitySelectChange(sel);
+                  this.vm.handleActivitySelectChange(sel);
                 },
                 onTapStar: (): void => {
                   this.openRepositoryCommonList('stargazers', COMMON_LIST_SHOW_TYPE_USER, 'stargazers');
@@ -897,14 +818,12 @@ export struct RepositoryDetailPage {
 
             TabContent() {
               ReadmeTab({
-                store: this.store,
-                fullName: this.fullName,
-                branch: this.store.currentBranch.length > 0
-                  ? this.store.currentBranch : this.resolveDefaultBranch(),
-                readmeHtml: this.store.readmeHtml,
-                readmeMarkdown: this.store.readmeMarkdown,
-                readmeLoading: this.store.readmeLoading,
-                readmeError: this.store.readmeError,
+                fullName: this.vm.fullName,
+                branch: this.vm.currentBranchName(),
+                readmeHtml: this.vm.readmeHtml,
+                readmeMarkdown: this.vm.readmeMarkdown,
+                readmeLoading: this.vm.readmeLoading,
+                readmeError: this.vm.readmeError,
               })
                 .id('repo_detail_tab_content_readme');
             }
@@ -912,14 +831,14 @@ export struct RepositoryDetailPage {
 
             TabContent() {
               IssueTab({
-                issues: this.store.issues,
-                fullName: this.fullName,
-                currentState: this.store.issueState,
-                searchQuery: this.store.issueSearchQuery,
+                issues: this.vm.issues,
+                fullName: this.vm.fullName,
+                currentState: this.vm.issueState,
+                searchQuery: this.vm.issueSearchQuery,
                 showCreateFab: false,
-                refreshing: this.issueRefreshing,
-        loadingMore: this.issueLoadingMore,
-        noMore: this.issueNoMore,
+                refreshing: this.vm.issueRefreshing,
+                loadingMore: this.vm.issueLoadingMore,
+                noMore: this.vm.issueNoMore,
                 refresh: (): void => {
                   this.refreshIssues();
                 },
@@ -938,7 +857,7 @@ export struct RepositoryDetailPage {
                   this.handleIssueSearch();
                 },
                 onCreateIssue: (): void => {
-                  this.openCreateIssueDialog();
+                  this.openCreateIssueSheet();
                 },
               })
                 .id('repo_detail_tab_content_issue');
@@ -947,13 +866,13 @@ export struct RepositoryDetailPage {
 
             TabContent() {
               FilesTab({
-                files: this.store.files,
-                currentPath: this.currentFilePath,
-                refreshing: this.filesRefreshing,
-        loadingMore: this.filesLoadingMore,
-        noMore: this.filesNoMore,
+                files: this.vm.files,
+                currentPath: this.vm.currentFilePath,
+                refreshing: this.vm.filesRefreshing,
+                loadingMore: this.vm.filesLoadingMore,
+                noMore: this.vm.filesNoMore,
                 refresh: (): void => {
-                  this.refreshFiles(this.currentFilePath);
+                  this.refreshFiles(this.vm.currentFilePath);
                 },
                 onFileClick: (item: RepositoryFileItem): void => {
                   this.openFile(item);
@@ -976,7 +895,7 @@ export struct RepositoryDetailPage {
             this.currentIndex = index;
           });
 
-          if (this.fullName.length > 0) {
+          if (this.vm.fullName.length > 0) {
             this.buildCreateIssueFab();
           }
           if (this.branchMenuVisible) {
@@ -987,7 +906,7 @@ export struct RepositoryDetailPage {
         .layoutWeight(1)
         .width('100%');
 
-        if (this.fullName.length > 0) {
+        if (this.vm.fullName.length > 0) {
           CommonBottomBar({
             rootId: 'repo_detail_bottom_bar',
             dataList: this.buildBottomBarItems(),
@@ -1004,7 +923,13 @@ export struct RepositoryDetailPage {
       .id('repo_detail_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(GSYColor.white)
+      .bindSheet(this.createIssueSheetOpen, this.buildCreateIssueSheet(), {
+        height: CREATE_ISSUE_SHEET_HEIGHT,
+        dragBar: false,
+        showClose: false,
+        backgroundColor: GSYColor.white,
+      });
     }
     .hideTitleBar(true)
     .onBackPressed((): boolean => {
@@ -1013,7 +938,7 @@ export struct RepositoryDetailPage {
     })
     .onReady((ctx: NavDestinationContext): void => {
       const stack: NavPathStack | undefined = ctx.pathStack;
-      const previous: string = this.fullName;
+      const previous: string = this.vm.fullName;
       let stackSize: number = -1;
       let resolved: string = FALLBACK_FULL_NAME;
       if (stack !== undefined && stack !== null) {
@@ -1026,17 +951,17 @@ export struct RepositoryDetailPage {
         }
         resolved = this.resolveFullNameFromStack(stack);
         if (resolved.length > 0) {
-          this.fullName = resolved;
+          this.vm.setFullName(resolved);
         }
       }
-      if (this.fullName.length === 0 || this.fullName === FALLBACK_FULL_NAME) {
+      if (this.vm.fullName.length === 0 || this.vm.fullName === FALLBACK_FULL_NAME) {
         const info: NavPathInfo | undefined = ctx.pathInfo;
         if (info !== undefined && info !== null) {
           const raw: Object | undefined = info.param as Object | undefined;
           const fromParam: string = this.resolveFullNameFromObject(raw === undefined ? null : raw);
           if (fromParam.length > 0) {
             resolved = fromParam;
-            this.fullName = fromParam;
+            this.vm.setFullName(fromParam);
           }
         }
       }
@@ -1046,14 +971,14 @@ export struct RepositoryDetailPage {
       const bootRepoTrim: string = bootRepo.trim();
       if (bootRepoTrim.length > 0) {
         resolved = bootRepoTrim;
-        this.fullName = bootRepoTrim;
+        this.vm.setFullName(bootRepoTrim);
       }
       Logger.i('boot/ts',
         `RepositoryDetailPage.onReady t=${Date.now()} stackSize=${stackSize}` +
-        ` previous='${previous}' resolved='${resolved}' fullName='${this.fullName}'`);
-      if (this.fullName.length > 0 && this.fullName !== previous) {
+        ` previous='${previous}' resolved='${resolved}' fullName='${this.vm.fullName}'`);
+      if (this.vm.fullName.length > 0 && this.vm.fullName !== previous) {
         this.loadAll();
-      } else if (previous.length === 0 && this.fullName.length > 0) {
+      } else if (previous.length === 0 && this.vm.fullName.length > 0) {
         this.loadAll();
       }
     });

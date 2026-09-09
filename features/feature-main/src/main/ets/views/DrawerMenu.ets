@@ -7,7 +7,6 @@ import { CommonToast } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RepositoryService, ReleaseListItem } from 'common';
-import { RepositoryDetailStore } from 'common';
 import {
   AuthStore,
   GlobalAuthStore,
@@ -257,7 +256,7 @@ export struct DrawerMenu {
   @Local aboutSheetOpen: boolean = false;
   @Local languageSheetOpen: boolean = false;
   @Local feedbackSheetOpen: boolean = false;
-  private feedbackService: RepositoryService = new RepositoryService(new RepositoryDetailStore());
+  private feedbackService: RepositoryService = new RepositoryService();
 
   aboutToAppear(): void {
     this.loadLanguage();

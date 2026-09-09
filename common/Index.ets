@@ -50,7 +50,7 @@ export { DefaultMyService, FetchStarredCountResult, FetchUnReadResult, FetchUser
 export { FetchNotifyResult, MarkNotifyResult, NOTIFY_FILTER_UNREAD_EXPORT, NotifyFilterParam, NotifyService, resolveFilterParam } from './src/main/ets/model/service/NotifyService';
 export { READ_HISTORY_PAGE_SIZE, ReadHistoryAddParam, ReadHistoryDataPayload, ReadHistoryService, ReadHistoryServiceResult, decodeReadHistoryData, encodeReadHistoryData, isValidReadHistoryType } from './src/main/ets/model/service/ReadHistoryService';
 export { FetchRecommendResult, RECOMMEND_DEFAULT_QUERY, RECOMMEND_DEFAULT_SORT, RecommendService } from './src/main/ets/model/service/RecommendService';
-export { FetchReleaseListResult, ReleaseListItem, RepoOwnerName, RepositoryService, RepositoryServiceResult, SubListResult, SubRepositoryItem, SubUserItem, normalizeRawRepo } from './src/main/ets/model/service/RepositoryService';
+export { FetchReadmeResult, FetchReleaseListResult, FetchStarWatchResult, ReleaseListItem, RepoOwnerName, RepositoryService, RepositoryServiceResult, SubListResult, SubRepositoryItem, SubUserItem, normalizeRawRepo } from './src/main/ets/model/service/RepositoryService';
 export { SearchIssueResult, SearchRepoResult, SearchService, SearchUserResult } from './src/main/ets/model/service/SearchService';
 export { FetchTrendingResult, TrendService } from './src/main/ets/model/service/TrendService';
 export { FetchFollowResult, FetchSubUserListResult, FetchUserReposResult, FetchUserResult, UpdateUserResult, UserService } from './src/main/ets/model/service/UserService';

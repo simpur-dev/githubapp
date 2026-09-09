@@ -377,7 +377,8 @@ export default function RepoTabsServiceTest(): void {
       dao = new RepositoryDao(rdb);
       issueDao = new IssueDao(rdb);
       store = new RepositoryDetailStore();
-      service = new RepositoryService(store, dao, PAGE_SIZE, issueDao);
+      // R9 无状态化：service 不再持有 store；store 仅保留给纯 store 行为测试（setPath/popPath）。
+      service = new RepositoryService(dao, PAGE_SIZE, issueDao);
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -403,9 +404,9 @@ export default function RepoTabsServiceTest(): void {
         expect(res.result).assertTrue();
         expect(provider.captured.url).assertEqual(
           Address.getRepositoryIssue(OWNER, REPO_NAME, 1, 'open', PAGE_SIZE));
-        expect(store.issueList.length).assertEqual(PAGE_SIZE);
-        expect(store.issuePage).assertEqual(1);
-        expect(store.issueHasMore).assertTrue();
+        expect(res.data.length).assertEqual(PAGE_SIZE);
+        expect(res.page).assertEqual(1);
+        expect(res.hasMore).assertTrue();
         const repoIssueWrites: number | undefined = rdb.insertCountByTable.get(ISSUE_TABLE_REPO_ISSUE);
         expect(repoIssueWrites !== undefined && repoIssueWrites >= 1).assertTrue();
       });
@@ -425,8 +426,8 @@ export default function RepoTabsServiceTest(): void {
       expect(res.result).assertTrue();
       expect(provider.captured.url).assertEqual(
         Address.getRepositoryIssueSearch(FULL_NAME, 'all', 'crash', 1, PAGE_SIZE));
-      expect(store.issueList.length).assertEqual(1);
-      expect(store.issuePage).assertEqual(1);
+      expect(res.data.length).assertEqual(1);
+      expect(res.page).assertEqual(1);
       const repoIssueWrites: number | undefined = rdb.insertCountByTable.get(ISSUE_TABLE_REPO_ISSUE);
       expect(repoIssueWrites === undefined || repoIssueWrites === 0).assertTrue();
     });
@@ -438,15 +439,18 @@ export default function RepoTabsServiceTest(): void {
         provider.pushResponse(SUCCESS, JSON.stringify(first));
         provider.pushResponse(SUCCESS, JSON.stringify(second));
 
-        await service.getIssues(FULL_NAME, 'all', 1);
+        const firstRes: RepositoryServiceResult<RepositoryIssueItem[]> =
+          await service.getIssues(FULL_NAME, 'all', 1);
         const writesAfterFirst: number | undefined = rdb.insertCountByTable.get(ISSUE_TABLE_REPO_ISSUE);
 
-        await service.getIssues(FULL_NAME, 'all', 2);
+        const secondRes: RepositoryServiceResult<RepositoryIssueItem[]> =
+          await service.getIssues(FULL_NAME, 'all', 2);
         const writesAfterSecond: number | undefined = rdb.insertCountByTable.get(ISSUE_TABLE_REPO_ISSUE);
 
         expect(writesAfterFirst).assertEqual(writesAfterSecond);
-        expect(store.issueList.length).assertEqual(PAGE_SIZE * 2);
-        expect(store.issuePage).assertEqual(2);
+        expect(firstRes.data.length).assertEqual(PAGE_SIZE);
+        expect(secondRes.data.length).assertEqual(PAGE_SIZE);
+        expect(secondRes.page).assertEqual(2);
         expect(provider.capturedAll.length).assertEqual(2);
         expect(provider.capturedAll[1].url).assertEqual(
           Address.getRepositoryIssue(OWNER, REPO_NAME, 2, 'all', PAGE_SIZE));
@@ -461,7 +465,7 @@ export default function RepoTabsServiceTest(): void {
 
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
-      expect(store.issueLoading).assertFalse();
+      expect(res.data.length).assertEqual(0);
     });
 
     it('getEvents_uses_events_url_and_writes_repo_dao_only_on_first_page', 0,
@@ -476,9 +480,9 @@ export default function RepoTabsServiceTest(): void {
         expect(res.result).assertTrue();
         expect(provider.captured.url).assertEqual(
           Address.getRepositoryEvent(OWNER, REPO_NAME, 1, PAGE_SIZE));
-        expect(store.eventList.length).assertEqual(PAGE_SIZE);
-        expect(store.eventPage).assertEqual(1);
-        expect(store.eventHasMore).assertTrue();
+        expect(res.data.length).assertEqual(PAGE_SIZE);
+        expect(res.page).assertEqual(1);
+        expect(res.hasMore).assertTrue();
         const eventWrites: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_EVENT);
         expect(eventWrites !== undefined && eventWrites >= 1).assertTrue();
       });
@@ -490,15 +494,18 @@ export default function RepoTabsServiceTest(): void {
         provider.pushResponse(SUCCESS, JSON.stringify(first));
         provider.pushResponse(SUCCESS, JSON.stringify(second));
 
-        await service.getEvents(FULL_NAME, 1);
+        const firstRes: RepositoryServiceResult<RepositoryEventItem[]> =
+          await service.getEvents(FULL_NAME, 1);
         const writesAfterFirst: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_EVENT);
 
-        await service.getEvents(FULL_NAME, 2);
+        const secondRes: RepositoryServiceResult<RepositoryEventItem[]> =
+          await service.getEvents(FULL_NAME, 2);
         const writesAfterSecond: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_EVENT);
 
         expect(writesAfterFirst).assertEqual(writesAfterSecond);
-        expect(store.eventList.length).assertEqual(PAGE_SIZE * 2);
-        expect(store.eventPage).assertEqual(2);
+        expect(firstRes.data.length).assertEqual(PAGE_SIZE);
+        expect(secondRes.data.length).assertEqual(PAGE_SIZE);
+        expect(secondRes.page).assertEqual(2);
       });
 
     it('getEvents_unauthorized_propagates_401', 0, async (): Promise<void> => {
@@ -510,23 +517,22 @@ export default function RepoTabsServiceTest(): void {
 
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
-      expect(store.eventLoading).assertFalse();
+      expect(res.data.length).assertEqual(0);
     });
 
     it('getFiles_root_uses_contents_url_and_writes_cache', 0,
       async (): Promise<void> => {
         const files: RepositoryFileItem[] = buildFiles(2, 'file');
-        store.setDetail(buildDetail('master'));
         provider.nextStatus = SUCCESS;
         provider.nextBody = JSON.stringify(files);
 
         const res: RepositoryServiceResult<RepositoryFileItem[]> =
-          await service.getFiles(FULL_NAME, 'master', '');
+          await service.getFiles(FULL_NAME, 'master', '', 'master');
 
         expect(res.result).assertTrue();
         expect(provider.captured.url).assertEqual(
           Address.getReposFileDir(OWNER, REPO_NAME, '', 'master'));
-        expect(store.fileList.length).assertEqual(2);
+        expect(res.data.length).assertEqual(2);
         const fileWrites: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_FILE_LIST);
         expect(fileWrites !== undefined && fileWrites >= 1).assertTrue();
       });
@@ -534,18 +540,17 @@ export default function RepoTabsServiceTest(): void {
     it('getFiles_with_branch_and_path_appends_ref_query', 0,
       async (): Promise<void> => {
         const files: RepositoryFileItem[] = buildFiles(1, 'dir');
-        store.setDetail(buildDetail('master'));
         provider.nextStatus = SUCCESS;
         provider.nextBody = JSON.stringify(files);
 
         const res: RepositoryServiceResult<RepositoryFileItem[]> =
-          await service.getFiles(FULL_NAME, 'master', 'src/main');
+          await service.getFiles(FULL_NAME, 'master', 'src/main', 'master');
 
         expect(res.result).assertTrue();
         expect(provider.captured.url).assertEqual(
           Address.getReposFileDir(OWNER, REPO_NAME, 'src/main', 'master'));
         expect(provider.captured.url.indexOf('?ref=master') >= 0).assertTrue();
-        expect(store.fileList.length).assertEqual(1);
+        expect(res.data.length).assertEqual(1);
         const fileWrites: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_FILE_LIST);
         expect(fileWrites === undefined || fileWrites === 0).assertTrue();
       });
@@ -553,35 +558,33 @@ export default function RepoTabsServiceTest(): void {
     it('getFiles_default_root_falls_back_to_cache_when_network_fails', 0,
       async (): Promise<void> => {
         const cached: RepositoryFileItem[] = buildFiles(1, 'file');
-        store.setDetail(buildDetail('master'));
         await dao.saveFile(FULL_NAME, 'master', '', JSON.stringify(cached));
         provider.nextStatus = 500;
         provider.nextBody = '';
 
         const res: RepositoryServiceResult<RepositoryFileItem[]> =
-          await service.getFiles(FULL_NAME, 'master', '');
+          await service.getFiles(FULL_NAME, 'master', '', 'master');
 
         expect(res.result).assertTrue();
         expect(res.fromCache).assertTrue();
         expect(res.data !== null ? res.data.length : 0).assertEqual(1);
-        expect(store.fileList.length).assertEqual(1);
-        expect(store.fileList[0].name).assertEqual('file0.ts');
+        expect(res.data.length).assertEqual(1);
+        expect(res.data[0].name).assertEqual('file0.ts');
       });
 
     it('getFiles_non_default_root_does_not_read_or_write_default_branch_cache', 0,
       async (): Promise<void> => {
         const cached: RepositoryFileItem[] = buildFiles(1, 'file');
-        store.setDetail(buildDetail('master'));
         await dao.saveFile(FULL_NAME, 'master', '', JSON.stringify(cached));
         provider.nextStatus = 500;
         provider.nextBody = '';
 
         const res: RepositoryServiceResult<RepositoryFileItem[]> =
-          await service.getFiles(FULL_NAME, 'dev', '');
+          await service.getFiles(FULL_NAME, 'dev', '', 'master');
 
         expect(res.result).assertFalse();
         expect(res.fromCache).assertFalse();
-        expect(store.fileList.length).assertEqual(0);
+        expect(res.data.length).assertEqual(0);
         const fileWrites: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_FILE_LIST);
         expect(fileWrites).assertEqual(1);
       });
@@ -591,11 +594,11 @@ export default function RepoTabsServiceTest(): void {
       provider.nextBody = '';
 
       const res: RepositoryServiceResult<RepositoryFileItem[]> =
-        await service.getFiles(FULL_NAME, null, '');
+        await service.getFiles(FULL_NAME, null, '', '');
 
       expect(res.result).assertFalse();
       expect(res.code).assertEqual(UNAUTHORIZED);
-      expect(store.fileLoading).assertFalse();
+      expect(res.data.length).assertEqual(0);
     });
 
     it('store_setPath_pushes_stack_and_popPath_restores_previous', 0,

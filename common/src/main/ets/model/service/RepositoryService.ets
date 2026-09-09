@@ -13,7 +13,6 @@ import {
   RepositoryIssueItem,
   RepositoryCommitItem,
   RepositoryPulseData,
-  RepositoryDetailStore,
   ISSUE_STATE_ALL
 } from '../store/RepositoryDetailStore';
 import { HtmlUtil } from '../../base/utils/HtmlUtil';
@@ -130,12 +129,61 @@ export class RepositoryServiceResult<T> {
   data: T | null;
   fromCache: boolean;
   msg: string;
+  /** 列表接口附带：本次请求对应页码（详情/布尔类接口恒为 1）。 */
+  page: number;
+  /** 列表接口附带：是否还有下一页（按返回条数 >= pageSize 判定）。 */
+  hasMore: boolean;
 
-  constructor(result: boolean, code: number, data: T | null, fromCache: boolean, msg: string) {
+  constructor(result: boolean, code: number, data: T | null, fromCache: boolean, msg: string,
+              page: number = 1, hasMore: boolean = false) {
     this.result = result;
     this.code = code;
     this.data = data;
     this.fromCache = fromCache;
+    this.msg = msg;
+    this.page = page;
+    this.hasMore = hasMore;
+  }
+}
+
+/**
+ * README 双通道取数结果（R9 无状态化）：
+ *   - markdown 非空：`application/vnd.github.raw` 通道成功，原生 MarkdownRenderer 渲染；
+ *   - html 非空：HTML 通道成功（缓存 / 降级），WebView 兜底渲染；
+ *   - 两者皆空且 result=false：请求失败，msg 为错误文案。
+ */
+export class FetchReadmeResult {
+  result: boolean;
+  code: number;
+  markdown: string;
+  html: string;
+  fromCache: boolean;
+  msg: string;
+
+  constructor(result: boolean, code: number, markdown: string, html: string,
+              fromCache: boolean, msg: string) {
+    this.result = result;
+    this.code = code;
+    this.markdown = markdown;
+    this.html = html;
+    this.fromCache = fromCache;
+    this.msg = msg;
+  }
+}
+
+/** star / watch 状态一次性取数结果（原 getStarStatus 写 store.starred/watching 的语义平移）。 */
+export class FetchStarWatchResult {
+  result: boolean;
+  code: number;
+  starred: boolean;
+  watching: boolean;
+  msg: string;
+
+  constructor(result: boolean, code: number, starred: boolean, watching: boolean, msg: string) {
+    this.result = result;
+    this.code = code;
+    this.starred = starred;
+    this.watching = watching;
     this.msg = msg;
   }
 }
@@ -146,47 +194,45 @@ interface ReadmeRaw {
 }
 
 export class RepositoryService {
-  private store: RepositoryDetailStore;
   private dao: RepositoryDao;
   private issueDao: IssueDao;
   private pageSize: number;
 
-  constructor(store: RepositoryDetailStore,
-              dao?: RepositoryDao,
+  // R9 V2 + MVVM 无状态化：构造函数不再持有 RepositoryDetailStore，
+  // 方法只做取数并返回数据（谁调谁更新：调用方 ViewModel 写自己的 UI 状态）。
+  constructor(dao?: RepositoryDao,
               pageSize?: number,
               issueDao?: IssueDao) {
-    this.store = store;
     this.dao = dao !== undefined ? dao : new RepositoryDao();
     this.issueDao = issueDao !== undefined ? issueDao : new IssueDao();
     this.pageSize = pageSize !== undefined && pageSize > 0
       ? pageSize : Address.getRepositoryPageSize();
   }
 
-  getStore(): RepositoryDetailStore {
-    return this.store;
-  }
-
   getPageSize(): number {
     return this.pageSize;
   }
 
-  async getReposInfo(fullName: string): Promise<RepositoryServiceResult<RepositoryDetail>> {
+  async getReposInfo(fullName: string,
+                     onCached?: (detail: RepositoryDetail) => void): Promise<RepositoryServiceResult<RepositoryDetail>> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryDetail>(false, 0, null, false, msg);
     }
     let cachedDetail: RepositoryDetail | null = null;
     try {
       cachedDetail = await this.readDetailCache(fullName);
       if (cachedDetail !== null) {
-        this.store.setDetail(RepositoryService.sanitizeDetail(cachedDetail));
+        const safeCached: RepositoryDetail = RepositoryService.sanitizeDetail(cachedDetail);
+        cachedDetail = safeCached;
+        if (onCached !== undefined && onCached !== null) {
+          onCached(safeCached);
+        }
       }
     } catch (_e) {
       cachedDetail = null;
     }
-    this.store.startLoading();
     const url: string = Address.getReposDetail(owner.owner, owner.name);
     const httpResult: HttpResult<RepositoryDetail> =
       await HttpManager.getFetch<RepositoryDetail>(url);
@@ -196,58 +242,44 @@ export class RepositoryService {
         await this.dao.saveDetail(fullName, JSON.stringify(detail));
       } catch (_e) {
       }
-      this.store.setDetail(detail);
-      this.store.finishLoading();
       return new RepositoryServiceResult<RepositoryDetail>(true, httpResult.code, detail, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryDetail>(false, UNAUTHORIZED, null, false, msg);
     }
     if (cachedDetail !== null) {
-      const safeCached: RepositoryDetail = RepositoryService.sanitizeDetail(cachedDetail);
-      this.store.setDetail(safeCached);
-      this.store.finishLoading();
-      return new RepositoryServiceResult<RepositoryDetail>(true, httpResult.code, safeCached, true,
+      return new RepositoryServiceResult<RepositoryDetail>(true, httpResult.code, cachedDetail, true,
         httpResult.msg !== null ? httpResult.msg : '');
     }
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
     return new RepositoryServiceResult<RepositoryDetail>(false, httpResult.code, null, false, failMsg);
   }
 
   async getReadme(fullName: string,
-                  branch: string | null = null): Promise<RepositoryServiceResult<string>> {
+                  branch: string | null = null,
+                  defaultBranch: string = '',
+                  onCached?: (html: string) => void): Promise<FetchReadmeResult> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setReadmeError(msg);
-      return new RepositoryServiceResult<string>(false, 0, null, false, msg);
+      return new FetchReadmeResult(false, 0, '', '', false, msg);
     }
     const url: string = Address.getReposReadme(owner.owner, owner.name, branch);
     Logger.i('ReadmeFlow', `getReadme start fullName=${fullName} branch=${branch} url=${url}`);
     let cachedReadme: string | null = null;
-    const defaultBranch: string = this.store.detail !== null
-      && this.store.detail.default_branch !== null
-      && this.store.detail.default_branch !== undefined
-      && this.store.detail.default_branch.length > 0
-      ? this.store.detail.default_branch : '';
     const isDefaultBranch: boolean = branch === null || branch.length === 0
       || (defaultBranch.length > 0 && branch === defaultBranch);
     if (isDefaultBranch) {
       try {
         cachedReadme = await this.readReadmeCache(fullName);
-        if (cachedReadme !== null) {
-          this.store.setReadmeHtml(cachedReadme);
+        if (cachedReadme !== null && onCached !== undefined && onCached !== null) {
+          onCached(cachedReadme);
           Logger.i('ReadmeFlow', `getReadme cache-first len=${cachedReadme.length}`);
         }
       } catch (_e) {
         cachedReadme = null;
       }
-    }
-    if (cachedReadme === null) {
-      this.store.startReadmeLoading();
     }
     // Compose ReadmeRepository：默认分支先 emit DB cache，再请求 GitHub HTML 刷新并写回 DB；
     // 非默认分支只走网络，避免把其它分支 README 覆盖到默认分支缓存。
@@ -257,11 +289,9 @@ export class RepositoryService {
     const rawResult: HttpResult<string> = await HttpManager.getFetch<string>(url, rawHeaders);
     if (rawResult.result && rawResult.data !== null) {
       const md: string = rawResult.data as string;
-      this.store.setReadmeMarkdown(md);
       Logger.i('ReadmeFlow', `getReadme raw md len=${md.length}`);
       if (md.length > 0) {
-        this.store.setReadmeHtml('');
-        return new RepositoryServiceResult<string>(true, rawResult.code, md, false, '');
+        return new FetchReadmeResult(true, rawResult.code, md, '', false, '');
       }
     }
     const headers: HttpHeaders = { 'Accept': 'application/vnd.github.html' };
@@ -280,40 +310,33 @@ export class RepositoryService {
         } catch (_e) {
         }
       }
-      this.store.setReadmeHtml(html);
-      Logger.i('ReadmeFlow',
-        `getReadme store.readmeHtml updated len=${this.store.readmeHtml.length}`);
-      return new RepositoryServiceResult<string>(true, httpResult.code, html, false, '');
+      return new FetchReadmeResult(true, httpResult.code, '', html, false, '');
     }
     if (cachedReadme !== null) {
-      this.store.setReadmeHtml(cachedReadme);
       Logger.i('ReadmeFlow',
         `getReadme fall back to cache len=${cachedReadme.length}`);
-      return new RepositoryServiceResult<string>(true, httpResult.code, cachedReadme, true,
+      return new FetchReadmeResult(true, httpResult.code, '', cachedReadme, true,
         httpResult.msg !== null ? httpResult.msg : '');
     }
     const msg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
     Logger.w('ReadmeFlow', `getReadme failed code=${httpResult.code} msg=${msg}`);
-    this.store.setReadmeError(msg);
-    return new RepositoryServiceResult<string>(false, httpResult.code, null, false, msg);
+    return new FetchReadmeResult(false, httpResult.code, '', '', false, msg);
   }
 
-  async getStarStatus(fullName: string): Promise<RepositoryServiceResult<boolean>> {
+  async getStarStatus(fullName: string): Promise<FetchStarWatchResult> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
-      return new RepositoryServiceResult<boolean>(false, 0, false, false, 'invalid fullName');
+      return new FetchStarWatchResult(false, 0, false, false, 'invalid fullName');
     }
     const starUrl: string = Address.getStar(owner.owner, owner.name);
     const starResp: HttpResult<Object> = await HttpManager.getFetch<Object>(starUrl);
     const isStarred: boolean = starResp.result || starResp.code === NO_CONTENT;
-    this.store.setStarred(isStarred);
 
     const watchUrl: string = Address.getWatch(owner.owner, owner.name);
     const watchResp: HttpResult<Object> = await HttpManager.getFetch<Object>(watchUrl);
     const isWatching: boolean = watchResp.result || watchResp.code === NO_CONTENT;
-    this.store.setWatching(isWatching);
 
-    return new RepositoryServiceResult<boolean>(true, starResp.code, isStarred, false, '');
+    return new FetchStarWatchResult(true, starResp.code, isStarred, isWatching, '');
   }
 
   async star(fullName: string): Promise<RepositoryServiceResult<boolean>> {
@@ -344,11 +367,10 @@ export class RepositoryService {
       starred ? 'PUT' : 'DELETE', null, false, null);
     const ok: boolean = httpResult.result || httpResult.code === NO_CONTENT;
     if (ok) {
-      this.store.setStarred(starred);
       return new RepositoryServiceResult<boolean>(true, httpResult.code, starred, false, '');
     }
     const msg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    return new RepositoryServiceResult<boolean>(false, httpResult.code, this.store.starred, false, msg);
+    return new RepositoryServiceResult<boolean>(false, httpResult.code, false, false, msg);
   }
 
   private async toggleWatch(fullName: string,
@@ -363,30 +385,28 @@ export class RepositoryService {
       watching ? 'PUT' : 'DELETE', null, false, null);
     const ok: boolean = httpResult.result || httpResult.code === NO_CONTENT;
     if (ok) {
-      this.store.setWatching(watching);
       return new RepositoryServiceResult<boolean>(true, httpResult.code, watching, false, '');
     }
     const msg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    return new RepositoryServiceResult<boolean>(false, httpResult.code, this.store.watching, false, msg);
+    return new RepositoryServiceResult<boolean>(false, httpResult.code, false, false, msg);
   }
 
   async getRepositoryEvents(fullName: string,
-                            page: number): Promise<RepositoryServiceResult<RepositoryEventItem[]>> {
+                            page: number,
+                            onCached?: (events: RepositoryEventItem[]) => void): Promise<RepositoryServiceResult<RepositoryEventItem[]>> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryEventItem[]>(false, 0, [], false, msg);
     }
     const finalPage: number = page > 0 ? page : 1;
     let cachedEvents: RepositoryEventItem[] = [];
     if (finalPage === 1) {
       cachedEvents = await this.readEventCache(fullName);
-      if (cachedEvents.length > 0) {
-        this.store.applyActivityRefresh(cachedEvents, this.pageSize);
+      if (cachedEvents.length > 0 && onCached !== undefined && onCached !== null) {
+        onCached(cachedEvents);
       }
     }
-    this.store.startLoading();
     const url: string = Address.getRepositoryEvent(owner.owner, owner.name, finalPage, this.pageSize);
     const httpResult: HttpResult<RepositoryEventItem[]> =
       await HttpManager.getFetch<RepositoryEventItem[]>(url);
@@ -397,24 +417,19 @@ export class RepositoryService {
           await this.dao.saveEvent(fullName, JSON.stringify(events));
         } catch (_e) {
         }
-        this.store.applyActivityRefresh(events, this.pageSize);
-      } else {
-        this.store.applyActivityAppend(events, finalPage, this.pageSize);
       }
-      return new RepositoryServiceResult<RepositoryEventItem[]>(true, httpResult.code, events, false, '');
+      return new RepositoryServiceResult<RepositoryEventItem[]>(true, httpResult.code, events, false, '',
+        finalPage, events.length >= this.pageSize);
     }
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryEventItem[]>(false, UNAUTHORIZED, [], false, msg);
     }
     if (cachedEvents.length > 0) {
-      this.store.applyActivityRefresh(cachedEvents, this.pageSize);
       return new RepositoryServiceResult<RepositoryEventItem[]>(true, httpResult.code, cachedEvents, true,
-        httpResult.msg !== null ? httpResult.msg : '');
+        httpResult.msg !== null ? httpResult.msg : '', 1, cachedEvents.length >= this.pageSize);
     }
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
     return new RepositoryServiceResult<RepositoryEventItem[]>(false, httpResult.code, [], false, failMsg);
   }
 
@@ -423,38 +438,32 @@ export class RepositoryService {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryFileItem[]>(false, 0, [], false, msg);
     }
-    this.store.startLoading();
     const safePath: string = path !== null && path !== undefined ? path : '';
     const url: string = Address.getReposFileDir(owner.owner, owner.name, safePath, null);
     const httpResult: HttpResult<RepositoryFileItem[]> =
       await HttpManager.getFetch<RepositoryFileItem[]>(url);
     if (httpResult.result && httpResult.data !== null) {
       const files: RepositoryFileItem[] = httpResult.data as RepositoryFileItem[];
-      this.store.setFiles(files);
-      this.store.finishLoading();
       return new RepositoryServiceResult<RepositoryFileItem[]>(true, httpResult.code, files, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryFileItem[]>(false, UNAUTHORIZED, [], false, msg);
     }
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
     return new RepositoryServiceResult<RepositoryFileItem[]>(false, httpResult.code, [], false, failMsg);
   }
 
   async getIssues(fullName: string,
                   state: string | null,
                   page: number,
-                  query: string = ''): Promise<RepositoryServiceResult<RepositoryIssueItem[]>> {
+                  query: string = '',
+                  onCached?: (issues: RepositoryIssueItem[]) => void): Promise<RepositoryServiceResult<RepositoryIssueItem[]>> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryIssueItem[]>(false, 0, [], false, msg);
     }
     const finalPage: number = page > 0 ? page : 1;
@@ -466,13 +475,10 @@ export class RepositoryService {
     let cachedIssues: RepositoryIssueItem[] = [];
     if (shouldUseCacheFirst) {
       cachedIssues = await this.readIssueCache(fullName, finalState, finalPage);
-      if (cachedIssues.length > 0) {
-        this.store.applyIssuesRefresh(cachedIssues, this.pageSize);
-        this.store.applyIssueRefresh(cachedIssues, this.pageSize);
+      if (cachedIssues.length > 0 && onCached !== undefined && onCached !== null) {
+        onCached(cachedIssues);
       }
     }
-    this.store.startLoading();
-    this.store.startIssueLoading();
     const url: string = useSearch
       ? Address.getRepositoryIssueSearch(fullName, finalState, finalQuery, finalPage, this.pageSize)
       : Address.getReposIssueByFullName(fullName, finalState, finalPage, this.pageSize);
@@ -496,19 +502,11 @@ export class RepositoryService {
         } catch (_e) {
         }
       }
-      if (finalPage === 1) {
-        this.store.applyIssuesRefresh(issues, this.pageSize);
-        this.store.applyIssueRefresh(issues, this.pageSize);
-      } else {
-        this.store.applyIssuesAppend(issues, finalPage, this.pageSize);
-        this.store.applyIssueAppend(issues, finalPage, this.pageSize);
-      }
-      return new RepositoryServiceResult<RepositoryIssueItem[]>(true, httpResult.code, issues, false, '');
+      return new RepositoryServiceResult<RepositoryIssueItem[]>(true, httpResult.code, issues, false, '',
+        finalPage, issues.length >= this.pageSize);
     }
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
-      this.store.finishIssueLoading();
       return new RepositoryServiceResult<RepositoryIssueItem[]>(false, UNAUTHORIZED, [], false, msg);
     }
     if (finalPage === 1 && !useSearch) {
@@ -516,22 +514,18 @@ export class RepositoryService {
         cachedIssues = await this.readIssueCache(fullName, finalState, finalPage);
       }
       if (cachedIssues.length > 0) {
-        this.store.applyIssuesRefresh(cachedIssues, this.pageSize);
-        this.store.applyIssueRefresh(cachedIssues, this.pageSize);
         return new RepositoryServiceResult<RepositoryIssueItem[]>(true, httpResult.code, cachedIssues, true,
-          httpResult.msg !== null ? httpResult.msg : '');
+          httpResult.msg !== null ? httpResult.msg : '', 1, cachedIssues.length >= this.pageSize);
       }
     }
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
-    this.store.finishIssueLoading();
     return new RepositoryServiceResult<RepositoryIssueItem[]>(false, httpResult.code, [], false, failMsg);
   }
 
   /**
    * 创建 Issue —— 对齐 RN [issueActions.createIssue](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/RepositoryIssueListPage.js#L229-L245)
    * POST /repos/{owner}/{repo}/issues  body={title, body}
-   * 成功后将新 issue 插到 store.issues 头部，UI 端通过 @ObjectLink 自动刷新。
+   * 无状态化后只返回新建条目，「插到列表头部」由调用方 ViewModel 处理。
    */
   async createIssue(fullName: string,
                     title: string,
@@ -553,13 +547,6 @@ export class RepositoryService {
       await HttpManager.netFetch<RepositoryIssueItem>(url, 'POST', params, true, null);
     if (httpResult.result && httpResult.data !== null) {
       const created: RepositoryIssueItem = httpResult.data as RepositoryIssueItem;
-      const merged: RepositoryIssueItem[] = [created];
-      const current: RepositoryIssueItem[] = this.store.issues;
-      for (let i: number = 0; i < current.length; i++) {
-        merged.push(current[i]);
-      }
-      this.store.issues = merged;
-      this.store.issueList = merged.slice();
       return new RepositoryServiceResult<RepositoryIssueItem | null>(true, httpResult.code, created, false, '');
     }
     const msg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
@@ -569,29 +556,27 @@ export class RepositoryService {
   /**
    * 获取仓库 commits —— 对齐 Compose RepositoryRepository.getRepositoryCommits：
    * 默认分支第一页先读取本地 DB，再请求网络刷新并写回 DB。
+   * 无状态化：当前分支 / 默认分支由调用方传入（原先读 store）。
    */
   async getRepositoryCommits(fullName: string,
-                             page: number): Promise<RepositoryServiceResult<RepositoryCommitItem[]>> {
+                             page: number,
+                             branch: string = '',
+                             defaultBranch: string = '',
+                             onCached?: (commits: RepositoryCommitItem[]) => void): Promise<RepositoryServiceResult<RepositoryCommitItem[]>> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       return new RepositoryServiceResult<RepositoryCommitItem[]>(false, 0, [], false, 'invalid fullName');
     }
     const finalPage: number = page > 0 ? page : 1;
-    const defaultBranch: string = this.store.detail !== null
-      && this.store.detail.default_branch !== null
-      && this.store.detail.default_branch !== undefined
-      && this.store.detail.default_branch.length > 0
-      ? this.store.detail.default_branch : '';
-    const activeBranch: string = this.store.currentBranch.length > 0 ? this.store.currentBranch : defaultBranch;
+    const activeBranch: string = branch.length > 0 ? branch : defaultBranch;
     const shouldUseCache: boolean = finalPage === 1 && activeBranch.length > 0 && activeBranch === defaultBranch;
     let cachedCommits: RepositoryCommitItem[] = [];
     if (shouldUseCache) {
       cachedCommits = await this.readCommitsCache(fullName, activeBranch, finalPage);
-      if (cachedCommits.length > 0) {
-        this.store.applyCommitsRefresh(cachedCommits, this.pageSize);
+      if (cachedCommits.length > 0 && onCached !== undefined && onCached !== null) {
+        onCached(cachedCommits);
       }
     }
-    this.store.startCommitsLoading();
     const url: string = Address.getReposCommitsPaged(owner.owner, owner.name, finalPage, this.pageSize,
       activeBranch.length > 0 ? activeBranch : null);
     const httpResult: HttpResult<RepositoryCommitItem[]> =
@@ -604,39 +589,32 @@ export class RepositoryService {
         } catch (_e) {
         }
       }
-      if (finalPage === 1) {
-        this.store.applyCommitsRefresh(items, this.pageSize);
-      } else {
-        this.store.applyCommitsAppend(items, finalPage, this.pageSize);
-      }
-      return new RepositoryServiceResult<RepositoryCommitItem[]>(true, httpResult.code, items, false, '');
+      return new RepositoryServiceResult<RepositoryCommitItem[]>(true, httpResult.code, items, false, '',
+        finalPage, items.length >= this.pageSize);
     }
     if (cachedCommits.length > 0) {
-      this.store.applyCommitsRefresh(cachedCommits, this.pageSize);
       return new RepositoryServiceResult<RepositoryCommitItem[]>(true, httpResult.code, cachedCommits, true,
-        httpResult.msg !== null ? httpResult.msg : '');
+        httpResult.msg !== null ? httpResult.msg : '', 1, cachedCommits.length >= this.pageSize);
     }
-    this.store.finishCommitsLoading();
     const msg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
     return new RepositoryServiceResult<RepositoryCommitItem[]>(false, httpResult.code, [], false, msg);
   }
 
   /**
    * Pulse 简版：RN 端是抓 GitHub Web Pulse 页 HTML 解析，这里改为
-   * 用本仓库已有的 detail.open_issues_count 与近 7 天 closed issues 搜索数做近似聚合。
-   * 数据准确度低于 RN，但能给「Pulse」tab 提供可视化卡片。
+   * 用仓库 detail 的 open_issues_count 与近 7 天 closed issues 搜索数做近似聚合。
+   * 无状态化：open_issues_count / description 由调用方从 detail 传入，结果不再写 store。
    */
-  async buildPulse(fullName: string): Promise<RepositoryServiceResult<RepositoryPulseData>> {
+  async buildPulse(fullName: string,
+                   openIssuesCount: number = 0,
+                   description: string = ''): Promise<RepositoryServiceResult<RepositoryPulseData>> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const empty: RepositoryPulseData = { weekOpenedCount: 0, weekClosedCount: 0, description: '' };
       return new RepositoryServiceResult<RepositoryPulseData>(false, 0, empty, false, 'invalid fullName');
     }
-    let opened: number = 0;
+    const opened: number = openIssuesCount;
     let closed: number = 0;
-    if (this.store.detail !== null) {
-      opened = this.store.detail.open_issues_count;
-    }
     const sinceDate: Date = new Date();
     sinceDate.setDate(sinceDate.getDate() - 7);
     const sinceISO: string = sinceDate.toISOString().substring(0, 10);
@@ -654,16 +632,11 @@ export class RepositoryService {
         }
       }
     }
-    const detailDesc: string = (this.store.detail !== null
-      && this.store.detail.description !== null
-      && this.store.detail.description !== undefined)
-      ? this.store.detail.description : '';
     const data: RepositoryPulseData = {
       weekOpenedCount: opened,
       weekClosedCount: closed,
-      description: detailDesc,
+      description: description,
     };
-    this.store.setPulse(data);
     return new RepositoryServiceResult<RepositoryPulseData>(true, 200, data, false, '');
   }
 
@@ -709,7 +682,6 @@ export class RepositoryService {
           names.push(String(nameRaw));
         }
       }
-      this.store.setBranches(names);
       return new RepositoryServiceResult<string[]>(true, httpResult.code, names, false, '');
     }
     const msg: string = httpResult.msg !== null && httpResult.msg !== undefined && httpResult.msg.length > 0
@@ -718,23 +690,21 @@ export class RepositoryService {
   }
 
   async getEvents(fullName: string,
-                  page: number): Promise<RepositoryServiceResult<RepositoryEventItem[]>> {
+                  page: number,
+                  onCached?: (events: RepositoryEventItem[]) => void): Promise<RepositoryServiceResult<RepositoryEventItem[]>> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryEventItem[]>(false, 0, [], false, msg);
     }
     const finalPage: number = page > 0 ? page : 1;
     let cachedEvents: RepositoryEventItem[] = [];
     if (finalPage === 1) {
       cachedEvents = await this.readEventCache(fullName);
-      if (cachedEvents.length > 0) {
-        this.store.applyActivityRefresh(cachedEvents, this.pageSize);
-        this.store.applyEventRefresh(cachedEvents, this.pageSize);
+      if (cachedEvents.length > 0 && onCached !== undefined && onCached !== null) {
+        onCached(cachedEvents);
       }
     }
-    this.store.startEventLoading();
     const url: string = Address.getReposEventsByFullName(fullName, finalPage, this.pageSize);
     const httpResult: HttpResult<RepositoryEventItem[]> =
       await HttpManager.getFetch<RepositoryEventItem[]>(url);
@@ -745,51 +715,37 @@ export class RepositoryService {
           await this.dao.saveEvent(fullName, JSON.stringify(events));
         } catch (_e) {
         }
-        this.store.applyActivityRefresh(events, this.pageSize);
-        this.store.applyEventRefresh(events, this.pageSize);
-      } else {
-        this.store.applyActivityAppend(events, finalPage, this.pageSize);
-        this.store.applyEventAppend(events, finalPage, this.pageSize);
       }
-      return new RepositoryServiceResult<RepositoryEventItem[]>(true, httpResult.code, events, false, '');
+      return new RepositoryServiceResult<RepositoryEventItem[]>(true, httpResult.code, events, false, '',
+        finalPage, events.length >= this.pageSize);
     }
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
-      this.store.finishEventLoading();
       return new RepositoryServiceResult<RepositoryEventItem[]>(false, UNAUTHORIZED, [], false, msg);
     }
     if (finalPage === 1) {
       if (cachedEvents.length > 0) {
-        this.store.applyActivityRefresh(cachedEvents, this.pageSize);
-        this.store.applyEventRefresh(cachedEvents, this.pageSize);
         return new RepositoryServiceResult<RepositoryEventItem[]>(true, httpResult.code, cachedEvents, true,
-          httpResult.msg !== null ? httpResult.msg : '');
+          httpResult.msg !== null ? httpResult.msg : '', 1, cachedEvents.length >= this.pageSize);
       }
     }
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
-    this.store.finishEventLoading();
     return new RepositoryServiceResult<RepositoryEventItem[]>(false, httpResult.code, [], false, failMsg);
   }
 
   async getFiles(fullName: string,
                  branch: string | null,
-                 path: string | null): Promise<RepositoryServiceResult<RepositoryFileItem[]>> {
+                 path: string | null,
+                 defaultBranch: string = '',
+                 onCached?: (files: RepositoryFileItem[]) => void): Promise<RepositoryServiceResult<RepositoryFileItem[]>> {
     const owner: RepoOwnerName = RepoOwnerName.parse(fullName);
     if (owner.owner.length === 0 || owner.name.length === 0) {
       const msg: string = 'invalid fullName';
-      this.store.setError(msg);
       return new RepositoryServiceResult<RepositoryFileItem[]>(false, 0, [], false, msg);
     }
     const safePath: string = path !== null && path !== undefined ? path : '';
     const safeBranch: string | null = branch !== null && branch !== undefined && branch.length > 0
       ? branch : null;
-    const defaultBranch: string = this.store.detail !== null
-      && this.store.detail.default_branch !== null
-      && this.store.detail.default_branch !== undefined
-      && this.store.detail.default_branch.length > 0
-      ? this.store.detail.default_branch : '';
     const activeBranch: string = safeBranch !== null ? safeBranch : defaultBranch;
     const shouldUseCache: boolean = safePath.length === 0
       && activeBranch.length > 0
@@ -799,12 +755,10 @@ export class RepositoryService {
     let cachedFiles: RepositoryFileItem[] = [];
     if (shouldUseCache) {
       cachedFiles = await this.readFileCache(fullName, cacheBranch, safePath);
-      if (cachedFiles.length > 0) {
-        this.store.setFiles(cachedFiles);
-        this.store.applyFileRefresh(cachedFiles);
+      if (cachedFiles.length > 0 && onCached !== undefined && onCached !== null) {
+        onCached(cachedFiles);
       }
     }
-    this.store.startFileLoading();
     const url: string = Address.getReposFileDir(owner.owner, owner.name, safePath, safeBranch);
     Logger.i('FilesFlow',
       `getFiles start fullName=${fullName} branch=${safeBranch} path=${safePath} cache=${shouldUseCache} url=${url}`);
@@ -818,25 +772,17 @@ export class RepositoryService {
         } catch (_e) {
         }
       }
-      this.store.setFiles(files);
-      this.store.applyFileRefresh(files);
       return new RepositoryServiceResult<RepositoryFileItem[]>(true, httpResult.code, files, false, '');
     }
     if (httpResult.code === UNAUTHORIZED) {
       const msg: string = httpResult.msg !== null ? httpResult.msg : 'unauthorized';
-      this.store.setError(msg);
-      this.store.finishFileLoading();
       return new RepositoryServiceResult<RepositoryFileItem[]>(false, UNAUTHORIZED, [], false, msg);
     }
     if (shouldUseCache && cachedFiles.length > 0) {
-      this.store.setFiles(cachedFiles);
-      this.store.applyFileRefresh(cachedFiles);
       return new RepositoryServiceResult<RepositoryFileItem[]>(true, httpResult.code, cachedFiles, true,
         httpResult.msg !== null ? httpResult.msg : '');
     }
     const failMsg: string = httpResult.msg !== null ? httpResult.msg : 'network error';
-    this.store.setError(failMsg);
-    this.store.finishFileLoading();
     return new RepositoryServiceResult<RepositoryFileItem[]>(false, httpResult.code, [], false, failMsg);
   }
 

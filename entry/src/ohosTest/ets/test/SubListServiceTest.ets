@@ -33,7 +33,6 @@ import {
   UserService,
   FetchSubUserListResult,
 } from 'common';
-import { RepositoryDetailStore } from 'common';
 
 type FakeRow = Record<string, ValueType>;
 
@@ -333,8 +332,8 @@ export default function SubListServiceTest(): void {
     it('getStars_first_page_uses_url_and_writes_cache', 0, async (): Promise<void> => {
       const rdb: FakeRdbStore = buildRepoStore();
       const dao: RepositoryDao = new RepositoryDao(rdb);
-      const store: RepositoryDetailStore = new RepositoryDetailStore();
-      const service: RepositoryService = new RepositoryService(store, dao, PAGE_SIZE);
+      // RepositoryService 无状态化后不再注入 store（R9 V2 + MVVM，Guide §3）
+      const service: RepositoryService = new RepositoryService(dao, PAGE_SIZE);
       const users: SubUserItem[] = buildUsers(PAGE_SIZE);
       provider.nextStatus = SUCCESS;
       provider.nextBody = JSON.stringify(users);
@@ -353,8 +352,8 @@ export default function SubListServiceTest(): void {
     it('getStars_second_page_does_not_write_cache', 0, async (): Promise<void> => {
       const rdb: FakeRdbStore = buildRepoStore();
       const dao: RepositoryDao = new RepositoryDao(rdb);
-      const store: RepositoryDetailStore = new RepositoryDetailStore();
-      const service: RepositoryService = new RepositoryService(store, dao, PAGE_SIZE);
+      // RepositoryService 无状态化后不再注入 store（R9 V2 + MVVM，Guide §3）
+      const service: RepositoryService = new RepositoryService(dao, PAGE_SIZE);
       const users: SubUserItem[] = buildUsers(PAGE_SIZE);
       provider.nextStatus = SUCCESS;
       provider.nextBody = JSON.stringify(users);
@@ -371,8 +370,8 @@ export default function SubListServiceTest(): void {
     it('getForks_first_page_uses_url_and_writes_cache', 0, async (): Promise<void> => {
       const rdb: FakeRdbStore = buildRepoStore();
       const dao: RepositoryDao = new RepositoryDao(rdb);
-      const store: RepositoryDetailStore = new RepositoryDetailStore();
-      const service: RepositoryService = new RepositoryService(store, dao, PAGE_SIZE);
+      // RepositoryService 无状态化后不再注入 store（R9 V2 + MVVM，Guide §3）
+      const service: RepositoryService = new RepositoryService(dao, PAGE_SIZE);
       const repos: SubRepositoryItem[] = buildRepos(PAGE_SIZE);
       provider.nextStatus = SUCCESS;
       provider.nextBody = JSON.stringify(repos);
@@ -390,8 +389,8 @@ export default function SubListServiceTest(): void {
     it('getWatchers_first_page_uses_url_and_writes_cache', 0, async (): Promise<void> => {
       const rdb: FakeRdbStore = buildRepoStore();
       const dao: RepositoryDao = new RepositoryDao(rdb);
-      const store: RepositoryDetailStore = new RepositoryDetailStore();
-      const service: RepositoryService = new RepositoryService(store, dao, PAGE_SIZE);
+      // RepositoryService 无状态化后不再注入 store（R9 V2 + MVVM，Guide §3）
+      const service: RepositoryService = new RepositoryService(dao, PAGE_SIZE);
       const users: SubUserItem[] = buildUsers(PAGE_SIZE);
       provider.nextStatus = SUCCESS;
       provider.nextBody = JSON.stringify(users);

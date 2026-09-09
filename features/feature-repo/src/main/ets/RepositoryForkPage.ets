@@ -7,7 +7,6 @@ import {
   SubListResult,
   RepoOwnerName
 } from 'common';
-import { RepositoryDetailStore } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { SubListView, SubListMode } from 'common';
@@ -24,22 +23,23 @@ interface RepositoryDetailRouteParam {
 
 const FALLBACK_FULL_NAME: string = '';
 
-@Component
+/**
+ * RepositoryForkPage（V2 薄壳）：forks 子列表；本批不抽 VM，
+ * 列表状态以 @Local 受控字段直驱 SubListView（V2 契约）。
+ */
+@ComponentV2
 export struct RepositoryForkPage {
-  @State fullName: string = FALLBACK_FULL_NAME;
-  @State items: SubRepositoryItem[] = [];
-  @State page: number = 1;
-  @State hasMore: boolean = true;
-  @State error: string = '';
-  @State plmRefreshing: boolean = false;
-  @State plmLoadingMore: boolean = false;
-  @State plmNoMore: boolean = false;
-  private store: RepositoryDetailStore = new RepositoryDetailStore();
-  private service: RepositoryService = new RepositoryService(this.store);
+  @Local fullName: string = FALLBACK_FULL_NAME;
+  @Local items: SubRepositoryItem[] = [];
+  @Local plmRefreshing: boolean = false;
+  @Local plmLoadingMore: boolean = false;
+  @Local plmNoMore: boolean = false;
+  private page: number = 1;
+  private hasMore: boolean = true;
+  private service: RepositoryService = new RepositoryService();
   private pageSize: number = 30;
 
   aboutToAppear(): void {
-    this.service = new RepositoryService(this.store);
     this.pageSize = this.service.getPageSize();
   }
 
@@ -62,15 +62,12 @@ export struct RepositoryForkPage {
     }
     this.plmRefreshing = true;
     this.plmLoadingMore = false;
-    this.plmNoMore = false;;
+    this.plmNoMore = false;
     const res: SubListResult<SubRepositoryItem> = await this.service.getForks(this.fullName, 1);
     if (res.result) {
       this.items = res.data.slice();
       this.page = 1;
       this.hasMore = res.data.length >= this.pageSize;
-      this.error = '';
-    } else {
-      this.error = res.msg;
     }
     this.plmRefreshing = false;
     this.plmLoadingMore = false;
@@ -80,7 +77,7 @@ export struct RepositoryForkPage {
   private async loadMoreList(): Promise<void> {
     if (!this.hasMore) {
       this.plmLoadingMore = false;
-    this.plmNoMore = !(false);
+      this.plmNoMore = true;
       return;
     }
     const next: number = this.page + 1;
@@ -124,8 +121,8 @@ export struct RepositoryForkPage {
           users: [],
           repos: this.items,
           refreshing: this.plmRefreshing,
-        loadingMore: this.plmLoadingMore,
-        noMore: this.plmNoMore,
+          loadingMore: this.plmLoadingMore,
+          noMore: this.plmNoMore,
           idPrefix: 'repo_fork',
           refresh: (): void => {
             this.refreshList();

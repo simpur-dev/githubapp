@@ -1,28 +1,28 @@
 /**
- * ReleaseItem —— 严格对齐 RN 端
- * [components/widget/ReleaseItem.js](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/widget/ReleaseItem.js)
+ * ReleaseItem —— Release / Tag 列表行（V2）。
+ * 严格对齐 RN [components/widget/ReleaseItem.js](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/widget/ReleaseItem.js)
  *
  * 结构（自上而下）：
  *  shadowCard（marginVertical=halfEdge, marginH=normalEdge, padding=normalEdge, radius=4）
  *  ├─ Row: actionTitle(small bold, layoutWeight=1) + TimeText(subSmall, marginTop=-20)
  *  └─ body: actionTargetHtml 真 → HTMLView(actionTarget, subSmall) ; 否 → Text(actionTargetHtml, subSmall)
  *
- * 颜色：背景 GSYColor.cardBackground, 主字 GSYColor.mainText, 副字 GSYColor.subText。
+ * R9 V2：@ComponentV2 + @Param/@Event（TimeText / HTMLView 保持 common 既有组件）。
  */
 
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { TimeText } from 'common';
 import { HTMLView } from 'common';
 
-@Component
+@ComponentV2
 export struct ReleaseItem {
-  actionTime: string = '';
-  actionTitle: string = '';
-  actionTarget: string = '';
-  actionTargetHtml: string = '';
-  rowId: string = '';
-  onPressItem: () => void = (): void => {};
-  onLongPressItem: () => void = (): void => {};
+  @Param actionTime: string = '';
+  @Param actionTitle: string = '';
+  @Param actionTarget: string = '';
+  @Param actionTargetHtml: string = '';
+  @Param rowId: string = '';
+  @Event onPressItem: () => void = (): void => {};
+  @Event onLongPressItem: () => void = (): void => {};
 
   build(): void {
     Column() {

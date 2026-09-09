@@ -8,6 +8,8 @@
  *   - actionTime  = published_at
  *   - actionTarget / actionTargetHtml = body / body_html
  * 数据源 [RepositoryService.fetchRepositoryRelease/fetchRepositoryTag](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/service/RepositoryService.ets)
+ *
+ * R9 V2 + MVVM：@ComponentV2，双 tab 状态与分页抽到 ReleaseViewModel。
  */
 
 import { I18n } from 'common';
@@ -16,12 +18,9 @@ import { NavigationService } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { PullLoadMoreList } from 'common';
 import { ReleaseItem } from './views/ReleaseItem';
-import {
-  RepositoryService,
-  ReleaseListItem,
-  FetchReleaseListResult,
-} from 'common';
+import { ReleaseListItem } from 'common';
 import { Logger } from 'common';
+import { ReleaseViewModel } from './viewmodel/ReleaseViewModel';
 
 interface ReleaseRouteParam {
   ownerName?: string;
@@ -37,25 +36,11 @@ interface ReleaseTabItem {
 }
 
 const TAB_BAR_HEIGHT: number = 48;
-const PAGE_SIZE: number = 30;
 
-@Component
+@ComponentV2
 export struct ReleasePage {
-  @State ownerName: string = '';
-  @State repositoryName: string = '';
-  @State currentIndex: number = 0;
-  @State releaseItems: ReleaseListItem[] = [];
-  @State tagItems: ReleaseListItem[] = [];
-  @State releasePage: number = 1;
-  @State tagPage: number = 1;
-  @State releaseHasMore: boolean = true;
-  @State tagHasMore: boolean = true;
-  @State releaseRefreshing: boolean = false;
-  @State releaseLoadingMore: boolean = false;
-  @State releaseNoMore: boolean = false;
-  @State tagRefreshing: boolean = false;
-  @State tagLoadingMore: boolean = false;
-  @State tagNoMore: boolean = false;
+  @Local vm: ReleaseViewModel = new ReleaseViewModel();
+  @Local currentIndex: number = 0;
 
   private tabsController: TabsController = new TabsController();
   private tabs: ReleaseTabItem[] = [
@@ -73,103 +58,20 @@ export struct ReleasePage {
       return;
     }
     const obj: ReleaseRouteParam = param as ReleaseRouteParam;
+    let owner: string = this.vm.ownerName;
+    let repository: string = this.vm.repositoryName;
     if (obj.ownerName !== undefined && obj.ownerName !== null && obj.ownerName.length > 0) {
-      this.ownerName = obj.ownerName;
+      owner = obj.ownerName;
     } else if (obj.reposOwner !== undefined && obj.reposOwner !== null) {
-      this.ownerName = obj.reposOwner;
+      owner = obj.reposOwner;
     }
     if (obj.repositoryName !== undefined && obj.repositoryName !== null && obj.repositoryName.length > 0) {
-      this.repositoryName = obj.repositoryName;
+      repository = obj.repositoryName;
     } else if (obj.reposName !== undefined && obj.reposName !== null) {
-      this.repositoryName = obj.reposName;
+      repository = obj.reposName;
     }
-    Logger.i('ReleasePage', 'param resolved owner=' + this.ownerName + ' repo=' + this.repositoryName);
-  }
-
-  private async refreshRelease(): Promise<void> {
-    if (this.ownerName.length === 0 || this.repositoryName.length === 0) {
-      return;
-    }
-    this.releaseRefreshing = true;
-    this.releaseLoadingMore = false;
-    this.releaseNoMore = false;;
-    const res: FetchReleaseListResult = await RepositoryService.fetchRepositoryRelease(
-      this.ownerName, this.repositoryName, 1);
-    if (res.result) {
-      this.releaseItems = res.data.slice();
-      this.releasePage = 1;
-      this.releaseHasMore = res.data.length >= PAGE_SIZE;
-    } else {
-      Logger.w('ReleasePage', 'refreshRelease failed code=' + res.code + ' msg=' + res.msg);
-    }
-    this.releaseRefreshing = false;
-    this.releaseLoadingMore = false;
-    this.releaseNoMore = !(this.releaseHasMore);
-  }
-
-  private async loadMoreRelease(): Promise<void> {
-    if (!this.releaseHasMore) {
-      this.releaseLoadingMore = false;
-    this.releaseNoMore = !(false);
-      return;
-    }
-    const next: number = this.releasePage + 1;
-    const res: FetchReleaseListResult = await RepositoryService.fetchRepositoryRelease(
-      this.ownerName, this.repositoryName, next);
-    if (res.result) {
-      const merged: ReleaseListItem[] = this.releaseItems.slice();
-      for (let i: number = 0; i < res.data.length; i++) {
-        merged.push(res.data[i]);
-      }
-      this.releaseItems = merged;
-      this.releasePage = next;
-      this.releaseHasMore = res.data.length >= PAGE_SIZE;
-    }
-    this.releaseLoadingMore = false;
-    this.releaseNoMore = !(this.releaseHasMore);
-  }
-
-  private async refreshTag(): Promise<void> {
-    if (this.ownerName.length === 0 || this.repositoryName.length === 0) {
-      return;
-    }
-    this.tagRefreshing = true;
-    this.tagLoadingMore = false;
-    this.tagNoMore = false;;
-    const res: FetchReleaseListResult = await RepositoryService.fetchRepositoryTag(
-      this.ownerName, this.repositoryName, 1);
-    if (res.result) {
-      this.tagItems = res.data.slice();
-      this.tagPage = 1;
-      this.tagHasMore = res.data.length >= PAGE_SIZE;
-    } else {
-      Logger.w('ReleasePage', 'refreshTag failed code=' + res.code + ' msg=' + res.msg);
-    }
-    this.tagRefreshing = false;
-    this.tagLoadingMore = false;
-    this.tagNoMore = !(this.tagHasMore);
-  }
-
-  private async loadMoreTag(): Promise<void> {
-    if (!this.tagHasMore) {
-      this.tagLoadingMore = false;
-    this.tagNoMore = !(false);
-      return;
-    }
-    const next: number = this.tagPage + 1;
-    const res: FetchReleaseListResult = await RepositoryService.fetchRepositoryTag(
-      this.ownerName, this.repositoryName, next);
-    if (res.result) {
-      const merged: ReleaseListItem[] = this.tagItems.slice();
-      for (let i: number = 0; i < res.data.length; i++) {
-        merged.push(res.data[i]);
-      }
-      this.tagItems = merged;
-      this.tagPage = next;
-      this.tagHasMore = res.data.length >= PAGE_SIZE;
-    }
-    this.tagLoadingMore = false;
-    this.tagNoMore = !(this.tagHasMore);
+    this.vm.init(owner, repository);
+    Logger.i('ReleasePage', 'param resolved owner=' + this.vm.ownerName + ' repo=' + this.vm.repositoryName);
   }
 
   @Builder
@@ -217,7 +119,7 @@ export struct ReleasePage {
     NavDestination() {
       Column() {
         AppBar({
-          title: this.repositoryName.length > 0 ? this.repositoryName : I18n('reposRelease'),
+          title: this.vm.repositoryName.length > 0 ? this.vm.repositoryName : I18n('reposRelease'),
           showBack: true,
           onBack: (): void => {
             NavigationService.pop();
@@ -230,15 +132,15 @@ export struct ReleasePage {
         }) {
           TabContent() {
             PullLoadMoreList({
-              dataSource: this.releaseItems,
-              refreshing: this.releaseRefreshing,
-        loadingMore: this.releaseLoadingMore,
-        noMore: this.releaseNoMore,
+              dataSource: this.vm.releaseItems as Object[],
+              refreshing: this.vm.releaseRefreshing,
+              loadingMore: this.vm.releaseLoadingMore,
+              noMore: this.vm.releaseNoMore,
               onRefresh: (): void => {
-                this.refreshRelease();
+                this.vm.refreshRelease();
               },
               onLoadMore: (): void => {
-                this.loadMoreRelease();
+                this.vm.loadMoreRelease();
               },
               renderRow: (item: Object, index: number): void => {
                 this.buildReleaseRow(item, index);
@@ -250,15 +152,15 @@ export struct ReleasePage {
 
           TabContent() {
             PullLoadMoreList({
-              dataSource: this.tagItems,
-              refreshing: this.tagRefreshing,
-        loadingMore: this.tagLoadingMore,
-        noMore: this.tagNoMore,
+              dataSource: this.vm.tagItems as Object[],
+              refreshing: this.vm.tagRefreshing,
+              loadingMore: this.vm.tagLoadingMore,
+              noMore: this.vm.tagNoMore,
               onRefresh: (): void => {
-                this.refreshTag();
+                this.vm.refreshTag();
               },
               onLoadMore: (): void => {
-                this.loadMoreTag();
+                this.vm.loadMoreTag();
               },
               renderRow: (item: Object, index: number): void => {
                 this.buildTagRow(item, index);
@@ -275,8 +177,8 @@ export struct ReleasePage {
         .layoutWeight(1)
         .onChange((index: number): void => {
           this.currentIndex = index;
-          if (index === 1 && this.tagItems.length === 0) {
-            this.refreshTag();
+          if (index === 1 && this.vm.shouldLoadTagOnFirstSwitch()) {
+            this.vm.refreshTag();
           }
         });
       }
@@ -292,7 +194,7 @@ export struct ReleasePage {
     })
     .onReady((ctx: NavDestinationContext): void => {
       this.resolveParam(ctx);
-      this.refreshRelease();
+      this.vm.refreshRelease();
     });
   }
 }

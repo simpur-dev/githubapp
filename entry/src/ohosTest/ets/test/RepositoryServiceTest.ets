@@ -8,7 +8,7 @@ import {
   LoginExpiredBus,
 } from 'common';
 import { HttpHeaders } from 'common';
-import { SUCCESS, NETWORK_ERROR } from 'common';
+import { SUCCESS, NETWORK_ERROR, NOT_FOUND } from 'common';
 import { Address } from 'common';
 import { ValueType, ValuesBucket } from 'common';
 import { RdbStoreLike } from 'common';
@@ -23,12 +23,13 @@ import {
 import {
   RepositoryService,
   RepositoryServiceResult,
+  FetchReadmeResult,
+  FetchStarWatchResult,
   SubListResult,
   SubRepositoryItem,
 } from 'common';
 import {
   RepositoryDetail,
-  RepositoryDetailStore,
   RepositoryCommitItem,
   RepositoryEventItem,
   RepositoryFileItem,
@@ -388,7 +389,6 @@ export default function RepositoryServiceTest(): void {
     let storage: FakeTokenStorage;
     let rdb: FakeRdbStore;
     let dao: RepositoryDao;
-    let store: RepositoryDetailStore;
     let service: RepositoryService;
 
     beforeEach((): void => {
@@ -396,8 +396,8 @@ export default function RepositoryServiceTest(): void {
       storage = new FakeTokenStorage();
       rdb = buildStore();
       dao = new RepositoryDao(rdb);
-      store = new RepositoryDetailStore();
-      service = new RepositoryService(store, dao, PAGE_SIZE);
+      // R9 无状态化：service 不再持有 RepositoryDetailStore，取数结果走返回值。
+      service = new RepositoryService(dao, PAGE_SIZE);
 
       HttpManager.setMockProvider(provider);
       HttpManager.setTokenStorage(storage);
@@ -421,117 +421,142 @@ export default function RepositoryServiceTest(): void {
       expect(provider.captured.url).assertEqual(Address.getReposDetail(OWNER, REPO_NAME));
       expect(provider.captured.method).assertEqual('GET');
       expect(res.result).assertTrue();
-      expect(store.detail !== null).assertTrue();
+      expect(res.data !== null).assertTrue();
+      expect(res.data !== null ? (res.data as RepositoryDetail).full_name : '').assertEqual(FULL_NAME);
       const writes: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_DETAIL);
       expect(writes !== undefined && writes >= 1).assertTrue();
     });
 
+    it('getReposInfo_emits_cache_before_network_refresh', 0, async (): Promise<void> => {
+      const cached: RepositoryDetail = buildDetail();
+      cached.description = 'cached desc';
+      await dao.saveDetail(FULL_NAME, JSON.stringify(cached));
+      const network: RepositoryDetail = buildDetail();
+      network.description = 'network desc';
+      provider.nextStatus = SUCCESS;
+      provider.nextBody = JSON.stringify(network);
+      let sawCachedDesc: string = '';
+
+      const res: RepositoryServiceResult<RepositoryDetail> = await service.getReposInfo(
+        FULL_NAME,
+        (cachedDetail: RepositoryDetail): void => {
+          sawCachedDesc = cachedDetail.description;
+        });
+
+      expect(sawCachedDesc).assertEqual('cached desc');
+      expect(res.result).assertTrue();
+      expect(res.fromCache).assertFalse();
+      expect(res.data !== null ? (res.data as RepositoryDetail).description : '').assertEqual('network desc');
+    });
+
     it('getReadme_uses_rendered_html_and_writes_cache', 0, async (): Promise<void> => {
       const htmlBody: string = '<h1>Hello</h1>';
-      provider.nextStatus = SUCCESS;
-      provider.nextBody = htmlBody;
-      let sawLoadingBeforeRequest: boolean = false;
-      provider.onRequest = (): void => {
-        sawLoadingBeforeRequest = store.readmeLoading
-          && store.readmeHtml.length === 0
-          && store.readmeError.length === 0;
-      };
+      // 双通道：raw markdown 通道先失败（404），HTML 通道成功——
+      // 断言 HTML 通道结果与默认分支缓存写入（原 store.readmeHtml 语义平移到返回值）。
+      provider.pushResponse(NOT_FOUND, '');
+      provider.pushResponse(SUCCESS, htmlBody);
 
-      const res: RepositoryServiceResult<string> = await service.getReadme(FULL_NAME, null);
+      const res: FetchReadmeResult = await service.getReadme(FULL_NAME, null, '');
 
-      expect(sawLoadingBeforeRequest).assertTrue();
       expect(provider.captured.url).assertEqual(Address.getReposReadme(OWNER, REPO_NAME, null));
       expect(provider.captured.method).assertEqual('GET');
       expect(res.result).assertTrue();
-      expect(store.readmeHtml.length > 0).assertTrue();
-      expect(store.readmeHtml.indexOf('Hello') >= 0).assertTrue();
-      expect(store.readmeLoading).assertFalse();
-      expect(store.readmeError.length).assertEqual(0);
+      expect(res.markdown.length).assertEqual(0);
+      expect(res.html.length > 0).assertTrue();
+      expect(res.html.indexOf('Hello') >= 0).assertTrue();
       const writes: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_DETAIL_README);
       expect(writes !== undefined && writes >= 1).assertTrue();
+    });
+
+    it('getReadme_raw_markdown_channel_wins_when_available', 0, async (): Promise<void> => {
+      provider.nextStatus = SUCCESS;
+      provider.nextBody = '# Native markdown';
+
+      const res: FetchReadmeResult = await service.getReadme(FULL_NAME, null, '');
+
+      expect(res.result).assertTrue();
+      expect(res.markdown.indexOf('Native markdown') >= 0).assertTrue();
+      expect(res.html.length).assertEqual(0);
+      const writes: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_DETAIL_README);
+      expect(writes === undefined || writes === 0).assertTrue();
     });
 
     it('getReadme_no_cache_keeps_loading_until_failure_then_sets_readme_error', 0,
       async (): Promise<void> => {
         provider.nextStatus = NETWORK_ERROR;
         provider.nextBody = '';
-        let sawLoadingBeforeRequest: boolean = false;
-        provider.onRequest = (): void => {
-          sawLoadingBeforeRequest = store.readmeLoading
-            && store.readmeHtml.length === 0
-            && store.readmeError.length === 0;
-        };
 
-        const res: RepositoryServiceResult<string> = await service.getReadme(FULL_NAME, null);
+        const res: FetchReadmeResult = await service.getReadme(FULL_NAME, null, '');
 
-        expect(sawLoadingBeforeRequest).assertTrue();
         expect(res.result).assertFalse();
-        expect(store.readmeLoading).assertFalse();
-        expect(store.readmeError.length > 0).assertTrue();
-        expect(store.readmeHtml.length).assertEqual(0);
+        expect(res.markdown.length).assertEqual(0);
+        expect(res.html.length).assertEqual(0);
+        expect(res.msg.length > 0).assertTrue();
       });
 
     it('getReadme_non_default_branch_does_not_use_default_cache', 0, async (): Promise<void> => {
       await dao.saveReadme(FULL_NAME, '<h1>Cached default</h1>');
       const writesBefore: number = rdb.insertCountByTable.get(REPO_TABLE_DETAIL_README) as number;
       const queryBefore: number = rdb.queryCount;
-      store.setDetail(buildDetail());
       provider.nextStatus = SUCCESS;
       provider.nextBody = '<h1>Feature branch</h1>';
 
-      const res: RepositoryServiceResult<string> = await service.getReadme(FULL_NAME, 'feature');
+      const res: FetchReadmeResult = await service.getReadme(FULL_NAME, 'feature', 'master');
 
       expect(provider.captured.url).assertEqual(Address.getReposReadme(OWNER, REPO_NAME, 'feature'));
       expect(res.result).assertTrue();
-      expect(store.readmeHtml.indexOf('Feature branch') >= 0).assertTrue();
-      expect(store.readmeHtml.indexOf('Cached default') < 0).assertTrue();
+      expect(res.markdown.indexOf('Feature branch') >= 0).assertTrue();
+      expect(res.markdown.indexOf('Cached default') < 0).assertTrue();
       expect(rdb.queryCount).assertEqual(queryBefore);
       expect(rdb.insertCountByTable.get(REPO_TABLE_DETAIL_README)).assertEqual(writesBefore);
     });
 
     it('getRepositoryCommits_default_branch_cache_first_then_network_writes_cache', 0,
       async (): Promise<void> => {
-        store.setDetail(buildDetail());
-        store.setCurrentBranch('master');
         await dao.saveCommits(FULL_NAME, 'master', 1, JSON.stringify(buildCommits(1, 'cached')));
         provider.nextStatus = SUCCESS;
         provider.nextBody = JSON.stringify(buildCommits(2, 'network'));
+        let cachedSeen: boolean = false;
 
         const res: RepositoryServiceResult<RepositoryCommitItem[]> =
-          await service.getRepositoryCommits(FULL_NAME, 1);
+          await service.getRepositoryCommits(FULL_NAME, 1, 'master', 'master',
+            (cached: RepositoryCommitItem[]): void => {
+              cachedSeen = cached.length === 1 && cached[0].sha.indexOf('cached') >= 0;
+            });
 
         expect(provider.captured.url)
           .assertEqual(Address.getReposCommitsPaged(OWNER, REPO_NAME, 1, PAGE_SIZE, 'master'));
+        expect(cachedSeen).assertTrue();
         expect(res.result).assertTrue();
         expect(res.fromCache).assertFalse();
-        expect(store.commits.length).assertEqual(2);
-        expect(store.commits[0].sha.indexOf('network') >= 0).assertTrue();
+        expect(res.data.length).assertEqual(2);
+        expect(res.data[0].sha.indexOf('network') >= 0).assertTrue();
+        expect(res.page).assertEqual(1);
+        expect(res.hasMore).assertTrue();
         const writes: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_COMMITS);
         expect(writes !== undefined && writes >= 2).assertTrue();
       });
 
     it('getRepositoryCommits_default_branch_falls_back_to_cache_when_network_fails', 0,
       async (): Promise<void> => {
-        store.setDetail(buildDetail());
-        store.setCurrentBranch('master');
         await dao.saveCommits(FULL_NAME, 'master', 1, JSON.stringify(buildCommits(1, 'cached')));
         provider.nextStatus = NETWORK_ERROR;
         provider.nextBody = '';
 
         const res: RepositoryServiceResult<RepositoryCommitItem[]> =
-          await service.getRepositoryCommits(FULL_NAME, 1);
+          await service.getRepositoryCommits(FULL_NAME, 1, 'master', 'master');
 
         expect(res.result).assertTrue();
         expect(res.fromCache).assertTrue();
-        expect(store.commits.length).assertEqual(1);
-        expect(store.commits[0].sha.indexOf('cached') >= 0).assertTrue();
+        expect(res.data.length).assertEqual(1);
+        expect(res.data[0].sha.indexOf('cached') >= 0).assertTrue();
       });
 
     it('getStarStatus_calls_star_and_watch_urls', 0, async (): Promise<void> => {
       provider.pushResponse(SUCCESS, '');
       provider.pushResponse(SUCCESS, '');
 
-      const res: RepositoryServiceResult<boolean> = await service.getStarStatus(FULL_NAME);
+      const res: FetchStarWatchResult = await service.getStarStatus(FULL_NAME);
 
       expect(res.result).assertTrue();
       expect(provider.callCount).assertEqual(2);
@@ -539,8 +564,8 @@ export default function RepositoryServiceTest(): void {
       expect(provider.capturedAll[0].method).assertEqual('GET');
       expect(provider.capturedAll[1].url).assertEqual(Address.getWatch(OWNER, REPO_NAME));
       expect(provider.capturedAll[1].method).assertEqual('GET');
-      expect(store.starred).assertTrue();
-      expect(store.watching).assertTrue();
+      expect(res.starred).assertTrue();
+      expect(res.watching).assertTrue();
     });
 
     it('star_uses_PUT_and_unstar_uses_DELETE', 0, async (): Promise<void> => {
@@ -549,14 +574,14 @@ export default function RepositoryServiceTest(): void {
       expect(r1.result).assertTrue();
       expect(provider.captured.url).assertEqual(Address.setStar(OWNER, REPO_NAME));
       expect(provider.captured.method).assertEqual('PUT');
-      expect(store.starred).assertTrue();
+      expect(r1.data === true).assertTrue();
 
       provider.pushResponse(SUCCESS, '');
       const r2: RepositoryServiceResult<boolean> = await service.unstar(FULL_NAME);
       expect(r2.result).assertTrue();
       expect(provider.captured.url).assertEqual(Address.setUnstar(OWNER, REPO_NAME));
       expect(provider.captured.method).assertEqual('DELETE');
-      expect(store.starred).assertFalse();
+      expect(r2.data === false).assertTrue();
     });
 
     it('watch_uses_PUT_and_unwatch_uses_DELETE', 0, async (): Promise<void> => {
@@ -565,14 +590,14 @@ export default function RepositoryServiceTest(): void {
       expect(r1.result).assertTrue();
       expect(provider.captured.url).assertEqual(Address.setWatch(OWNER, REPO_NAME));
       expect(provider.captured.method).assertEqual('PUT');
-      expect(store.watching).assertTrue();
+      expect(r1.data === true).assertTrue();
 
       provider.pushResponse(SUCCESS, '');
       const r2: RepositoryServiceResult<boolean> = await service.unwatch(FULL_NAME);
       expect(r2.result).assertTrue();
       expect(provider.captured.url).assertEqual(Address.setUnwatch(OWNER, REPO_NAME));
       expect(provider.captured.method).assertEqual('DELETE');
-      expect(store.watching).assertFalse();
+      expect(r2.data === false).assertTrue();
     });
 
     it('getRepositoryEvents_first_page_writes_cache_and_updates_store', 0,
@@ -587,9 +612,9 @@ export default function RepositoryServiceTest(): void {
         expect(provider.captured.url).assertEqual(
           Address.getRepositoryEvent(OWNER, REPO_NAME, 1, PAGE_SIZE));
         expect(res.result).assertTrue();
-        expect(store.activity.length).assertEqual(PAGE_SIZE);
-        expect(store.activityPage).assertEqual(1);
-        expect(store.activityHasMore).assertTrue();
+        expect(res.data.length).assertEqual(PAGE_SIZE);
+        expect(res.page).assertEqual(1);
+        expect(res.hasMore).assertTrue();
         const writes: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_EVENT);
         expect(writes !== undefined && writes >= 1).assertTrue();
       });
@@ -602,19 +627,19 @@ export default function RepositoryServiceTest(): void {
         provider.nextStatus = SUCCESS;
         provider.nextBody = JSON.stringify(network);
         let sawCacheBeforeRequest: boolean = false;
-        provider.onRequest = (): void => {
-          sawCacheBeforeRequest = store.activity.length === 1
-            && store.activity[0].id.indexOf('cache-first') >= 0;
-        };
 
         const res: RepositoryServiceResult<RepositoryEventItem[]> =
-          await service.getRepositoryEvents(FULL_NAME, 1);
+          await service.getRepositoryEvents(FULL_NAME, 1,
+            (events: RepositoryEventItem[]): void => {
+              sawCacheBeforeRequest = events.length === 1
+                && events[0].id.indexOf('cache-first') >= 0;
+            });
 
         expect(sawCacheBeforeRequest).assertTrue();
         expect(res.result).assertTrue();
         expect(res.fromCache).assertFalse();
-        expect(store.activity.length).assertEqual(2);
-        expect(store.activity[0].id.indexOf('network') >= 0).assertTrue();
+        expect(res.data.length).assertEqual(2);
+        expect(res.data[0].id.indexOf('network') >= 0).assertTrue();
       });
 
     it('getRepositoryEvents_falls_back_to_cache_on_first_page_failure', 0,
@@ -630,7 +655,7 @@ export default function RepositoryServiceTest(): void {
 
         expect(res.result).assertTrue();
         expect(res.fromCache).assertTrue();
-        expect(store.activity.length).assertEqual(2);
+        expect(res.data.length).assertEqual(2);
       });
 
     it('getRepositoryFiles_uses_contents_url_and_updates_store', 0, async (): Promise<void> => {
@@ -644,7 +669,7 @@ export default function RepositoryServiceTest(): void {
       expect(provider.captured.url).assertEqual(
         Address.getReposFileDir(OWNER, REPO_NAME, 'src', null));
       expect(res.result).assertTrue();
-      expect(store.files.length).assertEqual(2);
+      expect(res.data.length).assertEqual(2);
     });
 
     it('getIssues_first_page_writes_cache_and_updates_store', 0, async (): Promise<void> => {
@@ -658,9 +683,9 @@ export default function RepositoryServiceTest(): void {
       expect(provider.captured.url).assertEqual(
         Address.getRepositoryIssue(OWNER, REPO_NAME, 1, 'open', PAGE_SIZE));
       expect(res.result).assertTrue();
-      expect(store.issues.length).assertEqual(PAGE_SIZE);
-      expect(store.issuesPage).assertEqual(1);
-      expect(store.issuesHasMore).assertTrue();
+      expect(res.data.length).assertEqual(PAGE_SIZE);
+      expect(res.page).assertEqual(1);
+      expect(res.hasMore).assertTrue();
       const writes: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_ISSUE);
       expect(writes !== undefined && writes >= 1).assertTrue();
     });
@@ -672,19 +697,19 @@ export default function RepositoryServiceTest(): void {
       provider.nextStatus = SUCCESS;
       provider.nextBody = JSON.stringify(network);
       let sawCacheBeforeRequest: boolean = false;
-      provider.onRequest = (): void => {
-        sawCacheBeforeRequest = store.issues.length === 1
-          && store.issues[0].title === 'cache-first-0';
-      };
 
       const res: RepositoryServiceResult<RepositoryIssueItem[]> =
-        await service.getIssues(FULL_NAME, 'all', 1);
+        await service.getIssues(FULL_NAME, 'all', 1, '',
+          (issues: RepositoryIssueItem[]): void => {
+            sawCacheBeforeRequest = issues.length === 1
+              && issues[0].title === 'cache-first-0';
+          });
 
       expect(sawCacheBeforeRequest).assertTrue();
       expect(res.result).assertTrue();
       expect(res.fromCache).assertFalse();
-      expect(store.issues.length).assertEqual(PAGE_SIZE);
-      expect(store.issues[0].title).assertEqual('network-0');
+      expect(res.data.length).assertEqual(PAGE_SIZE);
+      expect(res.data[0].title).assertEqual('network-0');
     });
 
     it('getIssues_with_query_uses_search_issues_and_skips_cache_write', 0, async (): Promise<void> => {
@@ -702,7 +727,7 @@ export default function RepositoryServiceTest(): void {
       expect(provider.captured.url).assertEqual(
         Address.getRepositoryIssueSearch(FULL_NAME, 'open', 'bug fix', 1, PAGE_SIZE));
       expect(res.result).assertTrue();
-      expect(store.issues.length).assertEqual(1);
+      expect(res.data.length).assertEqual(1);
       const writes: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_ISSUE);
       expect(writes === undefined || writes === 0).assertTrue();
     });
@@ -713,15 +738,21 @@ export default function RepositoryServiceTest(): void {
       provider.pushResponse(SUCCESS, JSON.stringify(first));
       provider.pushResponse(SUCCESS, JSON.stringify(second));
 
-      await service.getIssues(FULL_NAME, 'all', 1);
+      const firstRes: RepositoryServiceResult<RepositoryIssueItem[]> =
+        await service.getIssues(FULL_NAME, 'all', 1);
       const writesAfterFirst: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_ISSUE);
 
-      await service.getIssues(FULL_NAME, 'all', 2);
+      const secondRes: RepositoryServiceResult<RepositoryIssueItem[]> =
+        await service.getIssues(FULL_NAME, 'all', 2);
       const writesAfterSecond: number | undefined = rdb.insertCountByTable.get(REPO_TABLE_ISSUE);
 
+      expect(firstRes.page).assertEqual(1);
       expect(writesAfterFirst).assertEqual(writesAfterSecond);
-      expect(store.issues.length).assertEqual(PAGE_SIZE * 2);
-      expect(store.issuesPage).assertEqual(2);
+      expect(secondRes.data.length).assertEqual(PAGE_SIZE);
+      expect(secondRes.page).assertEqual(2);
+      expect(provider.capturedAll.length).assertEqual(2);
+      expect(provider.capturedAll[1].url).assertEqual(
+        Address.getRepositoryIssue(OWNER, REPO_NAME, 2, 'all', PAGE_SIZE));
     });
 
     it('searchTopicRepos_uses_compose_topic_query_and_maps_repositories', 0, async (): Promise<void> => {

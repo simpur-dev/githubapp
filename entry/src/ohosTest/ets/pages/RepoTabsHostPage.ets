@@ -317,11 +317,12 @@ struct RepoTabsHostPage {
   @State filesRefreshing: boolean = false;
   @State filesLoadingMore: boolean = false;
   @State filesNoMore: boolean = false;
-  private service: RepositoryService = new RepositoryService(this.store);
+  private service: RepositoryService = new RepositoryService();
 
   aboutToAppear(): void {
     HttpManager.setMockProvider(REPO_TABS_HOST_STUB);
-    this.service = new RepositoryService(this.store);
+    // R9 无状态化：service 不再写 store，取数结果在这里显式回填（原 store 写入语义平移）。
+    this.service = new RepositoryService();
     this.loadInitial();
   }
 
@@ -331,16 +332,53 @@ struct RepoTabsHostPage {
 
   private async loadInitial(): Promise<void> {
     this.store.setIssueState(ISSUE_STATE_ALL);
-    await this.service.getIssues(TARGET_FULL_NAME, ISSUE_STATE_ALL, 1);
-    await this.service.getEvents(TARGET_FULL_NAME, 1);
-    await this.service.getFiles(TARGET_FULL_NAME, null, '');
+    await this.fetchIssuesPage(ISSUE_STATE_ALL, 1, '');
+    await this.fetchEventsPage(1);
+    await this.fetchFilesPage('');
+  }
+
+  private async fetchIssuesPage(state: string, page: number, query: string): Promise<void> {
+    const res = await this.service.getIssues(TARGET_FULL_NAME, state, page, query);
+    if (res.result && res.data !== null) {
+      this.store.applyIssueRefresh(res.data, this.service.getPageSize());
+      this.store.applyIssuesRefresh(res.data, this.service.getPageSize());
+    }
+  }
+
+  private async fetchEventsPage(page: number): Promise<void> {
+    const res = await this.service.getEvents(TARGET_FULL_NAME, page);
+    if (res.result && res.data !== null) {
+      if (page <= 1) {
+        this.store.applyEventRefresh(res.data, this.service.getPageSize());
+      } else {
+        this.store.applyEventAppend(res.data, page, this.service.getPageSize());
+      }
+    }
+  }
+
+  private async fetchCommitsPage(page: number): Promise<void> {
+    const res = await this.service.getRepositoryCommits(TARGET_FULL_NAME, page, '', '');
+    if (res.result && res.data !== null) {
+      if (page <= 1) {
+        this.store.applyCommitsRefresh(res.data, this.service.getPageSize());
+      } else {
+        this.store.applyCommitsAppend(res.data, page, this.service.getPageSize());
+      }
+    }
+  }
+
+  private async fetchFilesPage(path: string): Promise<void> {
+    const res = await this.service.getFiles(TARGET_FULL_NAME, null, path, '');
+    if (res.result && res.data !== null) {
+      this.store.applyFileRefresh(res.data);
+    }
   }
 
   private async refreshIssues(): Promise<void> {
     this.issueRefreshing = true;
     this.issueLoadingMore = false;
     this.issueNoMore = false;;
-    await this.service.getIssues(TARGET_FULL_NAME, this.store.issueState, 1, this.store.issueSearchQuery);
+    await this.fetchIssuesPage(this.store.issueState, 1, this.store.issueSearchQuery);
     this.issueRefreshing = false;
     this.issueLoadingMore = false;
     this.issueNoMore = !(this.store.issueHasMore);
@@ -353,7 +391,7 @@ struct RepoTabsHostPage {
       return;
     }
     const next: number = this.store.issuePage + 1;
-    await this.service.getIssues(TARGET_FULL_NAME, this.store.issueState, next, this.store.issueSearchQuery);
+    await this.fetchIssuesPage(this.store.issueState, next, this.store.issueSearchQuery);
     this.issueLoadingMore = false;
     this.issueNoMore = !(this.store.issueHasMore);
   }
@@ -362,7 +400,7 @@ struct RepoTabsHostPage {
     this.eventRefreshing = true;
     this.eventLoadingMore = false;
     this.eventNoMore = false;;
-    await this.service.getEvents(TARGET_FULL_NAME, 1);
+    await this.fetchEventsPage(1);
     this.eventRefreshing = false;
     this.eventLoadingMore = false;
     this.eventNoMore = !(this.store.eventHasMore);
@@ -375,7 +413,7 @@ struct RepoTabsHostPage {
       return;
     }
     const next: number = this.store.eventPage + 1;
-    await this.service.getEvents(TARGET_FULL_NAME, next);
+    await this.fetchEventsPage(next);
     this.eventLoadingMore = false;
     this.eventNoMore = !(this.store.eventHasMore);
   }
@@ -384,7 +422,7 @@ struct RepoTabsHostPage {
     this.eventRefreshing = true;
     this.eventLoadingMore = false;
     this.eventNoMore = false;;
-    await this.service.getRepositoryCommits(TARGET_FULL_NAME, 1);
+    await this.fetchCommitsPage(1);
     this.eventRefreshing = false;
     this.eventLoadingMore = false;
     this.eventNoMore = !(this.store.commitsHasMore);
@@ -394,7 +432,7 @@ struct RepoTabsHostPage {
     this.filesRefreshing = true;
     this.filesLoadingMore = false;
     this.filesNoMore = false;;
-    await this.service.getFiles(TARGET_FULL_NAME, null, this.store.currentPath);
+    await this.fetchFilesPage(this.store.currentPath);
     this.filesRefreshing = false;
     this.filesLoadingMore = false;
     this.filesNoMore = !(false);
@@ -526,10 +564,11 @@ struct RepoTabsHostPage {
           } else if (this.currentTab === 1) {
             ActivityTab({
               activity: this.store.eventList,
+              commits: this.store.commits,
+              detail: this.store.detail,
               refreshing: this.eventRefreshing,
         loadingMore: this.eventLoadingMore,
         noMore: this.eventNoMore,
-              store: this.store,
               ownerName: TARGET_OWNER,
               repositoryName: TARGET_REPO,
               refresh: (): void => {
