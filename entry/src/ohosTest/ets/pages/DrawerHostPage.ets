@@ -1,6 +1,6 @@
 import { DrawerHeader } from 'feature_main';
 import { DrawerMenu } from 'feature_main';
-import { APP_STORAGE_KEY_USER_INFO } from 'common';
+import { AuthUserInfo, GlobalAuthStore } from 'common';
 
 const DRAWER_HOST_USER_BODY: string =
   '{"login":"DrawerLogin","name":"DrawerName","avatar_url":"",' +
@@ -11,7 +11,11 @@ const DRAWER_HOST_USER_BODY: string =
 @Component
 struct DrawerHostPage {
   aboutToAppear(): void {
-    AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, DRAWER_HOST_USER_BODY);
+    // 预置登录用户：直写 GlobalAuthStore 单例（DrawerHeader 直读该单例）。
+    const user: AuthUserInfo | null = AuthUserInfo.fromJson(DRAWER_HOST_USER_BODY);
+    if (user !== null) {
+      GlobalAuthStore.userInfo = user;
+    }
   }
 
   build(): void {

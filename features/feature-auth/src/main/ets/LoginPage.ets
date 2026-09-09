@@ -13,7 +13,7 @@ import {
   AuthStore,
   GlobalAuthStore,
 } from 'common';
-import { EventBus, EVENT_USER_LOGGED_IN } from 'common';
+import { EventBus, EVENT_USER_LOGGED_IN, EVENT_AUTH_STATE_CHANGED } from 'common';
 import { Url } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { FA_KEY } from 'common';
@@ -83,16 +83,26 @@ export struct LoginPage {
   @State showLanguageDialog: boolean = false;
   @State currentLanguage: string = LANGUAGE_OPTION_SYSTEM;
   @State logoPhase: number = 0;
-  @StorageLink('auth.loading') loading: boolean = false;
-  @StorageLink('auth.error') errorMessage: string = '';
+  @State loading: boolean = false;
+  @State errorMessage: string = '';
   private offLoggedIn: (() => void) | null = null;
   private offDeepLink: (() => void) | null = null;
+  private offAuthChanged: (() => void) | null = null;
   private logoTimerId: number = -1;
 
   aboutToAppear(): void {
     this.registerIconFonts();
     this.loadLanguage();
     this.startLogoAnimation();
+    // 登录态直读 AuthStore 单例；V1 组件无法自动订阅 @Trace，
+    // 通过 EVENT_AUTH_STATE_CHANGED 事件驱动 loading / error 刷新（等价旧双向绑定响应）。
+    // payload 是发生变化的 AuthStore 实例：测试注入私有 store 时同样生效。
+    this.offAuthChanged = EventBus.on(EVENT_AUTH_STATE_CHANGED, (payload: ESObject): void => {
+      const changed: AuthStore | null = payload !== null && payload !== undefined ? payload as AuthStore : null;
+      const source: AuthStore = changed !== null ? changed : LoginPageDeps.getStore();
+      this.loading = source.loading;
+      this.errorMessage = source.error;
+    });
     this.offLoggedIn = EventBus.on(EVENT_USER_LOGGED_IN, (): void => {
       LoadingModal.hide();
       NavigationService.replace(RouteName.Home);
@@ -110,6 +120,10 @@ export struct LoginPage {
     if (this.offDeepLink !== null) {
       this.offDeepLink();
       this.offDeepLink = null;
+    }
+    if (this.offAuthChanged !== null) {
+      this.offAuthChanged();
+      this.offAuthChanged = null;
     }
     if (this.logoTimerId !== -1) {
       clearInterval(this.logoTimerId);

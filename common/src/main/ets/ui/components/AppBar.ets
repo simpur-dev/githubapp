@@ -1,5 +1,6 @@
-import { ThemePalette, LIGHT_PALETTE, THEME_PALETTE_KEY } from '../theme/ThemeManager';
-import { SAFE_AREA_TOP_KEY } from '../../base/utils/SafeAreaInsets';
+import { ThemePalette, LIGHT_PALETTE, ThemeManager } from '../theme/ThemeManager';
+import { SafeAreaInsets } from '../../base/utils/SafeAreaInsets';
+import { EventBus, EVENT_THEME_CHANGED, EVENT_SAFE_AREA_CHANGED } from '../../base/utils/EventBus';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
 
 const APP_BAR_SIDE_WIDTH: number = 64;
@@ -33,8 +34,33 @@ export struct AppBar {
   leftActions: AppBarAction[] = [];
   rightActions: AppBarAction[] = [];
 
-  @StorageProp(THEME_PALETTE_KEY) palette: ThemePalette = LIGHT_PALETTE;
-  @StorageProp(SAFE_AREA_TOP_KEY) safeAreaTop: number = 0;
+  @State palette: ThemePalette = LIGHT_PALETTE;
+  @State safeAreaTop: number = 0;
+  private offTheme: (() => void) | null = null;
+  private offSafeArea: (() => void) | null = null;
+
+  aboutToAppear(): void {
+    this.palette = ThemeManager.current();
+    this.safeAreaTop = SafeAreaInsets.top;
+    // V1 组件读单例字段不会自动刷新：订阅显式事件保持等价的响应语义。
+    this.offTheme = EventBus.on(EVENT_THEME_CHANGED, (_payload: ESObject): void => {
+      this.palette = ThemeManager.current();
+    });
+    this.offSafeArea = EventBus.on(EVENT_SAFE_AREA_CHANGED, (_payload: ESObject): void => {
+      this.safeAreaTop = SafeAreaInsets.top;
+    });
+  }
+
+  aboutToDisappear(): void {
+    if (this.offTheme !== null) {
+      this.offTheme();
+      this.offTheme = null;
+    }
+    if (this.offSafeArea !== null) {
+      this.offSafeArea();
+      this.offSafeArea = null;
+    }
+  }
 
   private resolveBackground(): ResourceColor {
     if (this.useTheme && this.palette) {

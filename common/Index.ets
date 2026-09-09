@@ -12,6 +12,7 @@ export { RdbStore, RdbStoreHelper, ValueType, ValuesBucket } from './src/main/et
 export { ALL_CREATE_SQL, ALL_TABLES, DB_NAME, DB_SECURITY_LEVEL, DB_VERSION, SQL_CREATE_ISSUE_COMMENT, SQL_CREATE_ISSUE_DETAIL, SQL_CREATE_ORG_MEMBER, SQL_CREATE_READ_HISTORY, SQL_CREATE_RECEIVED_EVENT, SQL_CREATE_REPOSITORY_BRANCH, SQL_CREATE_REPOSITORY_CODE_CONTENT, SQL_CREATE_REPOSITORY_COMMITS, SQL_CREATE_REPOSITORY_COMMIT_INFO_DETAIL, SQL_CREATE_REPOSITORY_DETAIL, SQL_CREATE_REPOSITORY_DETAIL_README, SQL_CREATE_REPOSITORY_EVENT, SQL_CREATE_REPOSITORY_FILE_LIST, SQL_CREATE_REPOSITORY_FORK, SQL_CREATE_REPOSITORY_ISSUE, SQL_CREATE_REPOSITORY_PULSE, SQL_CREATE_REPOSITORY_STAR, SQL_CREATE_REPOSITORY_WATCHER, SQL_CREATE_TREND_REPOSITORY_V2, SQL_CREATE_USER_EVENT, SQL_CREATE_USER_FOLLOWED, SQL_CREATE_USER_FOLLOWER, SQL_CREATE_USER_INFO, SQL_CREATE_USER_ORGS, SQL_CREATE_USER_REPOS, SQL_CREATE_USER_STARED, SQL_INDEX_READ_HISTORY_FULL, TABLE_ISSUE_COMMENT, TABLE_ISSUE_DETAIL, TABLE_ORG_MEMBER, TABLE_READ_HISTORY, TABLE_RECEIVED_EVENT, TABLE_REPOSITORY_BRANCH, TABLE_REPOSITORY_CODE_CONTENT, TABLE_REPOSITORY_COMMITS, TABLE_REPOSITORY_COMMIT_INFO_DETAIL, TABLE_REPOSITORY_DETAIL, TABLE_REPOSITORY_DETAIL_README, TABLE_REPOSITORY_EVENT, TABLE_REPOSITORY_FILE_LIST, TABLE_REPOSITORY_FORK, TABLE_REPOSITORY_ISSUE, TABLE_REPOSITORY_PULSE, TABLE_REPOSITORY_STAR, TABLE_REPOSITORY_WATCHER, TABLE_TREND_REPOSITORY_V2, TABLE_USER_EVENT, TABLE_USER_FOLLOWED, TABLE_USER_FOLLOWER, TABLE_USER_INFO, TABLE_USER_ORGS, TABLE_USER_REPOS, TABLE_USER_STARED } from './src/main/ets/base/dao/db/Schema';
 export { I18n, I18nState, LocaleKey, TranslationMap, changeLocale, defaultLocale, translations } from './src/main/ets/base/i18n/I18n';
 export { BOOT_CODE_KEY, BOOT_COMMON_LIST_KEY, BOOT_ISSUE_KEY, BOOT_LOGIN_KEY, BOOT_NOTIFY_ISSUE_KEY, BOOT_PHOTO_KEY, BOOT_PUSH_KEY, BOOT_REPO_KEY, BOOT_TAB_KEY, BOOT_USER_KEY, BOOT_WEB_KEY, BOOT_WELCOME_HOLD_KEY } from './src/main/ets/base/launch/BootKeys';
+export { BootChannel } from './src/main/ets/base/launch/BootChannel';
 export { LOGGER_DOMAIN, LOGGER_HILOG_TAG, LOGGER_RING_CAPACITY, LogEntry, LogLevel, Logger } from './src/main/ets/base/logger/Logger';
 export { NavRouteSnapshot, NavigationService, RouterLike } from './src/main/ets/base/navigation/NavigationService';
 export { RouteParamStore } from './src/main/ets/base/navigation/RouteParamStore';
@@ -26,12 +27,12 @@ export { GITHUB_EMOJI_MAP, emojiNames, lookupEmoji } from './src/main/ets/base/u
 export { buildEmojiToken, renderEmoji } from './src/main/ets/base/utils/EmojiText';
 export { EventActionDispatcher, ExternalUrlHandler } from './src/main/ets/base/utils/EventActionDispatcher';
 export { EventActionResult, EventActionUtil } from './src/main/ets/base/utils/EventActionUtil';
-export { EVENT_LANGUAGE_CHANGED, EVENT_REFRESH_REQUEST, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, EVENT_USER_LOGGED_IN, EVENT_USER_LOGGED_OUT, EventBus, EventListener } from './src/main/ets/base/utils/EventBus';
+export { EVENT_AUTH_STATE_CHANGED, EVENT_LANGUAGE_CHANGED, EVENT_REFRESH_REQUEST, EVENT_SAFE_AREA_CHANGED, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, EVENT_USER_LOGGED_IN, EVENT_USER_LOGGED_OUT, EventBus, EventListener } from './src/main/ets/base/utils/EventBus';
 export { ExternalUrlUtil } from './src/main/ets/base/utils/ExternalUrlUtil';
 export { HtmlUtil } from './src/main/ets/base/utils/HtmlUtil';
 export { IssuePermissionUtil } from './src/main/ets/base/utils/IssuePermissionUtil';
 export { MARKDOWN_LINE_BULLET, MARKDOWN_LINE_CODE, MARKDOWN_LINE_HEADING, MARKDOWN_LINE_ORDERED, MARKDOWN_LINE_PARAGRAPH, MARKDOWN_LINE_QUOTE, MARKDOWN_LINE_TABLE, MARKDOWN_LINE_TASK, MarkdownLine, MarkdownUtil } from './src/main/ets/base/utils/MarkdownUtil';
-export { SAFE_AREA_BOTTOM_KEY, SAFE_AREA_TOP_KEY, enableImmersive } from './src/main/ets/base/utils/SafeAreaInsets';
+export { SafeAreaInsets, SafeAreaInsetsImpl, enableImmersive } from './src/main/ets/base/utils/SafeAreaInsets';
 export { KEY_SEARCH_HISTORY, SEARCH_HISTORY_MAX, SearchHistory, SearchHistoryManager, SearchHistoryStorage } from './src/main/ets/base/utils/SearchHistory';
 export { StringUtil } from './src/main/ets/base/utils/StringUtil';
 export { TimeUtil } from './src/main/ets/base/utils/TimeUtil';
@@ -53,7 +54,7 @@ export { FetchReleaseListResult, ReleaseListItem, RepoOwnerName, RepositoryServi
 export { SearchIssueResult, SearchRepoResult, SearchService, SearchUserResult } from './src/main/ets/model/service/SearchService';
 export { FetchTrendingResult, TrendService } from './src/main/ets/model/service/TrendService';
 export { FetchFollowResult, FetchSubUserListResult, FetchUserReposResult, FetchUserResult, UpdateUserResult, UserService } from './src/main/ets/model/service/UserService';
-export { APP_STORAGE_KEY_AUTHED, APP_STORAGE_KEY_ERROR, APP_STORAGE_KEY_LOADING, APP_STORAGE_KEY_TOKEN, APP_STORAGE_KEY_USER_INFO, APP_STORAGE_KEY_USER_LOGIN, AuthStore, AuthUserInfo, GlobalAuthStore } from './src/main/ets/model/store/AuthStore';
+export { AuthStore, AuthUserInfo, GlobalAuthStore } from './src/main/ets/model/store/AuthStore';
 export { CodeDetailStore } from './src/main/ets/model/store/CodeDetailStore';
 export { ContributionDay, ContributionStore, clampContributionLevel, emptyContributionDay } from './src/main/ets/model/store/ContributionStore';
 export { DynamicActor, DynamicEvent, DynamicRepo, DynamicStore } from './src/main/ets/model/store/DynamicStore';
@@ -80,7 +81,7 @@ export { PullLoadMoreController, PullLoadMoreFooterState, PullLoadMoreList } fro
 export { SubListMode, SubListView } from './src/main/ets/ui/list/SubListView';
 export { LANGUAGE_SELECT, LANGUAGE_SELECT_NAME, PW_KEY, REFRESH_LANGUAGE, TOKEN_KEY, TextColorMiWhtte, TextColorWhite, Themes, ThemesMap, USER_BASIC_CODE, USER_INFO, USER_NAME_KEY, actionBlue, andrnavHeaderHeight, bigIconSize, bigTextSize, cardBackgroundColor, cardShadowColor, iosnavHeaderHeight, largeIconSize, largetTextSize, lineColor, littleIconSize, mainBackgroundColor, mainTextColor, miWhite, middleTextWhite, minIconSize, minTextSize, nextIcon, normalIconSize, normalMarginEdge, normalNumberOfLine, normalTextSize, primaryColor, primaryDarkColor, primaryLightColor, selectedColor, smallIconSize, smallTextSize, subLightTextColor, subTextColor, tabBackgroundColor, tabBarHeight, tabDynamic, tabIconSize, tabMy, tabRecommended, tabSelectedColor, tabUnSelectColor, titleTextColor, transparentColor, webDraculaBackgroundColor, white } from './src/main/ets/ui/style/Constant';
 export { GSYColor, GSYDarkColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from './src/main/ets/ui/style/Theme';
-export { DARK_PALETTE, LIGHT_PALETTE, SystemColorProvider, THEME_MODE_KEY, THEME_PALETTE_KEY, ThemeManager, ThemeManagerImpl, ThemeMode, ThemePalette } from './src/main/ets/ui/theme/ThemeManager';
+export { DARK_PALETTE, LIGHT_PALETTE, SystemColorProvider, ThemeManager, ThemeManagerImpl, ThemeMode, ThemePalette } from './src/main/ets/ui/theme/ThemeManager';
 export { CreateIssueDialog } from './src/main/ets/ui/widget/CreateIssueDialog';
 export { EventItem } from './src/main/ets/ui/widget/EventItem';
 export { IconTextItem } from './src/main/ets/ui/widget/IconTextItem';

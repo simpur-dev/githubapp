@@ -12,7 +12,7 @@ import { GlobalAuthStore } from 'common';
 import { enableImmersive } from 'common';
 import { Logger } from 'common';
 import { changeLocale, LocaleKey } from 'common';
-import { KEY_SEARCH_HISTORY, BOOT_TAB_KEY, BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_NOTIFY_ISSUE_KEY, BOOT_COMMON_LIST_KEY } from 'common';
+import { KEY_SEARCH_HISTORY, BOOT_TAB_KEY, BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_NOTIFY_ISSUE_KEY, BOOT_COMMON_LIST_KEY, BootChannel } from 'common';
 
 const TAG: string = 'EntryAbility';
 const AUTH_SCHEME: string = 'gsygithubapp';
@@ -218,7 +218,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootLogin injected');
-    AppStorage.setOrCreate<string>(BOOT_LOGIN_KEY, '1');
+    BootChannel.set(BOOT_LOGIN_KEY, '1');
   }
 
   /**
@@ -239,12 +239,12 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootWelcomeHold injected');
-    AppStorage.setOrCreate<string>(BOOT_WELCOME_HOLD_KEY, '1');
+    BootChannel.set(BOOT_WELCOME_HOLD_KEY, '1');
   }
 
   /**
    * 测试通道：want.parameters.bootTab=dynamic|trend|my，
-   * 通过 AppStorage 推送给 HomePage，绕开 uinput 在 navIndicator 区误触桌面的问题。
+   * 通过 BootChannel 推送给 HomePage，绕开 uinput 在 navIndicator 区误触桌面的问题。
    */
   private handleBootTabInjection(want: Want): void {
     const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
@@ -260,7 +260,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootTab injected %{public}s', tab);
-    AppStorage.setOrCreate<string>(BOOT_TAB_KEY, tab);
+    BootChannel.set(BOOT_TAB_KEY, tab);
   }
 
   /**
@@ -282,7 +282,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootRepo injected %{public}s', repo);
-    AppStorage.setOrCreate<string>(BOOT_REPO_KEY, repo);
+    BootChannel.set(BOOT_REPO_KEY, repo);
     Logger.i('boot/ts', `EntryAbility.handleBootRepoInjection done t=${Date.now()} repo=${repo}`);
   }
 
@@ -304,7 +304,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootPush injected %{public}s', value);
-    AppStorage.setOrCreate<string>(BOOT_PUSH_KEY, value);
+    BootChannel.set(BOOT_PUSH_KEY, value);
     Logger.i('boot/ts', `EntryAbility.handleBootPushInjection done t=${Date.now()} value=${value}`);
   }
 
@@ -326,7 +326,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootIssue injected %{public}s', value);
-    AppStorage.setOrCreate<string>(BOOT_ISSUE_KEY, value);
+    BootChannel.set(BOOT_ISSUE_KEY, value);
     Logger.i('boot/ts', `EntryAbility.handleBootIssueInjection done t=${Date.now()} value=${value}`);
   }
 
@@ -348,7 +348,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootCode injected %{public}s', value);
-    AppStorage.setOrCreate<string>(BOOT_CODE_KEY, value);
+    BootChannel.set(BOOT_CODE_KEY, value);
     Logger.i('boot/ts', `EntryAbility.handleBootCodeInjection done t=${Date.now()} value=${value}`);
   }
 
@@ -370,7 +370,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootUser injected %{public}s', value);
-    AppStorage.setOrCreate<string>(BOOT_USER_KEY, value);
+    BootChannel.set(BOOT_USER_KEY, value);
     Logger.i('boot/ts', `EntryAbility.handleBootUserInjection done t=${Date.now()} value=${value}`);
   }
 
@@ -392,7 +392,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootPhoto injected %{public}s', value);
-    AppStorage.setOrCreate<string>(BOOT_PHOTO_KEY, value);
+    BootChannel.set(BOOT_PHOTO_KEY, value);
     Logger.i('boot/ts', `EntryAbility.handleBootPhotoInjection done t=${Date.now()} value=${value}`);
   }
 
@@ -415,7 +415,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootWeb injected %{public}s', value);
-    AppStorage.setOrCreate<string>(BOOT_WEB_KEY, value);
+    BootChannel.set(BOOT_WEB_KEY, value);
     Logger.i('boot/ts', `EntryAbility.handleBootWebInjection done t=${Date.now()} value=${value}`);
   }
 
@@ -437,7 +437,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootCommonList injected %{public}s', value);
-    AppStorage.setOrCreate<string>(BOOT_COMMON_LIST_KEY, value);
+    BootChannel.set(BOOT_COMMON_LIST_KEY, value);
     Logger.i('boot/ts', `EntryAbility.handleBootCommonListInjection done t=${Date.now()} value=${value}`);
   }
 
@@ -459,7 +459,7 @@ export default class EntryAbility extends UIAbility {
       return;
     }
     hilog.info(0x0000, TAG, 'bootNotifyIssue injected %{public}s', value);
-    AppStorage.setOrCreate<string>(BOOT_NOTIFY_ISSUE_KEY, value);
+    BootChannel.set(BOOT_NOTIFY_ISSUE_KEY, value);
     Logger.i('boot/ts', `EntryAbility.handleBootNotifyIssueInjection done t=${Date.now()} value=${value}`);
   }
 }

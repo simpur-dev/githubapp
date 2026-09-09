@@ -5,9 +5,6 @@ import { GSYColor, GSYDarkColor } from '../style/Theme';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
-export const THEME_MODE_KEY: string = 'theme.mode';
-export const THEME_PALETTE_KEY: string = 'theme.palette';
-
 export interface ThemePalette {
   primary: string;
   primaryDark: string;
@@ -88,9 +85,11 @@ class MediaQuerySystemProvider implements SystemColorProvider {
   }
 }
 
+@ObservedV2
 export class ThemeManagerImpl {
   private mode: ThemeMode = 'light';
-  private palette: ThemePalette = LIGHT_PALETTE;
+  /** 当前调色板；@Trace 供 V2 组件直接订阅，V1 组件走 EVENT_THEME_CHANGED 事件刷新。 */
+  @Trace palette: ThemePalette = LIGHT_PALETTE;
   private systemProvider: SystemColorProvider | null = null;
   private started: boolean = false;
 
@@ -116,14 +115,8 @@ export class ThemeManagerImpl {
   }
 
   applyPalette(): void {
-    const next: ThemePalette = this.resolvePalette();
-    this.palette = next;
-    try {
-      AppStorage.setOrCreate<ThemePalette>(THEME_PALETTE_KEY, next);
-      AppStorage.setOrCreate<ThemeMode>(THEME_MODE_KEY, this.mode);
-    } catch (_e) {
-    }
-    EventBus.emit(EVENT_THEME_CHANGED, next);
+    this.palette = this.resolvePalette();
+    EventBus.emit(EVENT_THEME_CHANGED, this.palette);
   }
 
   private resolvePalette(): ThemePalette {
@@ -168,11 +161,6 @@ export class ThemeManagerImpl {
     this.palette = LIGHT_PALETTE;
     this.systemProvider = null;
     this.started = false;
-    try {
-      AppStorage.setOrCreate<ThemePalette>(THEME_PALETTE_KEY, LIGHT_PALETTE);
-      AppStorage.setOrCreate<ThemeMode>(THEME_MODE_KEY, 'light');
-    } catch (_e) {
-    }
   }
 
   static normalizeMode(value: string): ThemeMode {

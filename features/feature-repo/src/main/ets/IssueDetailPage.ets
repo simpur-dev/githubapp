@@ -3,7 +3,7 @@ import { AppBar, AppBarAction } from 'common';
 import { MarkdownText } from 'common';
 import { PullLoadMoreList, PullLoadMoreController } from 'common';
 import { Logger } from 'common';
-import { BOOT_ISSUE_KEY } from 'common';
+import { BOOT_ISSUE_KEY, BootChannel, GlobalAuthStore } from 'common';
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
@@ -21,7 +21,6 @@ import { IssuePermissionUtil } from 'common';
 import { CommonBottomBar, CommonBottomBarItem } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem, OptionListOptions } from 'common';
-import { APP_STORAGE_KEY_USER_LOGIN } from 'common';
 import { ExternalUrlUtil } from 'common';
 import pasteboard from '@ohos.pasteboard';
 import {
@@ -341,12 +340,11 @@ export struct IssueDetailPage {
   }
 
   private currentLogin(): string {
-    try {
-      const v: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_USER_LOGIN);
-      return (v === undefined || v === null) ? '' : v;
-    } catch (_e) {
-      return '';
+    // 登录名直读 GlobalAuthStore 单例（原 auth.userLogin 镜像通道已移除）。
+    if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined) {
+      return GlobalAuthStore.userInfo.login;
     }
+    return '';
   }
 
   private isIssueOwner(): boolean {
@@ -1023,8 +1021,8 @@ export struct IssueDetailPage {
       }
       // KI-045 同款：BOOT_ISSUE_KEY 旁路优先级最高（NavDestination 复用时
       // 上一次的 fullName/number 还在状态里，需要 BOOT 强制覆盖）。
-      const boot: string | undefined = AppStorage.get<string>(BOOT_ISSUE_KEY);
-      const raw: string = (boot === undefined || boot === null) ? '' : boot.trim();
+      const boot: string = BootChannel.get(BOOT_ISSUE_KEY);
+      const raw: string = boot.trim();
       if (raw.length > 0) {
         const sep: number = raw.indexOf('|');
         if (sep > 0 && sep < raw.length - 1) {

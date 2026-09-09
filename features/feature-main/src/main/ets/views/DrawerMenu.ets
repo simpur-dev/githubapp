@@ -12,7 +12,6 @@ import { CreateIssueDialog } from 'common';
 import {
   AuthStore,
   GlobalAuthStore,
-  APP_STORAGE_KEY_USER_INFO,
 } from 'common';
 import { KEY_LANGUAGE_SELECT } from 'common';
 import {
@@ -282,7 +281,6 @@ export struct DrawerMenu {
       await DrawerMenuDeps.getLoginUseCase().logout();
     } catch (_e) {
     }
-    AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, '');
     NavigationService.replace(RouteName.Login);
   }
 

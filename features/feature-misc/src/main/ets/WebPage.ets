@@ -27,7 +27,7 @@ import hilog from '@ohos.hilog';
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
-import { BOOT_WEB_KEY } from 'common';
+import { BOOT_WEB_KEY, BootChannel } from 'common';
 import { AppBar, AppBarAction } from 'common';
 import { CommonToast } from 'common';
 import { I18n } from 'common';
@@ -51,8 +51,8 @@ export struct WebPage {
   private adoptUri(initial: string): void {
     let candidate: string = initial;
     if (candidate.length === 0) {
-      const fallback: string | undefined = AppStorage.get<string>(BOOT_WEB_KEY);
-      if (fallback !== undefined && fallback.length > 0) {
+      const fallback: string = BootChannel.get(BOOT_WEB_KEY);
+      if (fallback.length > 0) {
         candidate = fallback;
         Logger.i('boot/ts', `WebPage adopt BOOT_WEB_KEY fallback uri=${candidate}`);
       }

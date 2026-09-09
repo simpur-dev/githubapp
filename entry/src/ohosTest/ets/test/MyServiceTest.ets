@@ -33,7 +33,6 @@ import { UserDao, USER_TABLE_INFO } from 'common';
 import {
   AuthStore,
   AuthUserInfo,
-  APP_STORAGE_KEY_USER_INFO,
 } from 'common';
 import { MyStore } from 'common';
 import { MyService, RefreshMeResult, FetchUnReadResult, FetchUserOrgsResult, FetchStarredCountResult, MyOrgItem } from 'common';
@@ -362,7 +361,6 @@ export default function MyServiceTest(): void {
     afterEach((): void => {
       HttpManager.setMockProvider(null);
       LoginExpiredBus.clear();
-      AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, '');
     });
 
     it('refreshMe_calls_GET_user_endpoint', 0, async (): Promise<void> => {
@@ -415,9 +413,9 @@ export default function MyServiceTest(): void {
         const parsed: Record<string, Object> = JSON.parse(dataString) as Record<string, Object>;
         expect(parsed['login'] as string).assertEqual('CarGuo');
 
-        const mirrored: string | undefined =
-          AppStorage.get<string>(APP_STORAGE_KEY_USER_INFO);
-        expect(mirrored !== undefined && (mirrored as string).indexOf('CarGuo') >= 0).assertTrue();
+        // 原镜像断言的等价断言：AuthStore.userInfo.raw 持有最新 /user 原始 JSON。
+        const storedRaw: string = (authStore.userInfo as AuthUserInfo).raw;
+        expect(storedRaw.indexOf('CarGuo') >= 0).assertTrue();
       });
 
     it('refreshMe_starts_loading_then_finishes_on_success',
@@ -689,14 +687,17 @@ export default function MyServiceTest(): void {
       expect(s.user).assertNull();
     });
 
-    it('syncFromAppStorage_reads_user_info_mirror', 0, (): void => {
-      AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, USER_JSON);
+    it('my_store_syncs_from_auth_store_user_info', 0, (): void => {
+      // 原镜像同步用例的等价用例：MyStore 从 AuthStore 单例的 userInfo 直读回填。
+      const auth: AuthStore = new AuthStore();
+      auth.setUser('token x', AuthUserInfo.fromJson(USER_JSON));
       const s: MyStore = new MyStore();
-      s.syncFromAppStorage();
+      if (auth.userInfo !== null) {
+        s.applyRawUserInfo(auth.userInfo.raw);
+      }
       expect(s.user !== null).assertTrue();
       expect((s.user as AuthUserInfo).login).assertEqual('CarGuo');
       expect((s.user as AuthUserInfo).publicRepos).assertEqual(56);
-      AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, '');
     });
   });
 }

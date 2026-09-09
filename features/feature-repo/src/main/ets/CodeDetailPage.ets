@@ -6,7 +6,7 @@ import pasteboard from '@ohos.pasteboard';
 import { AppBar, AppBarAction } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
-import { BOOT_CODE_KEY } from 'common';
+import { BOOT_CODE_KEY, BootChannel } from 'common';
 import { I18n } from 'common';
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
@@ -96,10 +96,10 @@ export struct CodeDetailPage {
 
   /**
    * boot 通道兜底：当 NavPathStack push 的 param 丢失字段时（参考 KI-029 RepoDetail 同款时序竞争），
-   * 从 AppStorage BOOT_CODE_KEY 直读 fullName|branch|path 兜底，读到后立即清空避免污染下次进入。
+   * 从 BootChannel BOOT_CODE_KEY 直读 fullName|branch|path 兜底，读到后立即清空避免污染下次进入。
    */
   private tryAdoptBootCode(): void {
-    const raw: string = (AppStorage.get<string>(BOOT_CODE_KEY) || '').trim();
+    const raw: string = BootChannel.get(BOOT_CODE_KEY).trim();
     if (raw.length === 0) {
       return;
     }
@@ -121,7 +121,7 @@ export struct CodeDetailPage {
     this.branch = branch;
     this.sha = '';
     this.path = path;
-    AppStorage.setOrCreate<string>(BOOT_CODE_KEY, '');
+    BootChannel.set(BOOT_CODE_KEY, '');
     Logger.i('CodeDetail', `aboutToAppear adoptBootCode fullName=${fullName} branch=${branch} path=${path}`);
   }
 

@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_SAFE_AREA_CHANGED } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -22,8 +22,8 @@ import { TabIcon, TabIconKey } from './views/TabIcon';
 import { DynamicTabPage } from './tabs/DynamicTabPage';
 import { TrendTabPage } from './tabs/TrendTabPage';
 import { MyTabPage } from './tabs/MyTabPage';
-import { SAFE_AREA_BOTTOM_KEY } from 'common';
-import { BOOT_TAB_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_COMMON_LIST_KEY, BOOT_NOTIFY_ISSUE_KEY } from 'common';
+import { SafeAreaInsets } from 'common';
+import { BOOT_TAB_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_COMMON_LIST_KEY, BOOT_NOTIFY_ISSUE_KEY, BootChannel } from 'common';
 import { Logger } from 'common';
 
 interface HomeTabItem {
@@ -81,12 +81,12 @@ const DOUBLE_TAP_INTERVAL_MS: number = 300;
 export struct HomePage {
   @State currentIndex: number = 0;
   @State drawerOpen: boolean = false;
-  @StorageProp(SAFE_AREA_BOTTOM_KEY) safeAreaBottom: number = 0;
-  @StorageLink(BOOT_TAB_KEY) bootTab: string = '';
+  @State safeAreaBottom: number = 0;
   private tabsController: HdsTabsController = new HdsTabsController();
   private lastTapAt: Map<number, number> = new Map<number, number>();
   private unsubscribeLoginExpired: (() => void) | null = null;
   private unsubscribeNetwork: (() => void) | null = null;
+  private unsubscribeSafeArea: (() => void) | null = null;
   private offlineToastShown: boolean = false;
   private tabs: HomeTabItem[] = [
     { key: 'dynamic',   title: I18n('tabDynamic'),     icon: 'aperture', index: 0 },
@@ -95,6 +95,10 @@ export struct HomePage {
   ];
 
   aboutToAppear(): void {
+    this.safeAreaBottom = SafeAreaInsets.bottom;
+    this.unsubscribeSafeArea = EventBus.on(EVENT_SAFE_AREA_CHANGED, (_payload: ESObject): void => {
+      this.safeAreaBottom = SafeAreaInsets.bottom;
+    });
     this.applyBootTab();
     this.scheduleBootRepo();
     this.scheduleBootPush();
@@ -131,6 +135,10 @@ export struct HomePage {
       this.unsubscribeNetwork();
       this.unsubscribeNetwork = null;
     }
+    if (this.unsubscribeSafeArea !== null) {
+      this.unsubscribeSafeArea();
+      this.unsubscribeSafeArea = null;
+    }
   }
 
   private currentTitle(): string {
@@ -143,11 +151,11 @@ export struct HomePage {
   /**
    * 真机回归测试通道：读取 EntryAbility 注入的 bootTab，切到对应 tab。
    * 用完即清，避免下一次冷启动残留。
-   * 直接走 AppStorage.get 避免 @StorageLink 在 aboutToAppear 时尚未同步的时序问题。
+   * 直读 BootChannel，保证 aboutToAppear 阶段即可拿到 onNewWant 注入的最新值。
    */
   private applyBootTab(): void {
-    const fromStorage: string | undefined = AppStorage.get<string>(BOOT_TAB_KEY);
-    const tab: string = ((fromStorage !== undefined ? fromStorage : this.bootTab) || '').trim().toLowerCase();
+    const fromChannel: string = BootChannel.get(BOOT_TAB_KEY);
+    const tab: string = fromChannel.trim().toLowerCase();
     if (tab.length === 0) {
       return;
     }
@@ -164,8 +172,7 @@ export struct HomePage {
     }
     this.currentIndex = target;
     this.tabsController.changeIndex(target);
-    AppStorage.setOrCreate<string>(BOOT_TAB_KEY, '');
-    this.bootTab = '';
+    BootChannel.set(BOOT_TAB_KEY, '');
   }
 
   /**
@@ -174,7 +181,7 @@ export struct HomePage {
    * 用完即清，避免下次冷启动残留。
    */
   private scheduleBootRepo(): void {
-    const repo: string | undefined = AppStorage.get<string>(BOOT_REPO_KEY);
+    const repo: string = BootChannel.get(BOOT_REPO_KEY);
     const fullName: string = (repo || '').trim();
     if (fullName.length === 0) {
       return;
@@ -192,7 +199,7 @@ export struct HomePage {
       } as BootRepoRouteParam as Object);
       Logger.i('boot/ts', `HomePage.scheduleBootRepo post-push t=${Date.now()}`);
       setTimeout((): void => {
-        AppStorage.setOrCreate<string>(BOOT_REPO_KEY, '');
+        BootChannel.set(BOOT_REPO_KEY, '');
       }, 1500);
     }, 600);
   }
@@ -202,7 +209,7 @@ export struct HomePage {
    * 延迟 600ms 后 push 到 PushDetailPage（保证 NavigationService.bind 已完成）。
    */
   private scheduleBootPush(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_PUSH_KEY);
+    const value: string = BootChannel.get(BOOT_PUSH_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
@@ -223,7 +230,7 @@ export struct HomePage {
       NavigationService.push(RouteName.PushDetail, param as Object);
       Logger.i('boot/ts', `HomePage.scheduleBootPush post-push t=${Date.now()}`);
       setTimeout((): void => {
-        AppStorage.setOrCreate<string>(BOOT_PUSH_KEY, '');
+        BootChannel.set(BOOT_PUSH_KEY, '');
       }, 1500);
     }, 600);
   }
@@ -234,7 +241,7 @@ export struct HomePage {
    * 与 [scheduleBootRepo](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/pages/HomePage.ets#L147-L167) / scheduleBootPush 同款做法。
    */
   private scheduleBootIssue(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_ISSUE_KEY);
+    const value: string = BootChannel.get(BOOT_ISSUE_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
@@ -259,7 +266,7 @@ export struct HomePage {
       NavigationService.push(RouteName.IssueDetail, param as Object);
       Logger.i('boot/ts', `HomePage.scheduleBootIssue post-push t=${Date.now()}`);
       setTimeout((): void => {
-        AppStorage.setOrCreate<string>(BOOT_ISSUE_KEY, '');
+        BootChannel.set(BOOT_ISSUE_KEY, '');
       }, 1500);
     }, 600);
   }
@@ -270,7 +277,7 @@ export struct HomePage {
    * 与 [scheduleBootIssue](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/pages/HomePage.ets#L209-L236) 同款做法。
    */
   private scheduleBootCode(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_CODE_KEY);
+    const value: string = BootChannel.get(BOOT_CODE_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
@@ -302,7 +309,7 @@ export struct HomePage {
       // KI-029 同款 boot 通道时序竞争：push 后延迟 1500ms 再清空 BOOT_CODE_KEY，
       // 给 CodeDetailPage.aboutToAppear 的 tryAdoptBootCode 兜底读取留窗口期。
       setTimeout((): void => {
-        AppStorage.setOrCreate<string>(BOOT_CODE_KEY, '');
+        BootChannel.set(BOOT_CODE_KEY, '');
       }, 1500);
     }, 600);
   }
@@ -313,7 +320,7 @@ export struct HomePage {
    * 与 [scheduleBootCode](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/pages/HomePage.ets#L250-L286) 同款做法。
    */
   private scheduleBootUser(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_USER_KEY);
+    const value: string = BootChannel.get(BOOT_USER_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
@@ -330,7 +337,7 @@ export struct HomePage {
       // KI-029 同款 boot 通道时序竞争：push 后延迟 1500ms 再清空 BOOT_USER_KEY，
       // 给 UserDetailPage.aboutToAppear 的 tryAdoptBootUser 兜底读取留窗口期。
       setTimeout((): void => {
-        AppStorage.setOrCreate<string>(BOOT_USER_KEY, '');
+        BootChannel.set(BOOT_USER_KEY, '');
       }, 1500);
     }, 600);
   }
@@ -341,7 +348,7 @@ export struct HomePage {
    * 与 [scheduleBootUser](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/pages/HomePage.ets#L300-L325) 同款做法。
    */
   private scheduleBootPhoto(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_PHOTO_KEY);
+    const value: string = BootChannel.get(BOOT_PHOTO_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
@@ -357,7 +364,7 @@ export struct HomePage {
       Logger.i('boot/ts', `HomePage.scheduleBootPhoto post-push t=${Date.now()}`);
       // KI-029 同款时序竞争：push 后延迟 1500ms 再清空 BOOT_PHOTO_KEY。
       setTimeout((): void => {
-        AppStorage.setOrCreate<string>(BOOT_PHOTO_KEY, '');
+        BootChannel.set(BOOT_PHOTO_KEY, '');
       }, 1500);
     }, 600);
   }
@@ -368,7 +375,7 @@ export struct HomePage {
    * 与 [scheduleBootPhoto](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/pages/HomePage.ets#L342-L362) 同款做法。
    */
   private scheduleBootWeb(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_WEB_KEY);
+    const value: string = BootChannel.get(BOOT_WEB_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
@@ -384,7 +391,7 @@ export struct HomePage {
       Logger.i('boot/ts', `HomePage.scheduleBootWeb post-push t=${Date.now()}`);
       // KI-029 同款时序竞争：push 后延迟 1500ms 再清空 BOOT_WEB_KEY。
       setTimeout((): void => {
-        AppStorage.setOrCreate<string>(BOOT_WEB_KEY, '');
+        BootChannel.set(BOOT_WEB_KEY, '');
       }, 1500);
     }, 600);
   }
@@ -394,7 +401,7 @@ export struct HomePage {
    * 用于覆盖 Compose ListViewModel 支持但主流程入口较深的列表类型。
    */
   private scheduleBootCommonList(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_COMMON_LIST_KEY);
+    const value: string = BootChannel.get(BOOT_COMMON_LIST_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
@@ -423,7 +430,7 @@ export struct HomePage {
       NavigationService.push(RouteName.CommonList, param as Object);
       Logger.i('boot/ts', `HomePage.scheduleBootCommonList post-push t=${Date.now()}`);
       setTimeout((): void => {
-        AppStorage.setOrCreate<string>(BOOT_COMMON_LIST_KEY, '');
+        BootChannel.set(BOOT_COMMON_LIST_KEY, '');
       }, 1500);
     }, 600);
   }
@@ -433,7 +440,7 @@ export struct HomePage {
    * 延迟进入 NotifyPage，让 NotifyPage 注入一条 Issue 通知并验证点击跳转。
    */
   private scheduleBootNotifyIssue(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_NOTIFY_ISSUE_KEY);
+    const value: string = BootChannel.get(BOOT_NOTIFY_ISSUE_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;

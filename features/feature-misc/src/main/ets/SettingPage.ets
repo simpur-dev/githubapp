@@ -25,7 +25,6 @@ import {
   ThemeMode,
   ThemePalette,
   LIGHT_PALETTE,
-  THEME_PALETTE_KEY,
 } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
 import {
@@ -65,7 +64,7 @@ export struct SettingPage {
   @State languageLabel: string = I18n('language');
   @State clearCacheLabel: string = I18n('clearCache');
   @State logoutLabel: string = I18n('LoginOut');
-  @StorageProp(THEME_PALETTE_KEY) palette: ThemePalette = LIGHT_PALETTE;
+  @State palette: ThemePalette = LIGHT_PALETTE;
   private offLanguage: (() => void) | null = null;
   private offTheme: (() => void) | null = null;
 
@@ -73,8 +72,11 @@ export struct SettingPage {
     this.offLanguage = EventBus.on(EVENT_LANGUAGE_CHANGED, (): void => {
       this.refreshLabels();
     });
-    this.offTheme = EventBus.on(EVENT_THEME_CHANGED, (): void => {
+    // V1 组件读 ThemeManager 单例不会自动刷新：订阅显式事件保持响应语义。
+    this.offTheme = EventBus.on(EVENT_THEME_CHANGED, (_payload: ESObject): void => {
+      this.palette = ThemeManager.current();
     });
+    this.palette = ThemeManager.current();
     this.refreshLabels();
   }
 

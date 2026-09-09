@@ -9,8 +9,8 @@ import { Url } from 'common';
 import {
   AuthStore,
   GlobalAuthStore,
-  APP_STORAGE_KEY_TOKEN,
-  APP_STORAGE_KEY_AUTHED,
+  EventBus,
+  EVENT_AUTH_STATE_CHANGED,
 } from 'common';
 import { NavigationService, RouterLike } from 'common';
 import { RouteName } from 'common';
@@ -76,15 +76,25 @@ struct OauthHostPage {
   @State exchangeCount: number = 0;
   @State lastCode: string = '';
   @State lastResultText: string = '';
-  @StorageLink('auth.token') token: string = '';
-  @StorageLink('auth.authed') authed: boolean = false;
+  @State token: string = '';
+  @State authed: boolean = false;
   private store: AuthStore = GlobalAuthStore;
   private offDeepLink: (() => void) | null = null;
+  private offAuthChanged: (() => void) | null = null;
 
   aboutToAppear(): void {
     OauthHostBridge.install();
-    AppStorage.setOrCreate<string>(APP_STORAGE_KEY_TOKEN, '');
-    AppStorage.setOrCreate<boolean>(APP_STORAGE_KEY_AUTHED, false);
+    GlobalAuthStore.token = '';
+    GlobalAuthStore.authed = false;
+    // 登录态直读单例；V1 页面经 EVENT_AUTH_STATE_CHANGED 事件回读刷新（等价旧绑定响应）。
+    this.offAuthChanged = EventBus.on(EVENT_AUTH_STATE_CHANGED, (payload: ESObject): void => {
+      const changed: AuthStore | null = payload !== null && payload !== undefined ? payload as AuthStore : null;
+      const source: AuthStore = changed !== null ? changed : this.store;
+      this.token = source.token;
+      this.authed = source.authed;
+    });
+    this.token = GlobalAuthStore.token;
+    this.authed = GlobalAuthStore.authed;
     this.offDeepLink = AuthDeepLinkBus.subscribe((uri: string): void => {
       this.handleDeepLink(uri);
     });
@@ -94,6 +104,10 @@ struct OauthHostPage {
     if (this.offDeepLink !== null) {
       this.offDeepLink();
       this.offDeepLink = null;
+    }
+    if (this.offAuthChanged !== null) {
+      this.offAuthChanged();
+      this.offAuthChanged = null;
     }
   }
 

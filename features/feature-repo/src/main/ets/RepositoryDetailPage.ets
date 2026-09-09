@@ -5,7 +5,7 @@ import { PullLoadMoreController } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RouteParamStore } from 'common';
-import { BOOT_REPO_KEY } from 'common';
+import { BOOT_REPO_KEY, BootChannel } from 'common';
 import { AppBar, AppBarAction } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
@@ -162,8 +162,8 @@ export struct RepositoryDetailPage {
     } catch (_e) {
     }
     if (this.fullName.length === 0) {
-      const bootRepo: string | undefined = AppStorage.get<string>(BOOT_REPO_KEY);
-      if (bootRepo !== undefined && bootRepo !== null && bootRepo.length > 0) {
+      const bootRepo: string = BootChannel.get(BOOT_REPO_KEY);
+      if (bootRepo.length > 0) {
         this.fullName = bootRepo;
       }
     }
@@ -1007,9 +1007,9 @@ export struct RepositoryDetailPage {
         }
       }
       // KI-045 同款：BOOT_REPO_KEY 旁路优先级最高（dispatcher 路径上 stack/pathInfo
-      // 都拿不到 param，必须靠 AppStorage 旁路覆盖上一次残留的 fullName）。
-      const bootRepo: string | undefined = AppStorage.get<string>(BOOT_REPO_KEY);
-      const bootRepoTrim: string = (bootRepo === undefined || bootRepo === null) ? '' : bootRepo.trim();
+      // 都拿不到 param，必须靠 BOOT 旁路覆盖上一次残留的 fullName）。
+      const bootRepo: string = BootChannel.get(BOOT_REPO_KEY);
+      const bootRepoTrim: string = bootRepo.trim();
       if (bootRepoTrim.length > 0) {
         resolved = bootRepoTrim;
         this.fullName = bootRepoTrim;

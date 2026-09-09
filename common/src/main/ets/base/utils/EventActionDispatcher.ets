@@ -23,6 +23,7 @@ import { NavigationService } from '../navigation/NavigationService';
 import { RouteName } from '../navigation/Routes';
 import { CommonModal, CommonOptionItem } from '../../ui/components/CommonModal';
 import { BOOT_USER_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY } from '../launch/BootKeys';
+import { BootChannel } from '../launch/BootChannel';
 import hilog from '@ohos.hilog';
 
 export type ExternalUrlHandler = (url: string) => boolean;
@@ -135,13 +136,13 @@ export class EventActionDispatcher {
       return;
     }
     // KI-045 同款：NavPathStack ctx.pathInfo.param 在某些路径下拿不到，
-    // 走 BOOT_USER_KEY 旁路兜底，目标页 aboutToAppear/onReady 直读 AppStorage 解析。
-    AppStorage.setOrCreate<string>(BOOT_USER_KEY, login);
+    // 走 BOOT_USER_KEY 旁路兜底，目标页 aboutToAppear/onReady 直读 BootChannel 解析。
+    BootChannel.set(BOOT_USER_KEY, login);
     const param: Record<string, Object> = { 'login': login };
     hilog.info(0x0666, 'EventDispatcher', 'gotoUser login=%{public}s', login);
     NavigationService.push(RouteName.UserDetail, param);
     setTimeout((): void => {
-      AppStorage.setOrCreate<string>(BOOT_USER_KEY, '');
+      BootChannel.set(BOOT_USER_KEY, '');
     }, 1500);
   }
 
@@ -150,7 +151,7 @@ export class EventActionDispatcher {
       return;
     }
     const fullName: string = owner + '/' + name;
-    AppStorage.setOrCreate<string>(BOOT_REPO_KEY, fullName);
+    BootChannel.set(BOOT_REPO_KEY, fullName);
     const param: Record<string, Object> = {
       'fullName': fullName,
       'reposOwner': owner,
@@ -159,7 +160,7 @@ export class EventActionDispatcher {
     hilog.info(0x0666, 'EventDispatcher', 'gotoRepo fullName=%{public}s', fullName);
     NavigationService.push(RouteName.RepositoryDetail, param);
     setTimeout((): void => {
-      AppStorage.setOrCreate<string>(BOOT_REPO_KEY, '');
+      BootChannel.set(BOOT_REPO_KEY, '');
     }, 1500);
   }
 
@@ -167,7 +168,7 @@ export class EventActionDispatcher {
     if (fullName.length === 0 || sha.length === 0) {
       return;
     }
-    AppStorage.setOrCreate<string>(BOOT_PUSH_KEY, fullName + '|' + sha);
+    BootChannel.set(BOOT_PUSH_KEY, fullName + '|' + sha);
     const param: Record<string, Object> = {
       'fullName': fullName,
       'sha': sha,
@@ -175,7 +176,7 @@ export class EventActionDispatcher {
     hilog.info(0x0666, 'EventDispatcher', 'gotoPush fullName=%{public}s sha=%{public}s', fullName, sha);
     NavigationService.push(RouteName.PushDetail, param);
     setTimeout((): void => {
-      AppStorage.setOrCreate<string>(BOOT_PUSH_KEY, '');
+      BootChannel.set(BOOT_PUSH_KEY, '');
     }, 1500);
   }
 
@@ -183,7 +184,7 @@ export class EventActionDispatcher {
     if (fullName.length === 0 || number <= 0) {
       return;
     }
-    AppStorage.setOrCreate<string>(BOOT_ISSUE_KEY, fullName + '|' + String(number));
+    BootChannel.set(BOOT_ISSUE_KEY, fullName + '|' + String(number));
     const param: Record<string, Object> = {
       'fullName': fullName,
       'number': number,
@@ -191,7 +192,7 @@ export class EventActionDispatcher {
     hilog.info(0x0666, 'EventDispatcher', 'gotoIssue fullName=%{public}s number=%{public}d', fullName, number);
     NavigationService.push(RouteName.IssueDetail, param);
     setTimeout((): void => {
-      AppStorage.setOrCreate<string>(BOOT_ISSUE_KEY, '');
+      BootChannel.set(BOOT_ISSUE_KEY, '');
     }, 1500);
   }
 

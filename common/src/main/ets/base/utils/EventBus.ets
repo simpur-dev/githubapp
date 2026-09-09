@@ -6,6 +6,10 @@ export const EVENT_USER_LOGGED_OUT: string = 'event.userLoggedOut';
 export const EVENT_THEME_CHANGED: string = 'event.themeChanged';
 export const EVENT_TAB_DOUBLE_TAP: string = 'event.tabDoubleTap';
 export const EVENT_REFRESH_REQUEST: string = 'event.refreshRequest';
+/** 登录态单例（AuthStore）任一状态字段变化后发出，payload 为发生变化的 AuthStore 实例。 */
+export const EVENT_AUTH_STATE_CHANGED: string = 'event.authStateChanged';
+/** 安全区单例（SafeAreaInsets）top/bottom 更新后发出，payload 为 SafeAreaInsetsImpl 实例。 */
+export const EVENT_SAFE_AREA_CHANGED: string = 'event.safeAreaChanged';
 
 class EventBusImpl {
   private listeners: Map<string, Set<EventListener>> = new Map<string, Set<EventListener>>();

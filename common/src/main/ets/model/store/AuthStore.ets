@@ -5,19 +5,14 @@
  *
  * - 字段：authed / loading / error / userInfo / token，对应 RN 端
  *   `LOGIN.IN | LOGIN.CLEAR` + `USER.USER_INFO` 派发后的最终视图模型。
- * - 通过 ArkUI 的 `@Observed` 让该实例可被 `@ObjectLink` / `@Prop` 直接订阅。
- * - 通过 `AppStorage` 镜像同步状态，便于跨页面 / 顶层 Provider 监听
- *   （ArkUI 推荐做法），等价 RN 端 `connect(state => ({state}))`。
+ * - 通过 `@ObservedV2 + @Trace` 提供类级可观察性（V2 组件可直接订阅字段）；
+ *   V1 组件通过 `GlobalAuthStore` 单例直读字段，配合 `EVENT_AUTH_STATE_CHANGED`
+ *   事件驱动刷新（等价 RN 端 `connect(state => ({state}))`）。
  * - 仅承载状态与状态迁移，不直接发起网络请求；具体登录流程在
  *   [LoginUseCase.ets](../auth/LoginUseCase.ets) 中编排。
  */
 
-export const APP_STORAGE_KEY_AUTHED: string = 'auth.authed';
-export const APP_STORAGE_KEY_LOADING: string = 'auth.loading';
-export const APP_STORAGE_KEY_ERROR: string = 'auth.error';
-export const APP_STORAGE_KEY_TOKEN: string = 'auth.token';
-export const APP_STORAGE_KEY_USER_LOGIN: string = 'auth.userLogin';
-export const APP_STORAGE_KEY_USER_INFO: string = 'auth.userInfo';
+import { EventBus, EVENT_AUTH_STATE_CHANGED } from '../../base/utils/EventBus';
 
 export class AuthUserInfo {
   login: string;
@@ -124,30 +119,26 @@ export class AuthUserInfo {
   }
 }
 
-@Observed
+@ObservedV2
 export class AuthStore {
-  authed: boolean = false;
-  loading: boolean = false;
-  error: string = '';
-  userInfo: AuthUserInfo | null = null;
-  token: string = '';
-
-  private syncEnabled: boolean = true;
+  @Trace authed: boolean = false;
+  @Trace loading: boolean = false;
+  @Trace error: string = '';
+  @Trace userInfo: AuthUserInfo | null = null;
+  @Trace token: string = '';
 
   setLoading(loading: boolean): void {
     this.loading = loading;
     if (loading) {
       this.error = '';
-      this.writeAppStorage(APP_STORAGE_KEY_ERROR, '');
     }
-    this.writeAppStorage(APP_STORAGE_KEY_LOADING, loading);
+    this.notifyChanged();
   }
 
   setError(message: string): void {
     this.error = message ? message : '';
     this.loading = false;
-    this.writeAppStorage(APP_STORAGE_KEY_ERROR, this.error);
-    this.writeAppStorage(APP_STORAGE_KEY_LOADING, false);
+    this.notifyChanged();
   }
 
   setUser(token: string, user: AuthUserInfo | null): void {
@@ -157,12 +148,7 @@ export class AuthStore {
     this.authed = trimToken.length > 0 && user !== null;
     this.loading = false;
     this.error = '';
-    this.writeAppStorage(APP_STORAGE_KEY_TOKEN, trimToken);
-    this.writeAppStorage(APP_STORAGE_KEY_AUTHED, this.authed);
-    this.writeAppStorage(APP_STORAGE_KEY_LOADING, false);
-    this.writeAppStorage(APP_STORAGE_KEY_ERROR, '');
-    this.writeAppStorage(APP_STORAGE_KEY_USER_LOGIN, user ? user.login : '');
-    this.writeAppStorage(APP_STORAGE_KEY_USER_INFO, user ? user.raw : '');
+    this.notifyChanged();
   }
 
   clear(): void {
@@ -171,30 +157,16 @@ export class AuthStore {
     this.error = '';
     this.userInfo = null;
     this.token = '';
-    this.writeAppStorage(APP_STORAGE_KEY_AUTHED, false);
-    this.writeAppStorage(APP_STORAGE_KEY_LOADING, false);
-    this.writeAppStorage(APP_STORAGE_KEY_ERROR, '');
-    this.writeAppStorage(APP_STORAGE_KEY_TOKEN, '');
-    this.writeAppStorage(APP_STORAGE_KEY_USER_LOGIN, '');
-    this.writeAppStorage(APP_STORAGE_KEY_USER_INFO, '');
+    this.notifyChanged();
   }
 
-  setAppStorageSyncEnabled(enabled: boolean): void {
-    this.syncEnabled = enabled;
-  }
-
-  private writeAppStorage(key: string, value: string | boolean): void {
-    if (!this.syncEnabled) {
-      return;
-    }
-    try {
-      if (typeof value === 'boolean') {
-        AppStorage.setOrCreate<boolean>(key, value as boolean);
-      } else {
-        AppStorage.setOrCreate<string>(key, value as string);
-      }
-    } catch (_e) {
-    }
+  /**
+   * 任一状态字段变化后广播 EVENT_AUTH_STATE_CHANGED，payload 为本实例。
+   * V1 组件（LoginPage / DrawerHeader 等）订阅该事件后回读单例字段刷新 UI，
+   * 语义等价旧版镜像键 + 自动同步的响应机制。
+   */
+  private notifyChanged(): void {
+    EventBus.emit(EVENT_AUTH_STATE_CHANGED, this);
   }
 }
 

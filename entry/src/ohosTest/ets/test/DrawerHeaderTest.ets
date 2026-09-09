@@ -59,7 +59,6 @@ export default function DrawerHeaderTest(): void {
 
     beforeEach((): void => {
       store = new AuthStore();
-      store.setAppStorageSyncEnabled(false);
       store.clear();
       fakeRouter = new FakeRouter();
       NavigationService.setRouter(fakeRouter);

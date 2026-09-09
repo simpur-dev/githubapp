@@ -9,11 +9,11 @@
  *
  * 覆盖矩阵：
  *  1. PAT 登录：token 拼成 'token xxx' → /user 200 → AuthStore 进入 authed=true，
- *     UserDao 落库 + EVENT_USER_LOGGED_IN 触发，token 同步进 Preferences 与 AppStorage。
+ *     UserDao 落库 + EVENT_USER_LOGGED_IN 触发，token 同步进 Preferences 与 AuthStore 单例。
  *  2. PAT 登录失败 401：HttpManager 已发 LoginExpired，UseCase 还原 store 与 token。
  *  3. OAuth code 兑换：先 GET access_token（form / json 两种 body 都能解析），再 GET /user。
- *  4. logout：清 Preferences + AppStorage + UserDao + 发 EVENT_USER_LOGGED_OUT。
- *  5. 状态机：setLoading / setError / setUser / clear 的字段语义与 AppStorage 镜像。
+ *  4. logout：清 Preferences + AuthStore 单例 + UserDao + 发 EVENT_USER_LOGGED_OUT。
+ *  5. 状态机：setLoading / setError / setUser / clear 的字段语义与状态可观察性。
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@ohos/hypium';
@@ -35,12 +35,6 @@ import { UserDao, USER_TABLE_INFO } from 'common';
 import {
   AuthStore,
   AuthUserInfo,
-  APP_STORAGE_KEY_AUTHED,
-  APP_STORAGE_KEY_LOADING,
-  APP_STORAGE_KEY_ERROR,
-  APP_STORAGE_KEY_TOKEN,
-  APP_STORAGE_KEY_USER_LOGIN,
-  APP_STORAGE_KEY_USER_INFO,
 } from 'common';
 import {
   LoginUseCase,
@@ -392,16 +386,15 @@ export default function AuthStoreTest(): void {
       expect(store.userInfo).assertNull();
     });
 
-    it('auth_store_set_loading_clears_error_and_syncs_appstorage', 0, (): void => {
+    it('auth_store_set_loading_clears_error_and_publishes_state', 0, (): void => {
       store.setError('boom');
       expect(store.error).assertEqual('boom');
       store.setLoading(true);
       expect(store.loading).assertTrue();
       expect(store.error).assertEqual('');
-      const inStorage: boolean | undefined = AppStorage.get<boolean>(APP_STORAGE_KEY_LOADING);
-      expect(inStorage === true).assertTrue();
-      const errInStorage: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_ERROR);
-      expect(errInStorage === '' || errInStorage === undefined).assertTrue();
+      // 旧镜像断言的等价断言：单例字段即唯一事实源。
+      expect(store.loading).assertTrue();
+      expect(store.error).assertEqual('');
     });
 
     it('auth_store_set_error_resets_loading', 0, (): void => {
@@ -409,11 +402,10 @@ export default function AuthStoreTest(): void {
       store.setError('bad credentials');
       expect(store.loading).assertFalse();
       expect(store.error).assertEqual('bad credentials');
-      const errInStorage: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_ERROR);
-      expect(errInStorage).assertEqual('bad credentials');
+      expect(store.error).assertEqual('bad credentials');
     });
 
-    it('auth_store_set_user_marks_authed_and_writes_appstorage', 0, (): void => {
+    it('auth_store_set_user_marks_authed_and_publishes_state', 0, (): void => {
       const user: AuthUserInfo | null = AuthUserInfo.fromJson(USER_JSON);
       expect(user !== null).assertTrue();
       store.setUser('token abc', user);
@@ -423,14 +415,10 @@ export default function AuthStoreTest(): void {
       expect(store.error).assertEqual('');
       expect(store.userInfo !== null).assertTrue();
       expect((store.userInfo as AuthUserInfo).login).assertEqual('CarGuo');
-      const tokenInStorage: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_TOKEN);
-      expect(tokenInStorage).assertEqual('token abc');
-      const authedInStorage: boolean | undefined = AppStorage.get<boolean>(APP_STORAGE_KEY_AUTHED);
-      expect(authedInStorage === true).assertTrue();
-      const loginInStorage: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_USER_LOGIN);
-      expect(loginInStorage).assertEqual('CarGuo');
-      const rawInStorage: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_USER_INFO);
-      expect(rawInStorage).assertEqual(USER_JSON);
+      // 旧镜像断言的等价断言：token / 登录名 / raw JSON 直读单例字段。
+      expect(store.token).assertEqual('token abc');
+      expect((store.userInfo as AuthUserInfo).login).assertEqual('CarGuo');
+      expect((store.userInfo as AuthUserInfo).raw).assertEqual(USER_JSON);
     });
 
     it('auth_store_set_user_with_empty_token_keeps_authed_false', 0, (): void => {
@@ -439,17 +427,15 @@ export default function AuthStoreTest(): void {
       expect(store.authed).assertFalse();
     });
 
-    it('auth_store_clear_resets_all_fields_and_appstorage', 0, (): void => {
+    it('auth_store_clear_resets_all_fields', 0, (): void => {
       const user: AuthUserInfo | null = AuthUserInfo.fromJson(USER_JSON);
       store.setUser('token abc', user);
       store.clear();
       expect(store.authed).assertFalse();
       expect(store.token).assertEqual('');
       expect(store.userInfo).assertNull();
-      const tokenInStorage: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_TOKEN);
-      expect(tokenInStorage === '' || tokenInStorage === undefined).assertTrue();
-      const authedInStorage: boolean | undefined = AppStorage.get<boolean>(APP_STORAGE_KEY_AUTHED);
-      expect(authedInStorage === false || authedInStorage === undefined).assertTrue();
+      expect(store.token).assertEqual('');
+      expect(store.authed).assertFalse();
     });
 
     it('auth_store_state_machine_loading_to_user_to_clear', 0, (): void => {
@@ -653,7 +639,7 @@ export default function AuthStoreTest(): void {
       expect(provider.captured.length).assertEqual(0);
     });
 
-    it('logout_clears_pref_appstorage_userdao_and_emits_event',
+    it('logout_clears_pref_store_userdao_and_emits_event',
       0, async (): Promise<void> => {
         provider.enqueue('GET', '/user', new ScriptedResponse(SUCCESS, USER_JSON));
         const loginRes: LoginOutcome = await useCase.loginWithPersonalAccessToken('ghp_x');
@@ -672,8 +658,7 @@ export default function AuthStoreTest(): void {
         expect(rdb.rowCountOf(USER_TABLE_INFO)).assertEqual(0);
         expect(loggedOutCount).assertEqual(1);
         expect(HttpManager.getAuthorizationInMemory()).assertNull();
-        const tokenInStorage: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_TOKEN);
-        expect(tokenInStorage === '' || tokenInStorage === undefined).assertTrue();
+        expect(store.token).assertEqual('');
       });
   });
 }

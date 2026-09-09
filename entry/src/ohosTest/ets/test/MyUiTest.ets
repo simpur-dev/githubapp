@@ -25,9 +25,8 @@ import router from '@ohos.router';
 import {
   AuthUserInfo,
   AuthStore,
-  APP_STORAGE_KEY_USER_INFO,
 } from 'common';
-import { MyStore, GlobalMyStore } from 'common';
+import { MyStore, GlobalMyStore, GlobalAuthStore } from 'common';
 import {
   MyService,
   RefreshMeResult,
@@ -178,7 +177,6 @@ export default function MyUiTest(): void {
 
     beforeAll(async (): Promise<void> => {
       testAuth = new AuthStore();
-      testAuth.setAppStorageSyncEnabled(false);
       testAuth.clear();
       testStore = new MyStore();
       testStore.reset();
@@ -191,7 +189,11 @@ export default function MyUiTest(): void {
         { id: 1, login: 'OpenHarmony', avatar_url: 'https://x/o.png' } as MyOrgItem,
       ];
 
-      AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, HOST_USER_BODY);
+      // 预置登录用户：直写 GlobalAuthStore 单例（MyTabPage.aboutToAppear 直读该单例回填 MyStore）。
+      const hostUser: AuthUserInfo | null = AuthUserInfo.fromJson(HOST_USER_BODY);
+      if (hostUser !== null) {
+        GlobalAuthStore.userInfo = hostUser;
+      }
       MyTabPageDeps.setStore(testStore);
       MyTabPageDeps.setService(stubService);
       MyTabPageDeps.setDynamicServiceFactory((s: DynamicStore): DynamicService => {
@@ -209,7 +211,7 @@ export default function MyUiTest(): void {
       await driver.delayMs(300);
       MyTabPageDeps.reset();
       NavigationService.setRouter(null);
-      AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, '');
+      GlobalAuthStore.clear();
     });
 
     beforeEach((): void => {

@@ -5,9 +5,9 @@ import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { Preferences, KEY_USER_TOKEN, KEY_USER_INFO, PREF_NAME } from 'common';
 import { HttpManager } from 'common';
-import { GlobalAuthStore, APP_STORAGE_KEY_TOKEN, APP_STORAGE_KEY_USER_LOGIN, AuthUserInfo } from 'common';
+import { GlobalAuthStore, AuthUserInfo } from 'common';
 import { DefaultLoginUseCase, LoginOutcome } from 'common';
-import { BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY } from 'common';
+import { BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BootChannel } from 'common';
 
 const WELCOME_DELAY_MS: number = 1000;
 const WELCOME_ICON_SIZE: number = 120;
@@ -83,8 +83,8 @@ export struct WelcomePage {
     if (this.decided) {
       return;
     }
-    const welcomeHold: string | undefined = AppStorage.get<string>(BOOT_WELCOME_HOLD_KEY);
-    if (welcomeHold !== undefined && welcomeHold !== null && welcomeHold.length > 0) {
+    const welcomeHold: string = BootChannel.get(BOOT_WELCOME_HOLD_KEY);
+    if (welcomeHold.length > 0) {
       return;
     }
     this.routeByToken();
@@ -94,27 +94,19 @@ export struct WelcomePage {
     if (this.decided) {
       return;
     }
-    const welcomeHold: string | undefined = AppStorage.get<string>(BOOT_WELCOME_HOLD_KEY);
-    if (welcomeHold !== undefined && welcomeHold !== null && welcomeHold.length > 0) {
+    const welcomeHold: string = BootChannel.get(BOOT_WELCOME_HOLD_KEY);
+    if (welcomeHold.length > 0) {
       return;
     }
-    const bootLogin: string | undefined = AppStorage.get<string>(BOOT_LOGIN_KEY);
-    if (bootLogin !== undefined && bootLogin !== null && bootLogin.length > 0) {
-      AppStorage.setOrCreate<string>(BOOT_LOGIN_KEY, '');
+    const bootLogin: string = BootChannel.get(BOOT_LOGIN_KEY);
+    if (bootLogin.length > 0) {
+      BootChannel.set(BOOT_LOGIN_KEY, '');
       this.decided = true;
       NavigationService.replace(RouteName.Login);
       return;
     }
+    // token 直读 GlobalAuthStore 单例（原 auth.token 镜像通道已移除）。
     let token: string = GlobalAuthStore.token ? GlobalAuthStore.token : '';
-    if (!token) {
-      try {
-        const mirrored: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_TOKEN);
-        if (mirrored && mirrored.length > 0) {
-          token = mirrored;
-        }
-      } catch (_e) {
-      }
-    }
     if (!token) {
       try {
         if (!Preferences.isReady()) {
@@ -143,13 +135,13 @@ export struct WelcomePage {
    * 对齐 RN 端 [user.js initUserInfo](https://github.com/CarGuo/GSYGithubApp/blob/master/app/store/actions/user.js)
    * 把 AsyncStorage[USER_INFO] 解出来后 dispatch USER.USER_INFO 的语义。
    * 读 Preferences[KEY_USER_INFO] → AuthUserInfo.fromJson → GlobalAuthStore.setUser，
-   * 让 AppStorage[APP_STORAGE_KEY_USER_LOGIN] 与 AuthStore.userInfo 同步恢复，
+   * 让 GlobalAuthStore.userInfo 直接恢复，
    * 修复 IssueDetailPage / 其他 owner 判定页面在冷启 bootToken 路径下 owner=false 的问题。
    */
   private async restoreUserInfo(token: string): Promise<void> {
     try {
-      const cached: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_USER_LOGIN);
-      if (cached !== undefined && cached !== null && cached.length > 0) {
+      if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined
+        && GlobalAuthStore.userInfo.login.length > 0) {
         return;
       }
       if (!Preferences.isReady()) {

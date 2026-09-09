@@ -12,7 +12,6 @@ import { RouteName } from 'common';
 import {
   AuthUserInfo,
   GlobalAuthStore,
-  APP_STORAGE_KEY_USER_INFO,
 } from 'common';
 import { MyStore, GlobalMyStore } from 'common';
 import {
@@ -87,7 +86,6 @@ export class MyTabPageDeps {
 
 @Component
 export struct MyTabPage {
-  @StorageLink('auth.userInfo') userInfoRaw: string = '';
   @State eventStore: DynamicStore = new DynamicStore();
   @State plmController: PullLoadMoreController = new PullLoadMoreController();
   @State unRead: boolean = false;
@@ -111,10 +109,20 @@ export struct MyTabPage {
 
   aboutToAppear(): void {
     const store: MyStore = MyTabPageDeps.getStore();
-    store.syncFromAppStorage();
+    this.syncAuthUserIntoStore(store);
     this.dynamicService = MyTabPageDeps.buildDynamicService(this.eventStore);
     this.applyUserToHeaderState();
     this.triggerRefresh();
+  }
+
+  /**
+   * 登录态同步：直读 GlobalAuthStore 单例回填 MyStore，
+   * 等价旧版镜像同步方法读 auth.userInfo 镜像的语义。
+   */
+  private syncAuthUserIntoStore(store: MyStore): void {
+    if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined) {
+      store.applyRawUserInfo(GlobalAuthStore.userInfo.raw);
+    }
   }
 
   private applyUserToHeaderState(): void {
@@ -138,15 +146,14 @@ export struct MyTabPage {
     // 不要在这里用 user.starred 覆盖（GitHub /user 接口本身不返回 starred 字段）。
   }
 
+  /**
+   * 登录用户直读 GlobalAuthStore 单例（原 auth.userInfo 镜像通道已移除）。
+   */
   private parseUser(): AuthUserInfo | null {
     if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined) {
       return GlobalAuthStore.userInfo;
     }
-    if (this.userInfoRaw === undefined || this.userInfoRaw === null
-      || this.userInfoRaw.length === 0) {
-      return null;
-    }
-    return AuthUserInfo.fromJson(this.userInfoRaw);
+    return null;
   }
 
   private resolveLogin(): string {
@@ -162,8 +169,8 @@ export struct MyTabPage {
     this.plmController.showRefreshState();
     this.errorMessage = '';
 
-    // bootToken 注入 / 冷启动场景下，AppStorage 里还没有 userInfo，login 为空。
-    // 先单独拉一次 GET /user 把 GlobalAuthStore.userInfo 填好（refreshMe 内部会写 AppStorage），
+    // bootToken 注入 / 冷启动场景下，GlobalAuthStore 里还没有 userInfo，login 为空。
+    // 先单独拉一次 GET /user 把 GlobalAuthStore.userInfo 填好（refreshMe 内部会写回单例），
     // 拿到 login 之后再启动其它并行请求；否则会直接卡在「---」占位。
     if (login.length === 0) {
       const meFirst: RefreshMeResult = await MyTabPageDeps.getService().refreshMe();

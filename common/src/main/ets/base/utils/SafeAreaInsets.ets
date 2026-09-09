@@ -1,10 +1,13 @@
 /**
  * SafeAreaInsets —— 沉浸式布局下读取系统安全区（状态栏 / 底部手势条），
- * 通过 AppStorage 订阅给 ArkUI struct 用：
- *   @StorageProp(SAFE_AREA_TOP_KEY) safeTop: number = 0;
- *   @StorageProp(SAFE_AREA_BOTTOM_KEY) safeBottom: number = 0;
+ * 以 @ObservedV2 单例形式暴露给各页面直读：
+ *   SafeAreaInsets.top      // 状态栏高度（vp）
+ *   SafeAreaInsets.bottom   // 底部手势条高度（vp）
  *
  * 数据单位：vp（已转换，可直接用作 padding/height）
+ *
+ * V1 组件读单例字段不会自动刷新，配合 EVENT_SAFE_AREA_CHANGED 事件订阅即可；
+ * V2 组件可直接订阅 @Trace 字段。
  *
  * 沉浸式开关在 [EntryAbility.onWindowStageCreate](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/entryability/EntryAbility.ets) 调
  * `enableImmersive(windowStage)` 即可。
@@ -13,11 +16,22 @@ import window from '@ohos.window';
 import display from '@ohos.display';
 import hilog from '@ohos.hilog';
 import { GSYColor } from '../../ui/style/Theme';
+import { EventBus, EVENT_SAFE_AREA_CHANGED } from './EventBus';
 
 const TAG: string = 'SafeAreaInsets';
 
-export const SAFE_AREA_TOP_KEY: string = 'gsy_safe_area_top_vp';
-export const SAFE_AREA_BOTTOM_KEY: string = 'gsy_safe_area_bottom_vp';
+@ObservedV2
+export class SafeAreaInsetsImpl {
+  /** 状态栏避让高度（vp） */
+  @Trace top: number = 0;
+  /** 底部手势条避让高度（vp） */
+  @Trace bottom: number = 0;
+}
+
+/**
+ * 安全区单例：enableImmersive / avoidAreaChange 回调更新 top/bottom。
+ */
+export const SafeAreaInsets: SafeAreaInsetsImpl = new SafeAreaInsetsImpl();
 
 /**
  * 沉浸式 + 安全区初始化（HarmonyOS 6.x 光感 UI）。
@@ -25,7 +39,7 @@ export const SAFE_AREA_BOTTOM_KEY: string = 'gsy_safe_area_bottom_vp';
  * - setWindowSystemBarProperties：
  *   - statusBar 透明 + LightIcon=true（白字图标）—— AppBar 是深色 GitHub primary，需要白图标
  *   - navigationBar 透明 + LightIcon=false（深字图标）—— TabBar 是白底，需要黑图标
- * - 监听 avoidArea 变化，把 top / bottom 推给 AppStorage（vp）
+ * - 监听 avoidArea 变化，把 top / bottom 推给 SafeAreaInsets 单例（vp）并广播事件
  */
 export async function enableImmersive(windowStage: window.WindowStage): Promise<void> {
   try {
@@ -69,8 +83,9 @@ function publishInsets(win: window.Window): void {
     const topVp: number = Math.round(topPx / density);
     const bottomVp: number = Math.round(bottomPx / density);
 
-    AppStorage.setOrCreate<number>(SAFE_AREA_TOP_KEY, topVp);
-    AppStorage.setOrCreate<number>(SAFE_AREA_BOTTOM_KEY, bottomVp);
+    SafeAreaInsets.top = topVp;
+    SafeAreaInsets.bottom = bottomVp;
+    EventBus.emit(EVENT_SAFE_AREA_CHANGED, SafeAreaInsets);
 
     hilog.info(0x0000, TAG, 'insets top=%{public}dvp bottom=%{public}dvp', topVp, bottomVp);
   } catch (e) {

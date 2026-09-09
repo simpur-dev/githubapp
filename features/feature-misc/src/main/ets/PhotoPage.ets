@@ -18,7 +18,7 @@
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
-import { BOOT_PHOTO_KEY } from 'common';
+import { BOOT_PHOTO_KEY, BootChannel } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize } from 'common';
 import { CommonToast } from 'common';
 import { Logger } from 'common';
@@ -80,8 +80,8 @@ export struct PhotoPage {
       }
     }
     if (this.uri.length === 0) {
-      const bootPhoto: string | undefined = AppStorage.get<string>(BOOT_PHOTO_KEY);
-      if (bootPhoto !== undefined && bootPhoto !== null && bootPhoto.length > 0) {
+      const bootPhoto: string = BootChannel.get(BOOT_PHOTO_KEY);
+      if (bootPhoto.length > 0) {
         this.uri = bootPhoto;
       }
     }

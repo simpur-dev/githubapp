@@ -4,8 +4,8 @@
  *  - 与 [DynamicTabListHostPage](./DynamicTabListHostPage.ets)
  *    / [RecommendTabListHostPage](./RecommendTabListHostPage.ets) 同款
  *    `HttpManager.setMockProvider(...)` 模板，避免真实网络。
- *  - 进入页面前，预先把 `auth.userInfo` 写入 AppStorage，让 `@StorageLink` 镜像
- *    立即拿到一份 user 信息，UI 测用例可以稳定断言头像 / bio / counters / 入口。
+ *  - 进入页面前，预先把 user 信息写入 GlobalAuthStore 单例，MyTabPage 同步
+ *    （applyRawUserInfo 直读单例）后 UI 测用例可以稳定断言头像 / bio / counters / 入口。
  *  - 测试用例侧通过 `MyTabPageDeps.setLoginUseCase(mock)` + `NavigationService.setRouter(fake)`
  *    注入 mock，验证 logout 与入口跳转。
  */
@@ -18,7 +18,7 @@ import {
 } from 'common';
 import { HttpHeaders } from 'common';
 import { SUCCESS } from 'common';
-import { APP_STORAGE_KEY_USER_INFO } from 'common';
+import { AuthUserInfo, GlobalAuthStore } from 'common';
 import { MyTabPage } from 'feature_main';
 
 const HOST_USER_BODY: string =
@@ -45,7 +45,11 @@ const MY_STUB: MyHostProvider = new MyHostProvider();
 @Component
 struct MyTabPageHost {
   aboutToAppear(): void {
-    AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, HOST_USER_BODY);
+    // 预置登录用户：直写 GlobalAuthStore 单例（MyTabPage.aboutToAppear 直读该单例）。
+    const hostUser: AuthUserInfo | null = AuthUserInfo.fromJson(HOST_USER_BODY);
+    if (hostUser !== null) {
+      GlobalAuthStore.userInfo = hostUser;
+    }
     HttpManager.setMockProvider(MY_STUB);
   }
 

@@ -5,8 +5,8 @@ import {
   AuthStore,
   AuthUserInfo,
   GlobalAuthStore,
-  APP_STORAGE_KEY_USER_INFO,
 } from 'common';
+import { EventBus, EVENT_AUTH_STATE_CHANGED } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
 
 export class DrawerHeaderTexts {
@@ -75,15 +75,27 @@ export class DrawerHeaderDeps {
 
 @Component
 export struct DrawerHeader {
-  @StorageLink(APP_STORAGE_KEY_USER_INFO) userInfoRaw: string = '';
+  @State userRev: number = 0;
+  private offAuthChanged: (() => void) | null = null;
   onAvatarTap: () => void = (): void => {
   };
 
-  private resolveUser(): AuthUserInfo | null {
-    const fromRaw: AuthUserInfo | null = DrawerHeaderLogic.parseUser(this.userInfoRaw);
-    if (fromRaw !== null) {
-      return fromRaw;
+  aboutToAppear(): void {
+    // 登录态直读 GlobalAuthStore 单例；V1 组件无法自动订阅 @Trace，
+    // 通过 EVENT_AUTH_STATE_CHANGED 事件驱动本组件重渲染（等价旧双向绑定响应）。
+    this.offAuthChanged = EventBus.on(EVENT_AUTH_STATE_CHANGED, (_payload: ESObject): void => {
+      this.userRev = this.userRev + 1;
+    });
+  }
+
+  aboutToDisappear(): void {
+    if (this.offAuthChanged !== null) {
+      this.offAuthChanged();
+      this.offAuthChanged = null;
     }
+  }
+
+  private resolveUser(): AuthUserInfo | null {
     return DrawerHeaderDeps.getStore().userInfo;
   }
 
@@ -132,8 +144,8 @@ export struct DrawerHeader {
   /**
    * R-UI-05 inline 直读：buildCounter 不再接收 value 值参（旧版 `value: string`
    * 触发 ArkTS @Builder 值参冻结陷阱），idSuffix 仅用作 cellId 路由 + switch
-   * 内部直接读 this.userInfoRaw（@StorageLink）→ resolveUser → buildTexts，
-   * 让 @StorageLink 响应式订阅链路在父 build 重渲染时自然驱动 cell 文案刷新。
+   * 内部直接读 this.resolveUser()（GlobalAuthStore 单例）→ buildTexts，
+   * userRev 变化触发本组件 build 重渲染时自然驱动 cell 文案刷新。
    * KI-048 / R-UI-05 守则参考：[ui-parity-with-rn.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/rules/ui-parity-with-rn.md)
    */
   @Builder

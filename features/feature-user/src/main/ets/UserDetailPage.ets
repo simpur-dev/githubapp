@@ -30,7 +30,7 @@ import { RouteName } from 'common';
 import { RouteParamStore } from 'common';
 import { ReadHistoryService, ReadHistoryAddParam } from 'common';
 import { READ_HISTORY_TYPE_USER } from 'common';
-import { BOOT_USER_KEY } from 'common';
+import { BOOT_USER_KEY, BootChannel } from 'common';
 import { IconTextItem } from 'common';
 import { EventItem } from 'common';
 import { IconFont, FA_CHECK, FA_GROUP, FA_MAP_MARKER, FA_USER_PLUS } from 'common';
@@ -116,13 +116,13 @@ export struct UserDetailPage {
    * 与 [CodeDetailPage.tryAdoptBootCode] / [PushDetailPage.tryAdoptBootPush] 同款做法。
    */
   private tryAdoptBootUser(): void {
-    const value: string | undefined = AppStorage.get<string>(BOOT_USER_KEY);
+    const value: string = BootChannel.get(BOOT_USER_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
     }
     this.login = raw;
-    AppStorage.setOrCreate<string>(BOOT_USER_KEY, '');
+    BootChannel.set(BOOT_USER_KEY, '');
     Logger.i('user/boot', `UserDetailPage.tryAdoptBootUser adopted login=${raw} t=${Date.now()}`);
   }
 
@@ -699,9 +699,9 @@ export struct UserDetailPage {
       if (resolved.length === 0 && stack !== undefined && stack !== null) {
         resolved = this.resolveLoginFromStack(stack);
       }
-      // 终兜底：BOOT_USER_KEY 旁路（KI-045 同款，dispatcher 在 push 前注入 AppStorage）
+      // 终兜底：BOOT_USER_KEY 旁路（KI-045 同款，dispatcher 在 push 前注入 BootChannel）
       if (resolved.length === 0) {
-        const boot: string | undefined = AppStorage.get<string>(BOOT_USER_KEY);
+        const boot: string = BootChannel.get(BOOT_USER_KEY);
         const bootLogin: string = (boot || '').trim();
         if (bootLogin.length > 0) {
           resolved = bootLogin;

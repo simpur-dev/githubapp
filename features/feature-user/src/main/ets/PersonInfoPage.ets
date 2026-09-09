@@ -36,7 +36,6 @@ import { NavigationService } from 'common';
 import {
   AuthUserInfo,
   GlobalAuthStore,
-  APP_STORAGE_KEY_USER_INFO,
 } from 'common';
 import {
   UserService,
@@ -143,7 +142,6 @@ struct PersonInfoEditDialog {
 
 @Component
 export struct PersonInfoPage {
-  @StorageLink(APP_STORAGE_KEY_USER_INFO) userInfoRaw: string = '';
   @State name: string = '';
   @State email: string = '';
   @State blog: string = '';
@@ -178,15 +176,14 @@ export struct PersonInfoPage {
     this.applyUserToState();
   }
 
+  /**
+   * 登录用户直读 GlobalAuthStore 单例（原 auth.userInfo 镜像通道已移除）。
+   */
   private parseUser(): AuthUserInfo | null {
     if (GlobalAuthStore.userInfo !== null && GlobalAuthStore.userInfo !== undefined) {
       return GlobalAuthStore.userInfo;
     }
-    if (this.userInfoRaw === undefined || this.userInfoRaw === null
-      || this.userInfoRaw.length === 0) {
-      return null;
-    }
-    return AuthUserInfo.fromJson(this.userInfoRaw);
+    return null;
   }
 
   private applyUserToState(): void {
@@ -360,8 +357,9 @@ export struct PersonInfoPage {
       const raw: string = JSON.stringify(rawObj);
       const updated: AuthUserInfo | null = AuthUserInfo.fromJson(raw);
       if (updated !== null) {
+        // setUser 写单例后由 EVENT_AUTH_STATE_CHANGED 驱动 DrawerHeader 等消费方刷新，
+        // 无需再同步任何镜像键。
         GlobalAuthStore.setUser(GlobalAuthStore.token, updated);
-        AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, raw);
       }
     } catch (_e) {
     }

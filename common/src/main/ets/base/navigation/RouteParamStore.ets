@@ -7,13 +7,13 @@
  *      之前每个详情页各自维护一个 BOOT_<X>_KEY 旁路，散乱且容易漏。
  *
  * 设计：
- *   - NavigationService.push 时同步写 AppStorage('gsy_route_param_<RouteName>')，
+ *   - NavigationService.push 时同步写入进程内 Map（key 为 `gsy_route_param_<RouteName>`），
  *     供子页 aboutToAppear 同步消费（一次性，读完即清）。
  *   - 仅作为「最近一次跳转参数」临时槽，不是状态管理；详情页拿到后立即应用到自身 @State，
  *     不留长期引用。
  *   - Key 按 RouteName 区分，多入口跳转互不串台。
  *
- * 与官方推荐的 `routerMap @Builder(name, _param)` 透传方案等价；本仓库选择 AppStorage 旁路
+ * 与官方推荐的 `routerMap @Builder(name, _param)` 透传方案等价；本仓库选择进程内 Map 旁路
  * 是为了不必改动 25+ 个老页面 struct 入参签名。
  */
 import { RouteName } from './Routes';
@@ -21,15 +21,18 @@ import { RouteName } from './Routes';
 const ROUTE_PARAM_PREFIX: string = 'gsy_route_param_';
 
 class RouteParamStoreImpl {
+  private values: Map<string, Object> = new Map<string, Object>();
+
   /**
-   * NavigationService.push 调用：写入 AppStorage，供子页 aboutToAppear 消费。
+   * NavigationService.push 调用：写入进程内 Map，供子页 aboutToAppear 消费。
    */
   put(name: RouteName | string, param: Object | undefined): void {
+    const key: string = ROUTE_PARAM_PREFIX + String(name);
     if (param === undefined || param === null) {
-      AppStorage.delete(ROUTE_PARAM_PREFIX + String(name));
+      this.values.delete(key);
       return;
     }
-    AppStorage.setOrCreate<Object>(ROUTE_PARAM_PREFIX + String(name), param);
+    this.values.set(key, param);
   }
 
   /**
@@ -37,11 +40,11 @@ class RouteParamStoreImpl {
    */
   consume(name: RouteName | string): Object | null {
     const key: string = ROUTE_PARAM_PREFIX + String(name);
-    const v: Object | undefined = AppStorage.get<Object>(key);
+    const v: Object | undefined = this.values.get(key);
     if (v === undefined || v === null) {
       return null;
     }
-    AppStorage.delete(key);
+    this.values.delete(key);
     return v;
   }
 
@@ -49,7 +52,7 @@ class RouteParamStoreImpl {
    * 仅 peek 不清除——用于调试 / 异常时恢复。
    */
   peek(name: RouteName | string): Object | null {
-    const v: Object | undefined = AppStorage.get<Object>(ROUTE_PARAM_PREFIX + String(name));
+    const v: Object | undefined = this.values.get(ROUTE_PARAM_PREFIX + String(name));
     return v !== undefined && v !== null ? v : null;
   }
 }

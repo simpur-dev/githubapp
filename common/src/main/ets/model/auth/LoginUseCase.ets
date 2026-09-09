@@ -8,7 +8,7 @@
  *                                            再调 `GET /user` 校验 token，401 失败则回滚清理。
  *  - exchangeOAuthCode(code)              : 走 `https://github.com/login/oauth/access_token`
  *                                            兑换 access_token，写 Preferences 后调 `/user` 拉用户。
- *  - logout()                             : 清 HttpManager / Preferences / AppStorage / UserDao，
+ *  - logout()                             : 清 HttpManager / Preferences / 登录态存储 / UserDao，
  *                                            发 EVENT_USER_LOGGED_OUT。
  *
  * 与 RN 不同：

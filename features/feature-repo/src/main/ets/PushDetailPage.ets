@@ -4,7 +4,7 @@ import { I18n } from 'common';
 import { Logger } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import { CommonToast } from 'common';
-import { BOOT_PUSH_KEY } from 'common';
+import { BOOT_PUSH_KEY, BootChannel } from 'common';
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
@@ -461,8 +461,8 @@ export struct PushDetailPage {
       }
       // KI-045 同款：BOOT_PUSH_KEY 旁路兜底；优先级最高（NavDestination 复用时
       // 上一次的 fullName/sha 还在状态里，需要 BOOT 强制覆盖）。
-      const boot: string | undefined = AppStorage.get<string>(BOOT_PUSH_KEY);
-      const raw: string = (boot === undefined || boot === null) ? '' : boot.trim();
+      const boot: string = BootChannel.get(BOOT_PUSH_KEY);
+      const raw: string = boot.trim();
       if (raw.length > 0) {
         const sep: number = raw.indexOf('|');
         if (sep > 0 && sep < raw.length - 1) {

@@ -23,8 +23,6 @@ import { AuthDeepLinkBus } from 'common';
 import {
   AuthStore,
   GlobalAuthStore,
-  APP_STORAGE_KEY_TOKEN,
-  APP_STORAGE_KEY_AUTHED,
 } from 'common';
 import { OauthHostBridge } from '../pages/OauthHostPage';
 import { EventBus } from 'common';
@@ -229,12 +227,7 @@ export default function OauthDeepLinkUiTest(): void {
         const codeText: string = await (await driver.findComponent(ON.id('oauth_host_last_code'))).getText();
         expect(codeText.indexOf('host_code') >= 0).assertTrue();
 
-        const tokenInStorage: string | undefined = AppStorage.get<string>(APP_STORAGE_KEY_TOKEN);
-        expect(tokenInStorage !== undefined).assertTrue();
-        expect((tokenInStorage as string).indexOf('deeplink_tk') >= 0).assertTrue();
-        const authedInStorage: boolean | undefined = AppStorage.get<boolean>(APP_STORAGE_KEY_AUTHED);
-        expect(authedInStorage === true).assertTrue();
-
+        // 原镜像断言已收敛为单例等价断言（GlobalAuthStore 即唯一事实源）。
         expect(testStore.authed).assertTrue();
         expect(testStore.token.indexOf('deeplink_tk') >= 0).assertTrue();
 

@@ -6,7 +6,7 @@ import { LoginUseCase, PreferencesLike } from 'common';
 import {
   AuthStore,
   AuthUserInfo,
-  APP_STORAGE_KEY_USER_INFO,
+  GlobalAuthStore,
 } from 'common';
 import { DrawerMenuDeps } from 'feature_main';
 import { DrawerHeaderDeps } from 'feature_main';
@@ -106,7 +106,6 @@ export default function DrawerMenuUiTest(): void {
     beforeAll(async (): Promise<void> => {
       fakePrefs = new FakePreferences();
       testAuth = new AuthStore();
-      testAuth.setAppStorageSyncEnabled(false);
       testAuth.clear();
       const user: AuthUserInfo | null = AuthUserInfo.fromJson(HOST_USER_BODY);
       if (user !== null) {
@@ -114,7 +113,6 @@ export default function DrawerMenuUiTest(): void {
       }
       mockUseCase = new MockLoginUseCase(testAuth, fakePrefs);
       fakeRouter = new FakeRouter();
-      AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, HOST_USER_BODY);
       DrawerMenuDeps.setStore(testAuth);
       DrawerMenuDeps.setLoginUseCase(mockUseCase);
       DrawerHeaderDeps.setStore(testAuth);
@@ -128,7 +126,7 @@ export default function DrawerMenuUiTest(): void {
       DrawerMenuDeps.reset();
       DrawerHeaderDeps.reset();
       NavigationService.setRouter(null);
-      AppStorage.setOrCreate<string>(APP_STORAGE_KEY_USER_INFO, '');
+      GlobalAuthStore.clear();
     });
 
     beforeEach((): void => {
