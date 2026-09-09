@@ -36,7 +36,7 @@ struct DynamicTabEmptyHostPage {
 
   build(): void {
     Column() {
-      DynamicTabPage({ user: 'CarGuoUIEmpty' })
+      DynamicTabPage()
         .layoutWeight(1);
     }
     .id('dynamic_host_empty_root')
@@ -45,5 +45,3 @@ struct DynamicTabEmptyHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

@@ -15,11 +15,50 @@ import {
   KEY_SEARCH_HISTORY,
 } from 'common';
 
+interface MockOwnerRef {
+  id: number;
+  login: string;
+  avatar_url: string;
+}
+
+interface MockRepoItem {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string;
+  language: string;
+  stargazers_count: number;
+  forks_count: number;
+  watchers_count: number;
+  html_url: string;
+  owner: MockOwnerRef;
+}
+
+interface MockUserItem {
+  id: number;
+  login: string;
+  avatar_url: string;
+  html_url: string;
+  type: string;
+}
+
+interface MockIssueItem {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  body: string;
+  html_url: string;
+  repository_url: string;
+  comments: number;
+  user: MockOwnerRef;
+}
+
 class HostStubProvider implements HttpProvider {
   callCount: number = 0;
 
   private buildReposBody(): string {
-    const items: Object[] = [
+    const items: MockRepoItem[] = [
       {
         'id': 1,
         'name': 'GSYGithubApp',
@@ -54,7 +93,7 @@ class HostStubProvider implements HttpProvider {
   }
 
   private buildUsersBody(): string {
-    const items: Object[] = [
+    const items: MockUserItem[] = [
       {
         'id': 100,
         'login': 'CarGuo',
@@ -79,7 +118,7 @@ class HostStubProvider implements HttpProvider {
   }
 
   private buildIssuesBody(): string {
-    const items: Object[] = [
+    const items: MockIssueItem[] = [
       {
         'id': 200,
         'number': 1,
@@ -172,5 +211,3 @@ struct SearchHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

@@ -64,5 +64,3 @@ struct MyTabPageHost {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

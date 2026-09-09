@@ -13,11 +13,48 @@ import { RouteName } from 'common';
 const TARGET_LOGIN: string = 'CarGuoUI';
 const STATUS_NO_CONTENT: number = 204;
 
+interface MockUserDetail {
+  id: number;
+  login: string;
+  name: string;
+  avatar_url: string;
+  bio: string;
+  company: string;
+  location: string;
+  email: string;
+  blog: string;
+  type: string;
+  followers: number;
+  following: number;
+  public_repos: number;
+  public_gists: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface MockUserRepoItem {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string;
+  language: string;
+  stargazers_count: number;
+  forks_count: number;
+  watchers_count: number;
+  open_issues_count: number;
+  fork: boolean;
+  private: boolean;
+  html_url: string;
+  owner_login: string;
+  pushed_at: string;
+  updated_at: string;
+}
+
 class UserHostProvider implements HttpProvider {
   callCount: number = 0;
 
   private buildUserBody(): string {
-    const user: Object = {
+    const user: MockUserDetail = {
       'id': 1,
       'login': TARGET_LOGIN,
       'name': 'GuoUI',
@@ -39,7 +76,7 @@ class UserHostProvider implements HttpProvider {
   }
 
   private buildReposBody(): string {
-    const repos: Object[] = [
+    const repos: MockUserRepoItem[] = [
       {
         'id': 1,
         'name': 'RepoZero',
@@ -141,5 +178,3 @@ struct UserDetailHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

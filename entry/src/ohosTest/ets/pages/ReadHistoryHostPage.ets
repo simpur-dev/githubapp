@@ -172,5 +172,3 @@ struct ReadHistoryHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _readHistoryHttpKeepAlive: typeof http = http;

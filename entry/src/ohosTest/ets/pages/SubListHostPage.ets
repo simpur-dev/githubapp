@@ -16,11 +16,37 @@ const HOST_NAME: string = 'GSYGithubAppOH';
 const HOST_FULL_NAME: string = HOST_OWNER + '/' + HOST_NAME;
 const STATUS_NO_CONTENT: number = 204;
 
+interface MockStargazerItem {
+  id: number;
+  login: string;
+  avatar_url: string;
+  html_url: string;
+}
+
+interface MockUserDetail {
+  id: number;
+  login: string;
+  name: string;
+  avatar_url: string;
+  bio: string;
+  company: string;
+  location: string;
+  email: string;
+  blog: string;
+  type: string;
+  followers: number;
+  following: number;
+  public_repos: number;
+  public_gists: number;
+  created_at: string;
+  updated_at: string;
+}
+
 class SubListHostProvider implements HttpProvider {
   callCount: number = 0;
 
   private buildStarsBody(): string {
-    const users: Object[] = [
+    const users: MockStargazerItem[] = [
       {
         'id': 1,
         'login': 'StarUserOne',
@@ -38,7 +64,7 @@ class SubListHostProvider implements HttpProvider {
   }
 
   private buildUserInfoBody(login: string): string {
-    const user: Object = {
+    const user: MockUserDetail = {
       'id': 99,
       'login': login,
       'name': 'NameOf' + login,
@@ -132,5 +158,3 @@ struct SubListHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

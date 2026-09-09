@@ -17,12 +17,58 @@ const TARGET_FULL_NAME: string = TARGET_OWNER + '/' + TARGET_REPO;
 const TARGET_SHA: string = 'abc1234567890abcdef1234567890abcdef1234';
 const STATUS_NOT_FOUND: number = 404;
 
+interface MockCommitAuthor {
+  name: string;
+  email: string;
+  date: string;
+}
+
+interface MockCommitDetail {
+  message: string;
+  author: MockCommitAuthor;
+  committer: MockCommitAuthor;
+}
+
+interface MockProfileRef {
+  login: string;
+  avatar_url: string;
+  html_url: string;
+}
+
+interface MockCommitFile {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  blob_url: string;
+  raw_url: string;
+  patch: string;
+  sha: string;
+}
+
+interface MockCommitStats {
+  additions: number;
+  deletions: number;
+  total: number;
+}
+
+interface MockCommitBody {
+  sha: string;
+  html_url: string;
+  commit: MockCommitDetail;
+  author: MockProfileRef;
+  committer: MockProfileRef;
+  files: MockCommitFile[];
+  stats: MockCommitStats;
+}
+
 class PushHostProvider implements HttpProvider {
   callCount: number = 0;
   detailHitCount: number = 0;
 
   private buildBody(): string {
-    const body: Object = {
+    const body: MockCommitBody = {
       'sha': TARGET_SHA,
       'html_url': 'https://github.com/' + TARGET_FULL_NAME + '/commit/' + TARGET_SHA,
       'commit': {
@@ -148,5 +194,3 @@ struct PushDetailHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

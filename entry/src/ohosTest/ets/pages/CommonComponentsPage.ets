@@ -166,7 +166,7 @@ struct CommonComponentsPage {
       PullLoadMoreList({
         dataSource: this.data,
         controller: this.plmController,
-        renderRow: (item: DemoItem, index: number): void => this.rowBuilder(item, index),
+        renderRow: (item: Object, index: number): void => this.rowBuilder(item as DemoItem, index),
         refresh: (): void => {
           setTimeout((): void => {
             this.plmController.refreshComplete(true, false);

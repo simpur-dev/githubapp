@@ -8,11 +8,33 @@ import { HttpHeaders } from 'common';
 import { SUCCESS } from 'common';
 import { DynamicTabPage } from 'feature_main';
 
+interface MockEventActor {
+  id: number;
+  login: string;
+  display_login: string;
+  avatar_url: string;
+}
+
+interface MockEventRepo {
+  id: number;
+  name: string;
+  url: string;
+}
+
+interface MockEventItem {
+  id: string;
+  type: string;
+  actor: MockEventActor;
+  repo: MockEventRepo;
+  created_at: string;
+  payload: Record<string, Object>;
+}
+
 class ListProvider implements HttpProvider {
   callCount: number = 0;
 
   private buildBody(): string {
-    const items: Object[] = [
+    const items: MockEventItem[] = [
       {
         'id': 'evt-0',
         'type': 'PushEvent',
@@ -76,7 +98,7 @@ struct DynamicTabListHostPage {
 
   build(): void {
     Column() {
-      DynamicTabPage({ user: 'CarGuoUI' })
+      DynamicTabPage()
         .layoutWeight(1);
     }
     .id('dynamic_host_list_root')
@@ -85,5 +107,3 @@ struct DynamicTabListHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

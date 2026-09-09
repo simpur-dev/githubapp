@@ -29,6 +29,67 @@ import { FilesTab } from 'feature_repo';
 import { RouteName } from 'common';
 import { NavigationService } from 'common';
 
+interface MockUserRef {
+  login: string;
+  avatar_url: string;
+}
+
+interface MockIssueItem {
+  id: number;
+  number: number;
+  title: string;
+  body: string;
+  state: string;
+  user: MockUserRef;
+  comments: number;
+  created_at: string;
+  updated_at: string;
+  html_url: string;
+}
+
+interface MockEventRepoRef {
+  id: number;
+  name: string;
+}
+
+interface MockEventItem {
+  id: string;
+  type: string;
+  actor: MockUserRef;
+  repo: MockEventRepoRef;
+  created_at: string;
+  payload: Record<string, Object>;
+}
+
+interface MockCommitGitUser {
+  name: string;
+  email: string;
+  date: string;
+}
+
+interface MockCommitDetail {
+  message: string;
+  author: MockCommitGitUser;
+  committer: MockCommitGitUser;
+}
+
+interface MockCommitItem {
+  sha: string;
+  author: MockUserRef;
+  committer: MockUserRef;
+  commit: MockCommitDetail;
+}
+
+interface MockFileItem {
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  type: string;
+  download_url: string;
+  html_url: string;
+}
+
 const TARGET_OWNER: string = 'CarGuoUI';
 const TARGET_REPO: string = 'GSYTabRepo';
 const TARGET_FULL_NAME: string = TARGET_OWNER + '/' + TARGET_REPO;
@@ -43,7 +104,7 @@ class RepoTabsHostProvider implements HttpProvider {
   lastFilesPath: string = '';
 
   private buildIssuesBody(state: string): string {
-    const issues: Object[] = [
+    const issues: MockIssueItem[] = [
       {
         'id': 101,
         'number': 101,
@@ -73,7 +134,7 @@ class RepoTabsHostProvider implements HttpProvider {
   }
 
   private buildIssueSearchBody(): string {
-    const issues: Object[] = [
+    const issues: MockIssueItem[] = [
       {
         'id': 201,
         'number': 201,
@@ -95,7 +156,7 @@ class RepoTabsHostProvider implements HttpProvider {
   }
 
   private buildEventsBody(): string {
-    const events: Object[] = [
+    const events: MockEventItem[] = [
       {
         'id': 'evt-tab-1',
         'type': 'PushEvent',
@@ -109,7 +170,7 @@ class RepoTabsHostProvider implements HttpProvider {
   }
 
   private buildCommitsBody(): string {
-    const commits: Object[] = [
+    const commits: MockCommitItem[] = [
       {
         'sha': 'abc1234567890',
         'author': { 'login': TARGET_OWNER, 'avatar_url': '' },
@@ -133,7 +194,7 @@ class RepoTabsHostProvider implements HttpProvider {
   }
 
   private buildFilesRoot(): string {
-    const files: Object[] = [
+    const files: MockFileItem[] = [
       {
         'name': 'src',
         'path': 'src',
@@ -166,7 +227,7 @@ class RepoTabsHostProvider implements HttpProvider {
   }
 
   private buildFilesSrc(): string {
-    const files: Object[] = [
+    const files: MockFileItem[] = [
       {
         'name': 'main.ts',
         'path': 'src/main.ts',
@@ -500,7 +561,5 @@ struct RepoTabsHostPage {
 }
 
 const _repoTabsKeepIssueState: string = ISSUE_STATE_OPEN + '|' + ISSUE_STATE_CLOSED + '|' + ISSUE_STATE_ALL;
-const _httpKeepAlive: typeof http = http;
-const _addressKeepAlive: typeof Address = Address;
 const _eventKeepAlive: RepositoryEventItem | null = null;
 const _commitKeepAlive: RepositoryCommitItem | null = null;

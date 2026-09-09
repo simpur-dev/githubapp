@@ -13,13 +13,39 @@ import { RouteName } from 'common';
 const STATUS_NO_CONTENT: number = 204;
 const REPO_FULL: string = 'CarGuoUI/RepoZero';
 
+interface MockNotifySubject {
+  title: string;
+  url: string;
+  latest_comment_url: string;
+  type: string;
+}
+
+interface MockNotifyRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner_login: string;
+  html_url: string;
+}
+
+interface MockNotifyItem {
+  id: string;
+  unread: boolean;
+  reason: string;
+  updated_at: string;
+  last_read_at: string;
+  url: string;
+  subject: MockNotifySubject;
+  repository: MockNotifyRepository;
+}
+
 class NotifyHostProvider implements HttpProvider {
   callCount: number = 0;
   lastUrl: string = '';
   lastMethod: string = '';
 
   private buildList(): string {
-    const items: Object[] = [
+    const items: MockNotifyItem[] = [
       {
         'id': 't0',
         'unread': true,
@@ -32,14 +58,14 @@ class NotifyHostProvider implements HttpProvider {
           'url': 'https://api.github.com/repos/' + REPO_FULL + '/issues/1',
           'latest_comment_url': '',
           'type': 'Issue',
-        } as Record<string, Object>,
+        },
         'repository': {
           'id': 1,
           'name': 'RepoZero',
           'full_name': REPO_FULL,
           'owner_login': 'CarGuoUI',
           'html_url': '',
-        } as Record<string, Object>,
+        },
       },
       {
         'id': 't1',
@@ -53,14 +79,14 @@ class NotifyHostProvider implements HttpProvider {
           'url': 'https://api.github.com/repos/' + REPO_FULL + '/pulls/2',
           'latest_comment_url': '',
           'type': 'PullRequest',
-        } as Record<string, Object>,
+        },
         'repository': {
           'id': 1,
           'name': 'RepoZero',
           'full_name': REPO_FULL,
           'owner_login': 'CarGuoUI',
           'html_url': '',
-        } as Record<string, Object>,
+        },
       },
     ];
     return JSON.stringify(items);
@@ -131,5 +157,3 @@ struct NotifyHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

@@ -8,12 +8,26 @@ import { HttpHeaders } from 'common';
 import { SUCCESS } from 'common';
 import { TrendTabPage } from 'feature_main';
 
+interface MockTrendItem {
+  author: string;
+  name: string;
+  avatar: string;
+  url: string;
+  description: string;
+  language: string;
+  languageColor: string;
+  stars: number;
+  forks: number;
+  currentPeriodStars: number;
+  builtBy: Object[];
+}
+
 class TrendListProvider implements HttpProvider {
   callCount: number = 0;
   lastUrl: string = '';
 
   private buildBody(): string {
-    const items: Object[] = [
+    const items: MockTrendItem[] = [
       {
         'author': 'CarGuoUI',
         'name': 'TrendDemoZero',
@@ -79,5 +93,3 @@ struct TrendTabListHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;

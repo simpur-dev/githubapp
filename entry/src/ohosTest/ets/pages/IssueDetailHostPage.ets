@@ -15,6 +15,38 @@ const TARGET_REPO: string = 'GSYTestRepo';
 const TARGET_FULL_NAME: string = TARGET_OWNER + '/' + TARGET_REPO;
 const TARGET_NUMBER: number = 99;
 
+interface MockIssueUser {
+  login: string;
+  avatar_url: string;
+  html_url: string;
+}
+
+interface MockIssueDetail {
+  id: number;
+  number: number;
+  title: string;
+  body: string;
+  body_html: string;
+  state: string;
+  locked: boolean;
+  comments: number;
+  user: MockIssueUser;
+  created_at: string;
+  updated_at: string;
+  closed_at: string;
+  html_url: string;
+}
+
+interface MockCommentItem {
+  id: number;
+  body: string;
+  body_html: string;
+  user: MockIssueUser;
+  created_at: string;
+  updated_at: string;
+  html_url: string;
+}
+
 class IssueHostProvider implements HttpProvider {
   callCount: number = 0;
   state: string = 'open';
@@ -22,7 +54,7 @@ class IssueHostProvider implements HttpProvider {
   patchCount: number = 0;
 
   private buildIssueBody(): string {
-    const issue: Object = {
+    const issue: MockIssueDetail = {
       'id': 1001,
       'number': TARGET_NUMBER,
       'title': 'host issue title',
@@ -46,7 +78,7 @@ class IssueHostProvider implements HttpProvider {
   }
 
   private buildCommentsBody(): string {
-    const comments: Object[] = [
+    const comments: MockCommentItem[] = [
       {
         'id': 1,
         'body': 'first comment',
@@ -61,7 +93,7 @@ class IssueHostProvider implements HttpProvider {
   }
 
   private buildSingleCommentBody(): string {
-    const item: Object = {
+    const item: MockCommentItem = {
       'id': 2,
       'body': 'host new comment',
       'body_html': '<p>host new comment</p>',
@@ -153,5 +185,3 @@ struct IssueDetailHostPage {
     .backgroundColor('#FFFFFF');
   }
 }
-
-const _httpKeepAlive: typeof http = http;
