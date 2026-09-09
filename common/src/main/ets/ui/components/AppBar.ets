@@ -95,161 +95,31 @@ export struct AppBar {
   }
 
   @Builder
-  buildSearchVectorIcon(color: ResourceColor, size: number): void {
-    Stack() {
-      // 放大镜圆环：用宽度 1.6 的 Circle 描边
-      Circle({ width: size * 0.62, height: size * 0.62 })
-        .stroke(color)
-        .strokeWidth(1.8)
-        .fillOpacity(0)
-        .position({ x: size * 0.08, y: size * 0.08 });
-      // 把手：从圆环右下角延伸到右下
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.62, size * 0.62])
-        .endPoint([size * 0.88, size * 0.88])
-        .stroke(color)
-        .strokeWidth(2.0);
-    }
-    .width(size)
-    .height(size);
-  }
-
-  @Builder
-  buildFilterVectorIcon(color: ResourceColor, size: number): void {
-    Stack() {
-      // 漏斗顶部横边
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.10, size * 0.20])
-        .endPoint([size * 0.90, size * 0.20])
-        .stroke(color)
-        .strokeWidth(2.0);
-      // 漏斗左斜边
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.10, size * 0.20])
-        .endPoint([size * 0.42, size * 0.55])
-        .stroke(color)
-        .strokeWidth(2.0);
-      // 漏斗右斜边
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.90, size * 0.20])
-        .endPoint([size * 0.58, size * 0.55])
-        .stroke(color)
-        .strokeWidth(2.0);
-      // 漏斗左茎
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.42, size * 0.55])
-        .endPoint([size * 0.42, size * 0.90])
-        .stroke(color)
-        .strokeWidth(2.0);
-      // 漏斗右茎
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.58, size * 0.55])
-        .endPoint([size * 0.58, size * 0.90])
-        .stroke(color)
-        .strokeWidth(2.0);
-      // 漏斗底端封口
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.42, size * 0.90])
-        .endPoint([size * 0.58, size * 0.90])
-        .stroke(color)
-        .strokeWidth(2.0);
-    }
-    .width(size)
-    .height(size);
-  }
-
-  @Builder
-  buildMoreVectorIcon(color: ResourceColor, size: number): void {
-    Row() {
-      Circle({ width: size * 0.18, height: size * 0.18 })
-        .fill(color)
-        .margin({ right: size * 0.08 });
-      Circle({ width: size * 0.18, height: size * 0.18 })
-        .fill(color)
-        .margin({ right: size * 0.08 });
-      Circle({ width: size * 0.18, height: size * 0.18 })
-        .fill(color);
-    }
-    .width(size)
-    .height(size)
-    .alignItems(VerticalAlign.Center)
-    .justifyContent(FlexAlign.Center);
-  }
-
-  @Builder
-  buildMenuVectorIcon(color: ResourceColor, size: number): void {
-    Stack() {
-      ForEach([0, 1, 2], (idx: number): void => {
-        Line()
-          .width(size)
-          .height(size)
-          .startPoint([size * 0.18, size * (0.28 + idx * 0.22)])
-          .endPoint([size * 0.82, size * (0.28 + idx * 0.22)])
-          .stroke(color)
-          .strokeWidth(2.2);
-      }, (idx: number): string => idx.toString());
-    }
-    .width(size)
-    .height(size);
-  }
-
-  @Builder
-  buildDoneAllVectorIcon(color: ResourceColor, size: number): void {
-    Stack() {
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.10, size * 0.54])
-        .endPoint([size * 0.30, size * 0.74])
-        .stroke(color)
-        .strokeWidth(2.4);
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.30, size * 0.74])
-        .endPoint([size * 0.56, size * 0.36])
-        .stroke(color)
-        .strokeWidth(2.4);
-      Line()
-        .width(size)
-        .height(size)
-        .startPoint([size * 0.42, size * 0.68])
-        .endPoint([size * 0.86, size * 0.26])
-        .stroke(color)
-        .strokeWidth(2.4);
-    }
-    .width(size)
-    .height(size);
-  }
-
-  @Builder
   buildAction(action: AppBarAction, side: string, idx: number): void {
     Button() {
       Row() {
+        // 手绘矢量（Circle/Line）统一换成系统 SymbolGlyph；
+        // 只使用系统符号表中确定存在的资源名，避免运行时空白。
         if (action.iconKey === 'search') {
-          this.buildSearchVectorIcon(this.resolveActionColor(), 22);
+          SymbolGlyph($r('sys.symbol.magnifyingglass'))
+            .fontSize(GSYIconSize.appBarAction)
+            .fontColor([this.resolveActionColor()]);
         } else if (action.iconKey === 'menu') {
-          this.buildMenuVectorIcon(this.resolveActionColor(), 22);
+          SymbolGlyph($r('sys.symbol.line_3_horizontal'))
+            .fontSize(GSYIconSize.appBarAction)
+            .fontColor([this.resolveActionColor()]);
         } else if (action.iconKey === 'done_all') {
-          this.buildDoneAllVectorIcon(this.resolveActionColor(), 24);
+          SymbolGlyph($r('sys.symbol.checkmark'))
+            .fontSize(GSYIconSize.cardIcon)
+            .fontColor([this.resolveActionColor()]);
         } else if (action.iconKey === 'filter') {
-          this.buildFilterVectorIcon(this.resolveActionColor(), 20);
+          SymbolGlyph($r('sys.symbol.funnel'))
+            .fontSize(GSYIconSize.tab)
+            .fontColor([this.resolveActionColor()]);
         } else if (action.iconKey === 'more') {
-          this.buildMoreVectorIcon(this.resolveActionColor(), 22);
+          SymbolGlyph($r('sys.symbol.more'))
+            .fontSize(GSYIconSize.appBarAction)
+            .fontColor([this.resolveActionColor()]);
         } else if (action.icon) {
           Image(action.icon)
             .width(20)

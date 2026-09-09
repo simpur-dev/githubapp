@@ -142,6 +142,8 @@ export class GSYIconSize {
   static readonly minIcon: number = 20;
   static readonly cardIcon: number = 24;
   static readonly little: number = 10;
+  // AppBar 动作键 SymbolGlyph 尺寸（对齐旧手绘矢量 22）
+  static readonly appBarAction: number = 22;
 }
 
 export class GSYSpacing {

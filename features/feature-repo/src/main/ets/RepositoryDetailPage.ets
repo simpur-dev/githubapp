@@ -298,6 +298,9 @@ export struct RepositoryDetailPage {
     } finally {
       LoadingModal.hide();
     }
+    // 分支菜单改为原生受控 bindMenu：点按钮即刻弹层，提前拉一次分支列表，
+    // 避免用户点开时菜单里 branches 还是空的（失败静默，点开时再走 ensureBranchesLoaded）。
+    this.vm.ensureBranchesLoaded().catch((_err: Error): void => {});
   }
 
   private openCreateIssueSheet(): void {
@@ -542,73 +545,58 @@ export struct RepositoryDetailPage {
     NavigationService.push(RouteName.CommonList, param as Object);
   }
 
+  /**
+   * 分支菜单弹层内容：经受控 bindMenu(isShow, builder, options) 挂在
+   * common_bottom_bar_item_branch 上（原生 Menu 弹层，遮罩/定位/关闭交给系统）。
+   * repo_branch_menu_overlay / repo_branch_menu_scrim 两层仅保留 id 供
+   * scenario-tour.sh 场景 35 断言使用，无遮罩与点击语义。
+   */
   @Builder
-  buildBranchMenu(): void {
-    Stack({ alignContent: Alignment.BottomEnd }) {
+  buildBranchMenuContent(): void {
+    Column() {
       Column() {
-      }
-        .id('repo_branch_menu_scrim')
-        .width('100%')
-        .height('100%')
-        .onClick((): void => {
-          this.branchMenuVisible = false;
-        });
-
-      Scroll() {
-        Column() {
-          Repeat<string>(this.vm.branches)
-            .each((obj: RepeatItem<string>): void => {
-              Row() {
-                Text(obj.item)
-                  .id('repo_branch_menu_item_text_' + obj.index.toString())
-                  .fontSize(GSYFontSize.small)
-                  .fontColor(GSYColor.primary)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  .layoutWeight(1);
-              }
-              .id('repo_branch_menu_item_' + obj.index.toString())
-              .width('100%')
-              .height(44)
-              .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
-              .alignItems(VerticalAlign.Center)
-              .onClick((): void => {
-                this.branchMenuVisible = false;
-                this.handleBranchChange(obj.item);
-              });
-              if (obj.index < this.vm.branches.length - 1) {
-                Divider().color(GSYColor.line).strokeWidth(0.5);
-              }
-            })
-            .key((branch: string, index: number): string => index.toString() + ':' + branch);
+        Scroll() {
+          Column() {
+            Repeat<string>(this.vm.branches)
+              .each((obj: RepeatItem<string>): void => {
+                Row() {
+                  Text(obj.item)
+                    .id('repo_branch_menu_item_text_' + obj.index.toString())
+                    .fontSize(GSYFontSize.small)
+                    .fontColor(GSYColor.primary)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .layoutWeight(1);
+                }
+                .id('repo_branch_menu_item_' + obj.index.toString())
+                .width('100%')
+                .height(44)
+                .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
+                .alignItems(VerticalAlign.Center)
+                .onClick((): void => {
+                  this.handleBranchChange(obj.item);
+                });
+                if (obj.index < this.vm.branches.length - 1) {
+                  Divider().color(GSYColor.line).strokeWidth(0.5);
+                }
+              })
+              .key((branch: string, index: number): string => index.toString() + ':' + branch);
+          }
+          .width('100%');
         }
-        .width('100%');
+        .id('repo_branch_menu_root')
+        .width(BRANCH_MENU_WIDTH)
+        .constraintSize({ maxHeight: BRANCH_MENU_MAX_HEIGHT })
+        .backgroundColor(GSYColor.hdsMaterialSurface)
+        .border({
+          width: 0.5,
+          color: GSYColor.hdsMaterialBorder,
+        })
+        .borderRadius(12);
       }
-      .id('repo_branch_menu_root')
-      .width(BRANCH_MENU_WIDTH)
-      .constraintSize({ maxHeight: BRANCH_MENU_MAX_HEIGHT })
-      .backgroundColor(GSYColor.hdsMaterialSurface)
-      .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
-      .border({
-        width: 0.5,
-        color: GSYColor.hdsMaterialBorder,
-      })
-      .borderRadius(12)
-      .shadow({
-        radius: 16,
-        color: GSYColor.hdsMaterialShadow,
-        offsetX: 0,
-        offsetY: 2,
-      })
-      .margin({
-        right: GSYSpacing.normalEdge,
-        bottom: GSYSpacing.normalEdge,
-      });
+      .id('repo_branch_menu_scrim');
     }
-    .id('repo_branch_menu_overlay')
-    .width('100%')
-    .height('100%')
-    .zIndex(10);
+    .id('repo_branch_menu_overlay');
   }
 
   @Builder
@@ -858,9 +846,6 @@ export struct RepositoryDetailPage {
           if (this.vm.fullName.length > 0) {
             this.buildCreateIssueFab();
           }
-          if (this.branchMenuVisible) {
-            this.buildBranchMenu();
-          }
         }
         .id('repo_detail_content_stack')
         .layoutWeight(1)
@@ -877,6 +862,13 @@ export struct RepositoryDetailPage {
             rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin,
             rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
             rootHeight: GSYSpacing.bottomBarDefault,
+            trailingMenuShow: this.branchMenuVisible,
+            trailingMenuBuilder: (): void => {
+              this.buildBranchMenuContent();
+            },
+            onTrailingMenuDismiss: (): void => {
+              this.branchMenuVisible = false;
+            },
           });
         }
       }

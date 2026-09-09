@@ -19,8 +19,8 @@ const LOGIN_LOGO_BOTTOM_MARGIN: number = 24;
  * LoginPageDeps / LoginOauthClient / LoginOauthRouteParams 平移至
  * viewmodel/LoginDeps.ets（经 'feature_auth' 桶导出，类名与签名不变）。
  *
- * 语言选择弹层仍是自绘 overlay（login_language_overlay），本轮仅原样 V2 化，
- * login_language_* 全部 id 原样保留；换原生组件留待阶段 3。
+ * 语言选择弹层仍是自绘 overlay（login_language_overlay），选项内的假 radio 文本
+ * （'●'/'○'）已换为原生 Radio 组件，login_language_* 全部 id 原样保留。
  */
 @ComponentV2
 export struct LoginPage {
@@ -58,12 +58,22 @@ export struct LoginPage {
   @Builder
   private buildLanguageOption(value: string, label: string): void {
     Row() {
-      Text(this.vm.currentLanguage === value ? '●' : '○')
+      // 原生 Radio 替代旧 '●'/'○' 文本模拟；同一 group 自动互斥，选中态走原生 checked。
+      Radio({ value: value, group: 'loginLanguage' })
         .id('login_language_radio_' + value)
-        .fontSize(GSYFontSize.middleWhite)
-        .fontColor(this.vm.currentLanguage === value ? GSYColor.linkBlue : GSYColor.textSubtle)
-        .width(32)
-        .textAlign(TextAlign.Center);
+        .checked(this.vm.currentLanguage === value)
+        .radioStyle({
+          checkedBackgroundColor: GSYColor.linkBlue,
+          uncheckedBorderColor: GSYColor.textSubtle,
+          indicatorColor: GSYColor.white,
+        })
+        .width(20)
+        .height(20)
+        .onChange((isChecked: boolean): void => {
+          if (isChecked) {
+            this.vm.chooseLanguage(value);
+          }
+        });
 
       Text(label)
         .id('login_language_label_' + value)

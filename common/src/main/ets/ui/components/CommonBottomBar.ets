@@ -26,6 +26,10 @@ export class CommonBottomBarItem {
   itemId: string = '';
 }
 
+@Builder
+function doNothingTrailingMenuBuilder(): void {
+}
+
 @Component
 export struct CommonBottomBar {
   @Prop @Watch('onDataListChanged') dataList: CommonBottomBarItem[] = [];
@@ -44,6 +48,12 @@ export struct CommonBottomBar {
   repoActionStyle: boolean = false;
   materialFloatingStyle: boolean = false;
   trailingItemId: string = 'branch';
+  /** repoActionStyle 尾项受控 bindMenu（API 11+）的显隐，由调用方状态驱动。 */
+  @Prop trailingMenuShow: boolean = false;
+  /** repoActionStyle 尾项菜单内容（调用方 @Builder 经 @BuilderParam 传入）。 */
+  @BuilderParam trailingMenuBuilder: () => void = doNothingTrailingMenuBuilder;
+  /** 菜单因点外部等原因关闭时回传调用方，用于同步调用侧显隐状态。 */
+  onTrailingMenuDismiss: () => void = (): void => {};
   @State private dataListRev: number = 0;
 
   private onDataListChanged(): void {
@@ -111,6 +121,11 @@ export struct CommonBottomBar {
           .justifyContent(FlexAlign.End)
           .alignItems(VerticalAlign.Center)
           .hitTestBehavior(HitTestMode.Block)
+          .bindMenu(this.trailingMenuShow, this.trailingMenuBuilder, {
+            onDisappear: (): void => {
+              this.onTrailingMenuDismiss();
+            },
+          })
           .onClick((): void => {
             item.itemClick();
           });

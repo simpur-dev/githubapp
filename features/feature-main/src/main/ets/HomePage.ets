@@ -491,7 +491,26 @@ export struct HomePage {
   }
 
   build(): void {
-    Stack() {
+    // 原生 SideBarContainer 承担抽屉开合 / 遮罩 / 手势，替代旧手写 Stack overlay。
+    // 第一个子组件为侧栏（DrawerHeader + DrawerMenu），第二个为主内容。
+    SideBarContainer(SideBarContainerType.Overlay) {
+      Column() {
+        DrawerHeader({
+          onAvatarTap: (): void => {
+            this.drawerOpen = false;
+          },
+        });
+        DrawerMenu({
+          onItemTap: (_key: string): void => {
+            this.drawerOpen = false;
+          },
+        });
+      }
+      .id('home_drawer_content')
+      .width(304)
+      .height('100%')
+      .backgroundColor(GSYColor.white);
+
       Column() {
         AppBar({
           title: I18n('appName'),
@@ -562,44 +581,19 @@ export struct HomePage {
       .width('100%')
       .height('100%')
       .padding({ bottom: this.safeAreaBottom })
-      .backgroundColor(GSYColor.tabBackground)
-      .zIndex(0);
-
-      if (this.drawerOpen) {
-        Blank()
-          .id('home_drawer_scrim')
-          .width('100%')
-          .height('100%')
-          .backgroundColor(GSYColor.drawerScrim)
-          .zIndex(8)
-          .onClick((): void => {
-            this.drawerOpen = false;
-          });
-      }
-
-      Column() {
-        DrawerHeader({
-          onAvatarTap: (): void => {
-            this.drawerOpen = false;
-          },
-        });
-        DrawerMenu({
-          onItemTap: (_key: string): void => {
-            this.drawerOpen = false;
-          },
-        });
-      }
-      .id('home_drawer_content')
-      .width(304)
-      .height('100%')
-      .backgroundColor(GSYColor.white)
-      .translate({ x: this.drawerOpen ? 0 : -320, y: 0, z: 0 })
-      .zIndex(10)
-      .animation({ duration: 260, curve: Curve.EaseOut });
-    }
-    .id('home_root')
-    .width('100%')
-    .height('100%')
-    .alignContent(Alignment.TopStart);
+      .backgroundColor(GSYColor.tabBackground);
   }
+  .id('home_root')
+  .width('100%')
+  .height('100%')
+  .showSideBar(this.drawerOpen)
+  .sideBarPosition(SideBarPosition.Start)
+  .sideBarWidth(304)
+  .minSideBarWidth(304)
+  .maxSideBarWidth(304)
+  .showControlButton(false)
+  .onChange((value: boolean): void => {
+    this.drawerOpen = value;
+  });
+}
 }

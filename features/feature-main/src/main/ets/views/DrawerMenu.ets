@@ -501,12 +501,23 @@ export struct DrawerMenu {
   @Builder
   buildLanguageRow(item: DrawerLanguageOption, index: number): void {
     Row() {
-      Text(this.currentLanguage === item.value ? '●' : '○')
+      // 原生 Radio 替代旧 '●'/'○' 文本模拟；同一 group 自动互斥，选中态走原生 checked。
+      Radio({ value: item.value, group: 'drawerLanguage' })
         .id('drawer_language_radio_' + item.value)
-        .fontSize(GSYFontSize.middleWhite)
-        .fontColor(this.currentLanguage === item.value ? GSYColor.linkBlue : GSYColor.textSubtle)
-        .width(32)
-        .textAlign(TextAlign.Center);
+        .checked(this.currentLanguage === item.value)
+        .radioStyle({
+          checkedBackgroundColor: GSYColor.linkBlue,
+          uncheckedBorderColor: GSYColor.textSubtle,
+          indicatorColor: GSYColor.white,
+        })
+        .width(20)
+        .height(20)
+        .onChange((isChecked: boolean): void => {
+          if (isChecked) {
+            this.languageSheetOpen = false;
+            this.selectLanguage(item.value);
+          }
+        });
       Text(item.label)
         .id('drawer_language_label_' + item.value)
         .fontSize(GSYFontSize.normal)
