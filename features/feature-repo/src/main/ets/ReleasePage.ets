@@ -13,7 +13,7 @@
  */
 
 import { I18n } from 'common';
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { NavigationService } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { PullLoadMoreList } from 'common';
@@ -47,6 +47,13 @@ export struct ReleasePage {
     { key: 'release', title: I18n('reposRelease'), index: 0 },
     { key: 'tag', title: I18n('reposTag'), index: 1 },
   ];
+
+  // R9 阶段4：标题栏交给 NavDestination 原生 .title（repositoryName 是 @Trace，getter 闭包随对象携带）。
+  aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.Release, {
+      titleGetter: (): string => this.vm.repositoryName.length > 0 ? this.vm.repositoryName : I18n('reposRelease'),
+    } as NavTitleConfig);
+  }
 
   private resolveParam(ctx: NavDestinationContext): void {
     const info: NavPathInfo | undefined = ctx.pathInfo;
@@ -118,13 +125,6 @@ export struct ReleasePage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: this.vm.repositoryName.length > 0 ? this.vm.repositoryName : I18n('reposRelease'),
-          showBack: true,
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        });
         Tabs({
           barPosition: BarPosition.Start,
           index: this.currentIndex,

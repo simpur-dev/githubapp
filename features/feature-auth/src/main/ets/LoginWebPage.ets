@@ -1,8 +1,7 @@
 import webview from '@ohos.web.webview';
 import router from '@ohos.router';
-import { NavigationService } from 'common';
+import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { HOST_WEB } from 'common';
-import { AppBar } from 'common';
 import { GSYColor } from 'common';
 import { I18n } from 'common';
 import { LoginWebViewModel } from './viewmodel/LoginWebViewModel';
@@ -12,7 +11,7 @@ import { LoginWebViewModel } from './viewmodel/LoginWebViewModel';
  *
  * 取参建链 / 深链拦截在 LoginWebViewModel（@ObservedV2 + @Trace）；
  * LoginWebDeps 平移至 viewmodel/LoginWebViewModel.ets（经 'feature_auth' 桶导出）。
- * AppBar 仍为 common 的 V1 组件（本轮过渡态允许引用，单向传值）。
+ * R9 阶段4：标题栏交给 NavDestination 原生 .title（login_web_appbar id 经 barId 保留）。
  */
 @ComponentV2
 export struct LoginWebPage {
@@ -20,20 +19,15 @@ export struct LoginWebPage {
   private controller: webview.WebviewController = new webview.WebviewController();
 
   aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.LoginWeb, {
+      titleGetter: (): string => I18n('GithubAuthorization'),
+      barId: 'login_web_appbar',
+    } as NavTitleConfig);
     this.vm.initFromRoute(router.getParams() as Object | undefined);
   }
 
   build(): void {
     Column() {
-      AppBar({
-        title: I18n('GithubAuthorization'),
-        showBack: true,
-        onBack: (): void => {
-          NavigationService.pop();
-        },
-      })
-        .id('login_web_appbar');
-
       if (this.vm.currentUrl.length > 0) {
         Web({ src: this.vm.currentUrl, controller: this.controller })
           .id('login_web_view')

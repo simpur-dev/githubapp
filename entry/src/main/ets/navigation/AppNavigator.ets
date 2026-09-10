@@ -7,11 +7,22 @@
  *    供任意 push/pop/replace 调用，避免 KI-020 悬空栈 crash。
  *  - 路由名映射对齐 RN [AppNavigator.js#L144-L334](https://github.com/CarGuo/GSYGithubApp/blob/master/app/navigation/AppNavigator.js#L144-L334)。
  *
+ * R9 阶段4：自绘 AppBar → NavDestination 原生标题栏。
+ *  - 每个"有标题栏"的路由分支一个 NavDestination，挂 .title(自定义 builder) + .menus(自定义 builder)，
+ *    需要底栏的分支再挂 .toolbarConfiguration(自定义 builder)。
+ *  - builder 内容是 NavTitleView / NavMenusView / NavBottomBarView（common），
+ *    按 routeName 从 NavTitleBridge 单例读页面 aboutToAppear 里 register 的配置
+ *    （titleGetter 闭包随对象携带，动态标题可实时刷新）。
+ *  - 返回键交给系统默认返回箭头（等价原 AppBar onBack → NavigationService.pop()）。
+ *  - 无标题栏的路由（Welcome/Login/Home/Photo）保持 hideTitleBar(true)：
+ *    Home 的 HomePage 自带页内 AppBar（home_appbar id 不变）。
+ *
  * 注：每个页面 struct 必须 export，且不再使用 @Entry。
  */
 import { LoadingModal } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
+import { NavTitleView, NavMenusView, NavBottomBarView } from 'common';
 
 import { WelcomePage } from 'feature_auth';
 import { LoginPage } from 'feature_auth';
@@ -50,64 +61,304 @@ export struct AppNavigator {
     LoadingModal.attach(this.getUIContext());
   }
 
+  // ── .title builder（每路由一个，NavTitleView 按 routeName 读 NavTitleBridge 配置）──
+
+  @Builder
+  loginWebTitle() {
+    NavTitleView({ routeName: RouteName.LoginWeb });
+  }
+
+  @Builder
+  searchTitle() {
+    NavTitleView({ routeName: RouteName.Search });
+  }
+
+  @Builder
+  settingTitle() {
+    NavTitleView({ routeName: RouteName.Setting });
+  }
+
+  @Builder
+  aboutTitle() {
+    NavTitleView({ routeName: RouteName.About });
+  }
+
+  @Builder
+  customTitle() {
+    NavTitleView({ routeName: RouteName.Custom });
+  }
+
+  @Builder
+  honorTitle() {
+    NavTitleView({ routeName: RouteName.Honor });
+  }
+
+  @Builder
+  notifyTitle() {
+    NavTitleView({ routeName: RouteName.Notify });
+  }
+
+  @Builder
+  readHistoryTitle() {
+    NavTitleView({ routeName: RouteName.ReadHistory });
+  }
+
+  @Builder
+  userDetailTitle() {
+    NavTitleView({ routeName: RouteName.UserDetail });
+  }
+
+  @Builder
+  repositoryDetailTitle() {
+    NavTitleView({ routeName: RouteName.RepositoryDetail });
+  }
+
+  @Builder
+  issueDetailTitle() {
+    NavTitleView({ routeName: RouteName.IssueDetail });
+  }
+
+  @Builder
+  codeDetailTitle() {
+    NavTitleView({ routeName: RouteName.CodeDetail });
+  }
+
+  @Builder
+  pushDetailTitle() {
+    NavTitleView({ routeName: RouteName.PushDetail });
+  }
+
+  @Builder
+  userFollowedTitle() {
+    NavTitleView({ routeName: RouteName.UserFollowed });
+  }
+
+  @Builder
+  userFollowerTitle() {
+    NavTitleView({ routeName: RouteName.UserFollower });
+  }
+
+  @Builder
+  repositoryStarTitle() {
+    NavTitleView({ routeName: RouteName.RepositoryStar });
+  }
+
+  @Builder
+  repositoryWatcherTitle() {
+    NavTitleView({ routeName: RouteName.RepositoryWatcher });
+  }
+
+  @Builder
+  repositoryForkTitle() {
+    NavTitleView({ routeName: RouteName.RepositoryFork });
+  }
+
+  @Builder
+  personInfoTitle() {
+    NavTitleView({ routeName: RouteName.PersonInfo });
+  }
+
+  @Builder
+  releaseTitle() {
+    NavTitleView({ routeName: RouteName.Release });
+  }
+
+  @Builder
+  webPageTitle() {
+    NavTitleView({ routeName: RouteName.WebPage });
+  }
+
+  @Builder
+  commonListTitle() {
+    NavTitleView({ routeName: RouteName.CommonList });
+  }
+
+  // ── .menus builder（有右上动作的路由）──
+
+  @Builder
+  notifyMenus() {
+    NavMenusView({ routeName: RouteName.Notify });
+  }
+
+  @Builder
+  userDetailMenus() {
+    NavMenusView({ routeName: RouteName.UserDetail });
+  }
+
+  @Builder
+  repositoryDetailMenus() {
+    NavMenusView({ routeName: RouteName.RepositoryDetail });
+  }
+
+  @Builder
+  issueDetailMenus() {
+    NavMenusView({ routeName: RouteName.IssueDetail });
+  }
+
+  @Builder
+  codeDetailMenus() {
+    NavMenusView({ routeName: RouteName.CodeDetail });
+  }
+
+  @Builder
+  pushDetailMenus() {
+    NavMenusView({ routeName: RouteName.PushDetail });
+  }
+
+  @Builder
+  webPageMenus() {
+    NavMenusView({ routeName: RouteName.WebPage });
+  }
+
+  // ── .toolbarConfiguration builder（底部工具栏路由）──
+
+  @Builder
+  repositoryDetailToolbar() {
+    NavBottomBarView({ routeName: RouteName.RepositoryDetail });
+  }
+
+  @Builder
+  issueDetailToolbar() {
+    NavBottomBarView({ routeName: RouteName.IssueDetail });
+  }
+
   @Builder
   routerMap(name: string, _param: Object): void {
-    NavDestination() {
-      if (name === RouteName.Welcome) {
-        WelcomePage();
-      } else if (name === RouteName.Login) {
-        LoginPage();
-      } else if (name === RouteName.LoginWeb) {
+    if (name === RouteName.LoginWeb) {
+      NavDestination() {
         LoginWebPage();
-      } else if (name === RouteName.Home) {
-        HomePage();
-      } else if (name === RouteName.Search) {
+      }
+        .title(this.loginWebTitle);
+    } else if (name === RouteName.Search) {
+      NavDestination() {
         SearchPage();
-      } else if (name === RouteName.Setting) {
+      }
+        .title(this.searchTitle);
+    } else if (name === RouteName.Setting) {
+      NavDestination() {
         SettingPage();
-      } else if (name === RouteName.About) {
+      }
+        .title(this.settingTitle);
+    } else if (name === RouteName.About) {
+      NavDestination() {
         AboutPage();
-      } else if (name === RouteName.Custom) {
+      }
+        .title(this.aboutTitle);
+    } else if (name === RouteName.Custom) {
+      NavDestination() {
         CustomPage();
-      } else if (name === RouteName.Honor) {
+      }
+        .title(this.customTitle);
+    } else if (name === RouteName.Honor) {
+      NavDestination() {
         HonorPage();
-      } else if (name === RouteName.Notify) {
+      }
+        .title(this.honorTitle);
+    } else if (name === RouteName.Notify) {
+      NavDestination() {
         NotifyPage();
-      } else if (name === RouteName.ReadHistory) {
+      }
+        .title(this.notifyTitle)
+        .menus(this.notifyMenus);
+    } else if (name === RouteName.ReadHistory) {
+      NavDestination() {
         ReadHistoryPage();
-      } else if (name === RouteName.UserDetail) {
+      }
+        .title(this.readHistoryTitle);
+    } else if (name === RouteName.UserDetail) {
+      NavDestination() {
         UserDetailPage();
-      } else if (name === RouteName.RepositoryDetail) {
+      }
+        .title(this.userDetailTitle)
+        .menus(this.userDetailMenus);
+    } else if (name === RouteName.RepositoryDetail) {
+      NavDestination() {
         RepositoryDetailPage();
-      } else if (name === RouteName.IssueDetail) {
+      }
+        .title(this.repositoryDetailTitle)
+        .menus(this.repositoryDetailMenus)
+        .toolbarConfiguration(this.repositoryDetailToolbar);
+    } else if (name === RouteName.IssueDetail) {
+      NavDestination() {
         IssueDetailPage();
-      } else if (name === RouteName.CodeDetail) {
+      }
+        .title(this.issueDetailTitle)
+        .menus(this.issueDetailMenus)
+        .toolbarConfiguration(this.issueDetailToolbar);
+    } else if (name === RouteName.CodeDetail) {
+      NavDestination() {
         CodeDetailPage();
-      } else if (name === RouteName.PushDetail) {
+      }
+        .title(this.codeDetailTitle)
+        .menus(this.codeDetailMenus);
+    } else if (name === RouteName.PushDetail) {
+      NavDestination() {
         PushDetailPage();
-      } else if (name === RouteName.UserFollowed) {
+      }
+        .title(this.pushDetailTitle)
+        .menus(this.pushDetailMenus);
+    } else if (name === RouteName.UserFollowed) {
+      NavDestination() {
         UserFollowedPage();
-      } else if (name === RouteName.UserFollower) {
+      }
+        .title(this.userFollowedTitle);
+    } else if (name === RouteName.UserFollower) {
+      NavDestination() {
         UserFollowerPage();
-      } else if (name === RouteName.RepositoryStar) {
+      }
+        .title(this.userFollowerTitle);
+    } else if (name === RouteName.RepositoryStar) {
+      NavDestination() {
         RepositoryStarPage();
-      } else if (name === RouteName.RepositoryWatcher) {
+      }
+        .title(this.repositoryStarTitle);
+    } else if (name === RouteName.RepositoryWatcher) {
+      NavDestination() {
         RepositoryWatcherPage();
-      } else if (name === RouteName.RepositoryFork) {
+      }
+        .title(this.repositoryWatcherTitle);
+    } else if (name === RouteName.RepositoryFork) {
+      NavDestination() {
         RepositoryForkPage();
-      } else if (name === RouteName.PersonInfo) {
+      }
+        .title(this.repositoryForkTitle);
+    } else if (name === RouteName.PersonInfo) {
+      NavDestination() {
         PersonInfoPage();
-      } else if (name === RouteName.Release) {
+      }
+        .title(this.personInfoTitle);
+    } else if (name === RouteName.Release) {
+      NavDestination() {
         ReleasePage();
-      } else if (name === RouteName.Photo) {
-        PhotoPage();
-      } else if (name === RouteName.WebPage) {
+      }
+        .title(this.releaseTitle);
+    } else if (name === RouteName.WebPage) {
+      NavDestination() {
         WebPage();
-      } else if (name === RouteName.CommonList) {
+      }
+        .title(this.webPageTitle)
+        .menus(this.webPageMenus);
+    } else if (name === RouteName.CommonList) {
+      NavDestination() {
         CommonListPage({ initialParam: _param });
       }
+        .title(this.commonListTitle);
+    } else {
+      // 无自绘标题栏的路由：保持原 hideTitleBar 包裹结构。
+      // Home 的 HomePage 自带页内 AppBar（home_appbar id 不变，见 R9 阶段4 约定）。
+      NavDestination() {
+        if (name === RouteName.Welcome) {
+          WelcomePage();
+        } else if (name === RouteName.Login) {
+          LoginPage();
+        } else if (name === RouteName.Home) {
+          HomePage();
+        } else if (name === RouteName.Photo) {
+          PhotoPage();
+        }
+      }
+        .hideTitleBar(true);
     }
-    .hideTitleBar(true);
   }
 
   build(): void {

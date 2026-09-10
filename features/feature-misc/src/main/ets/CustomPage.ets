@@ -1,6 +1,5 @@
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { I18n } from 'common';
-import { NavigationService } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
 
 export class CustomScriptItem {
@@ -52,15 +51,15 @@ export struct CustomPage {
     .border({ width: { bottom: 0.5 }, color: GSYColor.borderSubtle });
   }
 
+  // R9 阶段4：标题栏交给 NavDestination 原生 .title（配置经 NavTitleBridge 上报）。
+  aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.Custom, {
+      titleGetter: (): string => I18n('custom'),
+    } as NavTitleConfig);
+  }
+
   build(): void {
     Column() {
-      AppBar({
-        title: I18n('custom'),
-        showBack: true,
-        onBack: (): void => {
-          NavigationService.pop();
-        },
-      });
       Column() {
         Text(I18n('customHeaderTitle'))
           .id('custom_header_title')

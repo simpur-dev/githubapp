@@ -1,10 +1,9 @@
 import { I18n } from 'common';
 import { TimeUtil } from 'common';
 import { PullLoadMoreList } from 'common';
-import { AppBar, AppBarAction } from 'common';
+import { NavTitleAction, NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { GSYColor, GSYFontSize, GSYShadow, GSYSpacing } from 'common';
 import { NotifyThread } from 'common';
-import { NavigationService } from 'common';
 import { NotifyViewModel, NotifyTabItem } from './viewmodel/NotifyViewModel';
 
 @ComponentV2
@@ -13,6 +12,19 @@ export struct NotifyPage {
   private pathStack: NavPathStack = new NavPathStack();
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title/.menus（notify_app_bar id 经 barId 保留）。
+    NavTitleBridge.get().registerTitle(RouteName.Notify, {
+      titleGetter: (): string => I18n('notify'),
+      barId: 'notify_app_bar',
+      rightActions: [
+        {
+          iconKey: 'done_all',
+          onAction: (): void => {
+            this.vm.markAllRead();
+          },
+        } as NavTitleAction,
+      ],
+    } as NavTitleConfig);
     this.vm.init();
   }
 
@@ -183,23 +195,6 @@ export struct NotifyPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: I18n('notify'),
-          showBack: true,
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-          rightActions: [
-            {
-              iconKey: 'done_all',
-              onAction: (): void => {
-                this.vm.markAllRead();
-              },
-            } as AppBarAction,
-          ],
-        })
-          .id('notify_app_bar');
-
         if (this.vm.initialPageLoading && this.vm.items.length === 0) {
           this.buildInitialLoading();
         } else if (this.vm.error.length > 0 && this.vm.items.length === 0) {

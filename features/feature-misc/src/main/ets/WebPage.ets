@@ -27,8 +27,7 @@
  */
 import webview from '@ohos.web.webview';
 import hilog from '@ohos.hilog';
-import { NavigationService } from 'common';
-import { AppBar, AppBarAction } from 'common';
+import { NavTitleAction, NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { GSYColor } from 'common';
 import { WebViewModel } from './viewmodel/WebViewModel';
 
@@ -39,6 +38,23 @@ const TAG: string = 'WebPage';
 export struct WebPage {
   @Local vm: WebViewModel = new WebViewModel();
   private controller: webview.WebviewController = new webview.WebviewController();
+
+  // R9 阶段4：标题栏交给 NavDestination 原生 .title/.menus（配置经 NavTitleBridge 上报）。
+  // displayTitle() 走 getter 闭包，页面标题（onTitleReceive）变化可实时反映到标题栏。
+  aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.WebPage, {
+      titleGetter: (): string => this.vm.displayTitle(),
+      barId: 'web_page_appbar',
+      rightActions: [
+        {
+          iconKey: 'reload',
+          onAction: (): void => {
+            this.onReload();
+          },
+        } as NavTitleAction,
+      ],
+    } as NavTitleConfig);
+  }
 
   private onReload(): void {
     hilog.info(DOMAIN, TAG, '[web/page] reload');
@@ -53,24 +69,6 @@ export struct WebPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: this.vm.displayTitle(),
-          titleStart: true,
-          showBack: true,
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-          rightActions: [
-            {
-              iconKey: 'reload',
-              onAction: (): void => {
-                this.onReload();
-              },
-            } as AppBarAction,
-          ],
-        })
-          .id('web_page_appbar');
-
         if (this.vm.uri.length > 0) {
           Web({ src: this.vm.uri, controller: this.controller })
             .id('web_page_view')

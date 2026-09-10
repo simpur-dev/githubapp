@@ -1,6 +1,5 @@
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { I18n } from 'common';
-import { NavigationService } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
 
 export class HonorEntry {
@@ -66,15 +65,15 @@ export struct HonorPage {
     .alignItems(VerticalAlign.Center);
   }
 
+  // R9 阶段4：标题栏交给 NavDestination 原生 .title（配置经 NavTitleBridge 上报）。
+  aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.Honor, {
+      titleGetter: (): string => I18n('beStaredText'),
+    } as NavTitleConfig);
+  }
+
   build(): void {
     Column() {
-      AppBar({
-        title: I18n('beStaredText'),
-        showBack: true,
-        onBack: (): void => {
-          NavigationService.pop();
-        },
-      });
       Column() {
         Text('CarGuo / GSYGithubApp')
           .id('honor_header_title')

@@ -68,6 +68,7 @@ export { TREND_LANGUAGE_ALL, TREND_SINCE_DAILY, TREND_SINCE_MONTHLY, TREND_SINCE
 export { UserDetail, UserOrgItem, UserRepoItem, emptyUserDetail, sanitizeUserDetail } from './src/main/ets/model/store/UserDetailStore';
 export { AppBar, AppBarAction } from './src/main/ets/ui/components/AppBar';
 export { CommonBottomBar, CommonBottomBarItem } from './src/main/ets/ui/components/CommonBottomBar';
+export { NavBottomBarConfig, NavTitleAction, NavTitleBridge, NavTitleConfig, NavTitleView, NavMenusView, NavBottomBarView } from './src/main/ets/ui/navigation/NavTitleBridge';
 export { CommonIconButton } from './src/main/ets/ui/components/CommonIconButton';
 export { CommonModal, CommonOptionItem, ConfirmOptions, OptionListOptions } from './src/main/ets/ui/components/CommonModal';
 export { CommonToast } from './src/main/ets/ui/components/CommonToast';

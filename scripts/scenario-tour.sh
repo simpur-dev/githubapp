@@ -1190,6 +1190,7 @@ if should_run_any "repoDetail-info" "repoDetail-activity"; then
     if grep -q "\"id\":\"$cand\"" "$OUT_DIR/${PADDED}_repoDetail-info.json"; then PASS=1; break; fi
   done
   if [ $PASS -eq 1 ]; then
+    # [R9-阶段4] appbar_title 几何断言的容器改为原生标题栏 appbar_root（原自绘 AppBar 行 appbar_main_row 已移除）。
     if assert_id_in "$OUT_DIR/${PADDED}_repoDetail-info.json" \
       "repo_detail_content_stack" \
       "repo_detail_tabs" \
@@ -1218,7 +1219,7 @@ if should_run_any "repoDetail-info" "repoDetail-activity"; then
       "common_bottom_bar_item_fork" \
       "common_bottom_bar_item_branch" \
       && assert_id_in "$OUT_DIR/${PADDED}_repoDetail-info.json" "appbar_action_r_more" \
-      && assert_bounds_inside "$OUT_DIR/${PADDED}_repoDetail-info.json" "appbar_title" "appbar_main_row" 4 \
+      && assert_bounds_inside "$OUT_DIR/${PADDED}_repoDetail-info.json" "appbar_title" "appbar_root" 4 \
       && assert_bounds_inside "$OUT_DIR/${PADDED}_repoDetail-info.json" "repo_header_bottom_row" "repo_header_root" 4 \
       && assert_png_id_nonflat "$OUT_DIR/${PADDED}_repoDetail-info.png" "$OUT_DIR/${PADDED}_repoDetail-info.json" "repo_header_root" "8.0"; then
       if tap_id "$OUT_DIR/${PADDED}_repoDetail-info.json" "repo_detail_create_issue_fab"; then
@@ -1341,6 +1342,7 @@ if should_run "repoDetail-commit-route"; then
       fi
     fi
   fi
+  # [R9-阶段4] appbar_main_row 断言容器改为原生标题栏容器：repoDetail 帧 appbar_root、pushDetail 帧 push_detail_appbar。
   if [ $PASS -eq 1 ] && [ $PUSH_PASS -eq 1 ] \
     && assert_absent_id_in "$OUT_DIR/${PADDED}_repoDetail-commit-before.json" \
       "common_bottom_bar_item_pulse" \
@@ -1358,8 +1360,8 @@ if should_run "repoDetail-commit-route"; then
 	      "push_detail_stats_row" \
 	      "push_detail_message_text" \
 	      "push_detail_file_card_0" \
-	    && assert_bounds_inside "$OUT_DIR/${PADDED}_repoDetail-commit.json" "appbar_title" "appbar_main_row" 4 \
-	    && assert_bounds_inside "$OUT_DIR/${PADDED}_repoDetail-commit-pushDetail.json" "appbar_title" "appbar_main_row" 4 \
+	    && assert_bounds_inside "$OUT_DIR/${PADDED}_repoDetail-commit.json" "appbar_title" "appbar_root" 4 \
+	    && assert_bounds_inside "$OUT_DIR/${PADDED}_repoDetail-commit-pushDetail.json" "appbar_title" "push_detail_appbar" 4 \
 	    && assert_png_id_nonflat "$OUT_DIR/${PADDED}_repoDetail-commit-pushDetail.png" \
 	      "$OUT_DIR/${PADDED}_repoDetail-commit-pushDetail.json" "push_detail_commit_card" "8.0"; then
     mark_end "repoDetail-commit-route" "$PADDED" "ok"; OK_COUNT=$((OK_COUNT + 1))
@@ -2741,6 +2743,7 @@ if should_run "personal-info"; then
     if tap_id "$OUT_DIR/_pre_personal_info_drawer.json" "drawer_menu_item_personal_info"; then
       wait_for_id "person_info_root" 10 || true
       snap "${PADDED}_personal-info"
+      # [R9-阶段4] appbar_main_row 断言容器改为原生标题栏容器 appbar_root。
       if assert_id_in "$OUT_DIR/${PADDED}_personal-info.json" \
         "person_info_root" \
         "person_info_pull_list" \
@@ -2761,7 +2764,7 @@ if should_run "personal-info"; then
         "person_info_row_bio_icon" \
         "person_info_no_more" \
         && assert_any_text_in "$OUT_DIR/${PADDED}_personal-info.json" "No more data" "后面没有数据了" \
-        && assert_bounds_inside "$OUT_DIR/${PADDED}_personal-info.json" "appbar_title" "appbar_main_row" 4 \
+        && assert_bounds_inside "$OUT_DIR/${PADDED}_personal-info.json" "appbar_title" "appbar_root" 4 \
         && assert_png_id_nonflat "$OUT_DIR/${PADDED}_personal-info.png" \
           "$OUT_DIR/${PADDED}_personal-info.json" "person_info_row_name" "8.0"; then
         dumpnow "$OUT_DIR/_pre_personal_info_edit.json"

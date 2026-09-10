@@ -1,6 +1,6 @@
 
 import { GSYColor } from 'common';
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig } from 'common';
 import {
   RepositoryService,
   SubUserItem,
@@ -37,6 +37,10 @@ export struct RepositoryWatcherPage {
   private pageSize: number = 30;
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title（配置经 NavTitleBridge 上报）。
+    NavTitleBridge.get().registerTitle(RouteName.RepositoryWatcher, {
+      titleGetter: (): string => 'Watchers',
+    } as NavTitleConfig);
     this.pageSize = this.service.getPageSize();
   }
 
@@ -100,13 +104,6 @@ export struct RepositoryWatcherPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: 'Watchers',
-          showBack: true,
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        });
         SubListView({
           title: 'Watchers',
           mode: SubListMode.USER,

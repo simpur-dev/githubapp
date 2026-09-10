@@ -13,7 +13,7 @@ import common from '@ohos.app.ability.common';
 import Want from '@ohos.app.ability.Want';
 import fs from '@ohos.file.fs';
 import pasteboard from '@ohos.pasteboard';
-import { AppBar, AppBarAction } from 'common';
+import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import { BOOT_CODE_KEY, BootChannel } from 'common';
@@ -55,6 +55,14 @@ export struct CodeDetailPage {
   private pathStack: NavPathStack = new NavPathStack();
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title/.menus
+    // （code_detail_appbar id 经 barId、code_detail_title_text 经 titleId 保留）。
+    NavTitleBridge.get().registerTitle(RouteName.CodeDetail, {
+      titleGetter: (): string => this.titleFileName(),
+      titleId: 'code_detail_title_text',
+      barId: 'code_detail_appbar',
+      rightActions: this.buildRightActions(),
+    } as NavTitleConfig);
     if (this.tryAdoptRouteStore()) {
       return;
     }
@@ -275,14 +283,14 @@ export struct CodeDetailPage {
     );
   }
 
-  private buildRightActions(): AppBarAction[] {
+  private buildRightActions(): NavTitleAction[] {
     return [
       {
         iconKey: 'more',
         onAction: (): void => {
           this.showMoreMenu();
         },
-      } as AppBarAction,
+      } as NavTitleAction,
     ];
   }
 
@@ -431,18 +439,6 @@ export struct CodeDetailPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: this.titleFileName(),
-          titleId: 'code_detail_title_text',
-          titleStart: true,
-          showBack: true,
-          rightActions: this.buildRightActions(),
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        })
-          .id('code_detail_appbar');
-
         if (this.vm.htmlContent.length === 0) {
           if (this.vm.loading || this.vm.error.length === 0) {
             this.buildLoading();

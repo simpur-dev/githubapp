@@ -12,7 +12,7 @@ import { RouteName } from 'common';
 import { RecommendRepo } from 'common';
 import { SearchTab, SEARCH_TAB_REPO, SEARCH_TAB_USER, SearchUserItem } from 'common';
 import { IconFont, FA_SEARCH, FA_TIMES } from 'common';
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { RepositoryItem } from 'common';
 import { UserItem, UserItemData } from 'common';
@@ -43,6 +43,10 @@ export struct SearchPage {
   private listScroller: Scroller = new Scroller();
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title（配置经 NavTitleBridge 上报）。
+    NavTitleBridge.get().registerTitle(RouteName.Search, {
+      titleGetter: (): string => I18n('search'),
+    } as NavTitleConfig);
     // Host 页 / 测试在构造后可能重设 Deps，这里重读一次注入面再载入历史。
     this.vm.rebindDeps();
     this.vm.loadHistory();
@@ -291,17 +295,6 @@ export struct SearchPage {
   @Builder
   buildContent(): void {
     Column() {
-      AppBar({
-        title: I18n('search'),
-        showBack: true,
-        immersive: true,
-        useTheme: true,
-        titleStart: true,
-        onBack: (): void => {
-          NavigationService.pop();
-        }
-      });
-
       this.buildSearchHeader();
 
       if (this.vm.queryText.trim().length === 0) {

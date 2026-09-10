@@ -7,6 +7,11 @@
  *
  * RN 用 react-native-vector-icons/Octicons；OH 端无 Octicons，
  * 调用方需自行传入 [IconFont.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/common/IconFont.ets) 暴露的 FontAwesome 码点字符串。
+ *
+ * R9 阶段4：页面级底部工具栏改由 NavDestination .toolbarConfiguration 呈现
+ * （经 common/ui/navigation/NavTitleBridge.ets 的 NavBottomBarView 复用本组件，id 全保留）。
+ * 本组件保留的直接调用方：RepositoryDetail 的 ActivityTab 头部选择条（repo_activity_select_bar，
+ * 属随内容滚动的头部控件，不是页底工具栏，不做迁移）。
  */
 
 import { GSYColor, GSYFontSize, GSYSpacing, GSYShadow } from '../style/Theme';

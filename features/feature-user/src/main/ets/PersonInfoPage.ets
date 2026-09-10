@@ -19,7 +19,7 @@
  *   - HARD-LAW-2 NO-DEBUG-PROBE：无 *-count Text；调试走 Logger.i('person/info/...')
  */
 
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { PullLoadMoreList } from 'common';
 import {
   IconFont,
@@ -31,7 +31,6 @@ import {
   FA_COMMENT,
 } from 'common';
 import { I18n } from 'common';
-import { NavigationService } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
 import {
   PersonInfoViewModel,
@@ -142,6 +141,10 @@ export struct PersonInfoPage {
   @Local editSheetOpen: boolean = false;
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title（配置经 NavTitleBridge 上报）。
+    NavTitleBridge.get().registerTitle(RouteName.PersonInfo, {
+      titleGetter: (): string => I18n('person'),
+    } as NavTitleConfig);
     this.vm.init();
   }
 
@@ -286,14 +289,6 @@ export struct PersonInfoPage {
 
   build(): void {
     Column() {
-      AppBar({
-        title: I18n('person'),
-        titleStart: true,
-        showBack: true,
-        onBack: (): void => {
-          NavigationService.pop();
-        },
-      });
       PullLoadMoreList({
         dataSource: this.infoData,
         refreshing: this.vm.refreshing,

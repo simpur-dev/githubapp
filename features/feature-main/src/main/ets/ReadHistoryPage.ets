@@ -1,5 +1,5 @@
 import { I18n } from 'common';
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig } from 'common';
 import { PullLoadMoreList } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
@@ -42,6 +42,14 @@ interface ReadHistoryRepoPayload {
 export struct ReadHistoryPage {
   @Local vm: ReadHistoryViewModel = new ReadHistoryViewModel();
   private pathStack: NavPathStack = new NavPathStack();
+
+  // R9 阶段4：标题栏交给 NavDestination 原生 .title（read_history_appbar id 经 barId 保留）。
+  aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.ReadHistory, {
+      titleGetter: (): string => I18n('history'),
+      barId: 'read_history_appbar',
+    } as NavTitleConfig);
+  }
 
   private onRowTap(item: ReadHistoryItem): void {
     if (item.type === READ_HISTORY_TYPE_REPO) {
@@ -196,15 +204,6 @@ export struct ReadHistoryPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: I18n('history'),
-          showBack: true,
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        })
-          .id('read_history_appbar');
-
         PullLoadMoreList({
           dataSource: this.vm.items,
           refreshing: this.vm.refreshing,

@@ -8,7 +8,7 @@
  * 全部 push_detail_* 测试 id 原样保留。
  */
 import pasteboard from '@ohos.pasteboard';
-import { AppBar, AppBarAction } from 'common';
+import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { I18n } from 'common';
 import { Logger } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
@@ -41,6 +41,15 @@ const FA_EDIT: string = '\uf044';
 export struct PushDetailPage {
   @Local vm: PushViewModel = new PushViewModel();
   private pathStack: NavPathStack = new NavPathStack();
+
+  // R9 阶段4：标题栏交给 NavDestination 原生 .title/.menus（push_detail_appbar id 经 barId 保留）。
+  aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.PushDetail, {
+      titleGetter: (): string => this.titleOwnerRepo(),
+      barId: 'push_detail_appbar',
+      rightActions: this.buildRightActions(),
+    } as NavTitleConfig);
+  }
 
   private resolveParamFromStack(stack: NavPathStack): PushDetailRouteParam | null {
     try {
@@ -119,14 +128,14 @@ export struct PushDetailPage {
     );
   }
 
-  private buildRightActions(): AppBarAction[] {
+  private buildRightActions(): NavTitleAction[] {
     return [
       {
         iconKey: 'more',
         onAction: (): void => {
           this.showMoreMenu();
         },
-      } as AppBarAction,
+      } as NavTitleAction,
     ];
   }
 
@@ -351,17 +360,6 @@ export struct PushDetailPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: this.titleOwnerRepo(),
-          titleStart: true,
-          showBack: true,
-          rightActions: this.buildRightActions(),
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        })
-          .id('push_detail_appbar');
-
         List() {
           ListItem() {
             this.buildCommitCard();

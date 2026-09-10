@@ -6,7 +6,7 @@ import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RouteParamStore } from 'common';
 import { BOOT_REPO_KEY, BootChannel } from 'common';
-import { AppBar, AppBarAction } from 'common';
+import { NavBottomBarConfig, NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import { LoadingModal } from 'common';
@@ -22,7 +22,7 @@ import { ActivityTab } from './repo/ActivityTab';
 import { FilesTab, isImageOrArchiveFile } from './repo/FilesTab';
 import { ExternalUrlUtil } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
-import { CommonBottomBar, CommonBottomBarItem } from 'common';
+import { CommonBottomBarItem } from 'common';
 import {
   FA_STAR,
   FA_STAR_O,
@@ -63,6 +63,7 @@ const FALLBACK_FULL_NAME: string = '';
 const TAB_BAR_HEIGHT: number = 48;
 const BRANCH_MENU_WIDTH: number = 220;
 const BRANCH_MENU_MAX_HEIGHT: number = 300;
+const BRANCH_MENU_ROW_HEIGHT: number = 44;
 const CREATE_ISSUE_SHEET_HEIGHT: number = 520;
 const COMMON_LIST_SHOW_TYPE_USER: string = 'user';
 const COMMON_LIST_SHOW_TYPE_REPOSITORY: string = 'repository';
@@ -214,6 +215,36 @@ export struct RepositoryDetailPage {
   ];
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏/底栏交给 NavDestination 原生 .title/.menus/.toolbarConfiguration。
+    // 配置经 NavTitleBridge 上报，getter 闭包读 @Trace/@Local 字段保证响应式刷新。
+    NavTitleBridge.get().registerTitle(RouteName.RepositoryDetail, {
+      titleGetter: (): string => this.buildAppBarTitle(),
+      rightActions: this.buildRightActions(),
+    } as NavTitleConfig);
+    NavTitleBridge.get().registerBottomBar(RouteName.RepositoryDetail, {
+      visibleGetter: (): boolean => this.vm.fullName.length > 0,
+      itemsGetter: (): CommonBottomBarItem[] => this.buildBottomBarItems(),
+      rootId: 'repo_detail_bottom_bar',
+      repoActionStyle: true,
+      materialFloatingStyle: true,
+      trailingItemId: 'branch',
+      rootHeight: GSYSpacing.bottomBarDefault,
+      rootMarginHorizontal: GSYSpacing.hdsFloatingBarSideMargin,
+      rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin,
+      rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
+      trailingMenuShowGetter: (): boolean => this.branchMenuVisible,
+      onTrailingMenuDismiss: (): void => {
+        this.branchMenuVisible = false;
+      },
+      menuItemsGetter: (): string[] => this.vm.branches,
+      onMenuItemTap: (branch: string): void => {
+        this.handleBranchChange(branch);
+      },
+      menuItemIdPrefix: 'repo_branch_menu',
+      menuWidth: BRANCH_MENU_WIDTH,
+      menuMaxHeight: BRANCH_MENU_MAX_HEIGHT,
+      menuRowHeight: BRANCH_MENU_ROW_HEIGHT,
+    } as NavBottomBarConfig);
     this.applyRouterParams();
     Logger.i('boot/ts', `RepositoryDetailPage.aboutToAppear t=${Date.now()} fullName='${this.vm.fullName}'`);
     if (this.vm.fullName.length > 0) {
@@ -500,14 +531,14 @@ export struct RepositoryDetailPage {
     );
   }
 
-  private buildRightActions(): AppBarAction[] {
+  private buildRightActions(): NavTitleAction[] {
     return [
       {
         iconKey: 'more',
         onAction: (): void => {
           this.showMoreMenu();
         },
-      } as AppBarAction,
+      } as NavTitleAction,
     ];
   }
 
@@ -543,60 +574,6 @@ export struct RepositoryDetailPage {
     } as CommonListRouteParam;
     Logger.i('RepositoryDetailPage', 'openTopicList topic=' + safeTopic);
     NavigationService.push(RouteName.CommonList, param as Object);
-  }
-
-  /**
-   * 分支菜单弹层内容：经受控 bindMenu(isShow, builder, options) 挂在
-   * common_bottom_bar_item_branch 上（原生 Menu 弹层，遮罩/定位/关闭交给系统）。
-   * repo_branch_menu_overlay / repo_branch_menu_scrim 两层仅保留 id 供
-   * scenario-tour.sh 场景 35 断言使用，无遮罩与点击语义。
-   */
-  @Builder
-  buildBranchMenuContent(): void {
-    Column() {
-      Column() {
-        Scroll() {
-          Column() {
-            Repeat<string>(this.vm.branches)
-              .each((obj: RepeatItem<string>): void => {
-                Row() {
-                  Text(obj.item)
-                    .id('repo_branch_menu_item_text_' + obj.index.toString())
-                    .fontSize(GSYFontSize.small)
-                    .fontColor(GSYColor.primary)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .layoutWeight(1);
-                }
-                .id('repo_branch_menu_item_' + obj.index.toString())
-                .width('100%')
-                .height(44)
-                .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
-                .alignItems(VerticalAlign.Center)
-                .onClick((): void => {
-                  this.handleBranchChange(obj.item);
-                });
-                if (obj.index < this.vm.branches.length - 1) {
-                  Divider().color(GSYColor.line).strokeWidth(0.5);
-                }
-              })
-              .key((branch: string, index: number): string => index.toString() + ':' + branch);
-          }
-          .width('100%');
-        }
-        .id('repo_branch_menu_root')
-        .width(BRANCH_MENU_WIDTH)
-        .constraintSize({ maxHeight: BRANCH_MENU_MAX_HEIGHT })
-        .backgroundColor(GSYColor.hdsMaterialSurface)
-        .border({
-          width: 0.5,
-          color: GSYColor.hdsMaterialBorder,
-        })
-        .borderRadius(12);
-      }
-      .id('repo_branch_menu_scrim');
-    }
-    .id('repo_branch_menu_overlay');
   }
 
   @Builder
@@ -727,15 +704,6 @@ export struct RepositoryDetailPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: this.buildAppBarTitle(),
-          titleStart: true,
-          showBack: true,
-          rightActions: this.buildRightActions(),
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        });
         Stack({ alignContent: Alignment.BottomEnd }) {
           Tabs({
             barPosition: BarPosition.Start,
@@ -851,26 +819,6 @@ export struct RepositoryDetailPage {
         .layoutWeight(1)
         .width('100%');
 
-        if (this.vm.fullName.length > 0) {
-          CommonBottomBar({
-            rootId: 'repo_detail_bottom_bar',
-            dataList: this.buildBottomBarItems(),
-            repoActionStyle: true,
-            materialFloatingStyle: true,
-            trailingItemId: 'branch',
-            rootMarginHorizontal: GSYSpacing.hdsFloatingBarSideMargin,
-            rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin,
-            rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
-            rootHeight: GSYSpacing.bottomBarDefault,
-            trailingMenuShow: this.branchMenuVisible,
-            trailingMenuBuilder: (): void => {
-              this.buildBranchMenuContent();
-            },
-            onTrailingMenuDismiss: (): void => {
-              this.branchMenuVisible = false;
-            },
-          });
-        }
       }
       .id('repo_detail_root')
       .width('100%')

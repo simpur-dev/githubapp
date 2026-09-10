@@ -1,3 +1,12 @@
+/**
+ * AppBar —— 自绘标题栏（V2）。
+ *
+ * R9 阶段4 后唯一业务调用方是 HomePage（Navigation 首内容，不走 NavDestination 原生标题栏，
+ * home_appbar / appbar_title / appbar_action_l_menu / appbar_action_r_search 等 id 不变）。
+ * 其余页面的标题栏已迁至 NavDestination 原生 .title/.menus（见
+ * common/src/main/ets/ui/navigation/NavTitleBridge.ets + entry AppNavigator routerMap）。
+ * entry 的 ohosTest 宿主页（HomePageHost / CommonComponentsPage）仍引用本组件做测试宿主。
+ */
 import { ThemePalette, LIGHT_PALETTE, ThemeManager } from '../theme/ThemeManager';
 import { SafeAreaInsets } from '../../base/utils/SafeAreaInsets';
 import { EventBus, EVENT_THEME_CHANGED, EVENT_SAFE_AREA_CHANGED } from '../../base/utils/EventBus';

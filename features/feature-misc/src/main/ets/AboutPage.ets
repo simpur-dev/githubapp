@@ -1,4 +1,4 @@
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig } from 'common';
 import { I18n } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
@@ -47,15 +47,15 @@ export struct AboutPage {
     NavigationService.push(RouteName.Custom);
   }
 
+  // R9 阶段4：标题栏交给 NavDestination 原生 .title（配置经 NavTitleBridge 上报）。
+  aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.About, {
+      titleGetter: (): string => I18n('about'),
+    } as NavTitleConfig);
+  }
+
   build(): void {
     Column() {
-      AppBar({
-        title: I18n('about'),
-        showBack: true,
-        onBack: (): void => {
-          NavigationService.pop();
-        },
-      });
       Scroll() {
         Column() {
           Column() {

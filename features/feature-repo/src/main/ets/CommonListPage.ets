@@ -10,7 +10,7 @@
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { GSYColor } from 'common';
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig } from 'common';
 import { SubRepositoryItem, SubUserItem } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
@@ -45,6 +45,10 @@ export struct CommonListPage {
   @Local vm: CommonListViewModel = new CommonListViewModel();
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title（resolveTitle 读 @Trace 状态可刷新）。
+    NavTitleBridge.get().registerTitle(RouteName.CommonList, {
+      titleGetter: (): string => this.vm.resolveTitle(),
+    } as NavTitleConfig);
     if (this.initialParam !== null) {
       const ok: boolean = this.applyParamObj(this.initialParam);
       hilog.info(0x6666, 'CommonList', 'aboutToAppear initialParam ok=%{public}s dataType=%{public}s user=%{public}s',
@@ -136,14 +140,6 @@ export struct CommonListPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: this.vm.resolveTitle(),
-          titleStart: true,
-          showBack: true,
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        });
         SubListView({
           title: this.vm.resolveTitle(),
           mode: this.vm.resolveSubListMode(),

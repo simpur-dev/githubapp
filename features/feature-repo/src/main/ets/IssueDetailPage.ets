@@ -13,12 +13,11 @@
  * 登录态直读 GlobalAuthStore 单例（VM 内）。
  */
 import { I18n } from 'common';
-import { AppBar, AppBarAction } from 'common';
+import { NavBottomBarConfig, NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { MarkdownText } from 'common';
 import { PullLoadMoreList } from 'common';
 import { Logger } from 'common';
 import { BOOT_ISSUE_KEY, BootChannel } from 'common';
-import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
@@ -30,7 +29,7 @@ import {
 import { IssueService, IssueServiceResult } from 'common';
 import { TimeUtil } from 'common';
 import { renderEmoji } from 'common';
-import { CommonBottomBar, CommonBottomBarItem } from 'common';
+import { CommonBottomBarItem } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem, OptionListOptions } from 'common';
 import { ExternalUrlUtil } from 'common';
@@ -294,6 +293,22 @@ export struct IssueDetailPage {
   @Local vm: IssueDetailViewModel = new IssueDetailViewModel();
   private pathStack: NavPathStack = new NavPathStack();
 
+  // R9 阶段4：标题栏/底栏交给 NavDestination 原生 .title/.menus/.toolbarConfiguration
+  // （issue_detail_appbar id 经 barId 保留；底栏复用 CommonBottomBar 行渲染，id 全保留）。
+  aboutToAppear(): void {
+    NavTitleBridge.get().registerTitle(RouteName.IssueDetail, {
+      titleGetter: (): string => this.issueTitleForAppBar(),
+      barId: 'issue_detail_appbar',
+      rightActions: this.buildRightActions(),
+    } as NavTitleConfig);
+    NavTitleBridge.get().registerBottomBar(RouteName.IssueDetail, {
+      visibleGetter: (): boolean => this.vm.shouldShowBottomBar(),
+      itemsGetter: (): CommonBottomBarItem[] => this.buildBottomBarItems(),
+      rootId: 'issue_detail_bottom_bar',
+      wrapperId: 'issue_detail_bottom_bar_wrap',
+    } as NavBottomBarConfig);
+  }
+
   private resolveParamFromStack(stack: NavPathStack): IssueDetailRouteParam | null {
     try {
       const all: string[] = stack.getAllPathName();
@@ -352,14 +367,14 @@ export struct IssueDetailPage {
     );
   }
 
-  private buildRightActions(): AppBarAction[] {
+  private buildRightActions(): NavTitleAction[] {
     return [
       {
         iconKey: 'more',
         onAction: (): void => {
           this.showMoreMenu();
         },
-      } as AppBarAction,
+      } as NavTitleAction,
     ];
   }
 
@@ -866,17 +881,6 @@ export struct IssueDetailPage {
     NavDestination() {
       Column() {
         Column() {
-          AppBar({
-            title: this.issueTitleForAppBar(),
-            titleStart: true,
-            showBack: true,
-            rightActions: this.buildRightActions(),
-            onBack: (): void => {
-              NavigationService.pop();
-            },
-          })
-            .id('issue_detail_appbar');
-
           PullLoadMoreList({
             dataSource: this.vm.comments as Object[],
             refreshing: this.vm.commentRefreshing,
@@ -896,13 +900,6 @@ export struct IssueDetailPage {
             .id('issue_detail_pull_list')
             .layoutWeight(1);
 
-          if (this.vm.shouldShowBottomBar()) {
-            CommonBottomBar({
-              dataList: this.buildBottomBarItems(),
-              rootId: 'issue_detail_bottom_bar',
-            })
-              .id('issue_detail_bottom_bar_wrap');
-          }
         }
         .id('issue_detail_root')
         .width('100%')

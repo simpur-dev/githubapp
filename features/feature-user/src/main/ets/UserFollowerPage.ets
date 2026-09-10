@@ -1,7 +1,7 @@
 
 import { SubUserItem } from 'common';
 import { GSYColor } from 'common';
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig } from 'common';
 import {
   UserService,
   FetchSubUserListResult
@@ -37,6 +37,10 @@ export struct UserFollowerPage {
   private pageSize: number = 30;
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title（配置经 NavTitleBridge 上报）。
+    NavTitleBridge.get().registerTitle(RouteName.UserFollower, {
+      titleGetter: (): string => 'Followers',
+    } as NavTitleConfig);
     this.pageSize = this.service.getPageSize();
   }
 
@@ -100,13 +104,6 @@ export struct UserFollowerPage {
   build(): void {
     NavDestination() {
       Column() {
-        AppBar({
-          title: 'Followers',
-          showBack: true,
-          onBack: (): void => {
-            NavigationService.pop();
-          },
-        });
         SubListView({
           title: 'Followers',
           mode: SubListMode.USER,

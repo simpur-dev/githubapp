@@ -1,4 +1,4 @@
-import { AppBar } from 'common';
+import { NavTitleBridge, NavTitleConfig } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
@@ -32,6 +32,10 @@ export struct SettingPage {
   @Local vm: SettingViewModel = new SettingViewModel();
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title（settingTitle 是 @Trace，getter 闭包随对象携带）。
+    NavTitleBridge.get().registerTitle(RouteName.Setting, {
+      titleGetter: (): string => this.vm.settingTitle,
+    } as NavTitleConfig);
     this.vm.init();
   }
 
@@ -41,13 +45,6 @@ export struct SettingPage {
 
   build(): void {
     Column() {
-      AppBar({
-        title: this.vm.settingTitle,
-        showBack: true,
-        onBack: (): void => {
-          NavigationService.pop();
-        },
-      });
       Scroll() {
         Column() {
           Button(this.vm.personInfoLabel)

@@ -4,7 +4,7 @@ import common from '@ohos.app.ability.common';
 import Want from '@ohos.app.ability.Want';
 import { PullLoadMoreList } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
-import { AppBar, AppBarAction } from 'common';
+import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import { CommonToast } from 'common';
 import { Logger } from 'common';
@@ -53,6 +53,11 @@ export struct UserDetailPage {
   private pathStack: NavPathStack = new NavPathStack();
 
   aboutToAppear(): void {
+    // R9 阶段4：标题栏交给 NavDestination 原生 .title/.menus（headerTitle 是 @Trace 组合，getter 闭包随对象携带）。
+    NavTitleBridge.get().registerTitle(RouteName.UserDetail, {
+      titleGetter: (): string => this.vm.headerTitle(),
+      rightActions: this.buildRightActions(),
+    } as NavTitleConfig);
     this.tryAdoptRouteParam();
     if (this.vm.login.length === 0) {
       this.tryAdoptBootUser();
@@ -532,14 +537,14 @@ export struct UserDetailPage {
     }
   }
 
-  private buildRightActions(): AppBarAction[] {
-    const list: AppBarAction[] = [];
+  private buildRightActions(): NavTitleAction[] {
+    const list: NavTitleAction[] = [];
     list.push({
       iconKey: 'more',
       onAction: (): void => {
         this.showMoreMenu();
       },
-    } as AppBarAction);
+    } as NavTitleAction);
     return list;
   }
 
@@ -547,15 +552,6 @@ export struct UserDetailPage {
     NavDestination() {
       Stack({ alignContent: Alignment.BottomEnd }) {
         Column() {
-          AppBar({
-            title: this.vm.headerTitle(),
-            titleStart: true,
-            showBack: true,
-            onBack: (): void => {
-              NavigationService.pop();
-            },
-            rightActions: this.buildRightActions(),
-          });
           PullLoadMoreList({
             dataSource: this.vm.isOrganizationProfile()
               ? this.vm.orgMembers as Object[]
