@@ -91,7 +91,7 @@
 
 | ID | 严重度 | 描述 | 出现版本 | 缓解 | 负责人 | 计划修复 |
 |---|---|---|---|---|---|---|
-| KI-R9-001 | P1 | R9 全项目重构（V2 状态管理 + MVVM + common/features/entry 三层模块 + 原生组件替换）完成后未做真机回归。scenario-tour.sh 全场景、深链、下拉刷新时序、bindMenu 弹层 dump 可见性、SideBarContainer 开合、原生标题栏 dump 行为均未经设备验证。 | R9 | 每阶段编译全绿；非结构性控件 id 全量保留（appbar_main_row 除外，脚本 4 处 bounds 断言已同步改写）；stage-tour 脚本语法检查通过 | AI | 下次有设备会话：跑 scenario-tour.sh 全场景，重点 issue 弹层输入链、分支切换链、抽屉开合、搜索/动态列表分页 |
+| KI-R9-001 | P1 | R9 全项目重构（V2 状态管理 + MVVM + common/features/entry 三层模块 + 原生组件替换）完成后未做真机回归。**2026-09-10 模拟器首轮进展**：修复冷启闪退（LoadingModal builder 脱离组件树，ComponentContent 方案）；修复顶部/底部安全区重叠与底部颜色沉浸（导航根统一状态栏 padding + 底栏页面内挂载避让手势条）；模拟器实测手势线 y=2748、工具栏项/悬浮 Tab 底边 2670-2678 全部避开、无新 jscrash。剩余：scenario-tour.sh 全场景、深链、下拉刷新时序、bindMenu dump 可见性待跑。scenario-tour.sh 全场景、深链、下拉刷新时序、bindMenu 弹层 dump 可见性、SideBarContainer 开合、原生标题栏 dump 行为均未经设备验证。 | R9 | 每阶段编译全绿；非结构性控件 id 全量保留（appbar_main_row 除外，脚本 4 处 bounds 断言已同步改写）；stage-tour 脚本语法检查通过 | AI | 下次有设备会话：跑 scenario-tour.sh 全场景，重点 issue 弹层输入链、分支切换链、抽屉开合、搜索/动态列表分页 |
 | KI-R9-002 | P3 | SettingUiTest 两条断言引用 `setting_ok_label_text` / `setting_language_event_count`，页面上无此 id（重构前已不存在，历史遗留） | 早于 R9 | 逻辑回归（LOGIC_ONLY）不受影响，仅真机 UI 套件会失败 | AI | 与 KI-R9-001 真机回归时一并修测试 |
 | KI-R9-003 | P3 | codelinter @performance/datashare-query-unrelease-check 在 RdbStore.query/querySql 返回处报 3 warn（"结果集要关闭"）。实际消费方 DaoBase.ets:76/:82 已 rs.close()，规则对"基类返回 ResultSet"模式误报 | R9 | 人工核实关闭链路存在 | AI | 不修；若后续新增 dao 查询点，遵循 DaoBase 关闭范式 |
 | KI-R9-004 | P3 | AppNavigator routerMap 仍是 if/else 直连 import 页面（未改系统路由表 route_map.json + 动态 import 懒加载）。启动性能优化余量 | R9 | 页面数 26，直连 import 启动开销可接受 | AI | 后续性能专项：迁移系统路由表实现按需加载 |
