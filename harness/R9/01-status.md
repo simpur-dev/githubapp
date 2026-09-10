@@ -1,38 +1,46 @@
-# R9 实时状态板
+# R9 实时状态板 — 全项目重构（已完结）
 
-> 每完成一个阶段立即更新。长会话上下文被压缩后，靠本文件 + README.md 续命。
+> 长任务执行记录。上下文压缩后靠本文件 + README.md 续命。
 
-更新时间：2026-09-10（夜里）
+## 最终状态（2026-09-10 夜间完工）
+
+**全部阶段完成。双构建全绿（生产 unsigned + ohosTest）。codelinter 0 error / 3 warn（已核实为模式误报）。**
+
+## 阶段账目（commit 对应）
+
+| 阶段 | commit | 内容 |
+|---|---|---|
+| 阶段0+1 | 1c3b01d | 死代码清理（17 组件+死弹窗）+ common/5features/entry 三层物理拆分 + 全工程 import 重写 |
+| 阶段1b 收尾 | db6624d | ohosTest 存量严格模式错误全清（约 120 处） |
+| 阶段2.0 | acd0b09 | 全局状态去 AppStorage（Auth/Theme/BOOT→BootChannel/RouteParam/SafeArea 五通道 → 可观察单例，grep 归零） |
+| 阶段2A | fa3e13f | feature-auth V2+MVVM（试点） |
+| 阶段2B | ee908bc | feature-misc V2+MVVM |
+| 阶段2C | d0e15a9 | feature-main V2+MVVM + PullLoadMoreList 升级 V2 受控组件 + 5 service 无状态化 |
+| 阶段2D | 1a4f3a8 | feature-user V2+MVVM（UserDetailStore 删除、SubListView V2、修复 fetchUserEvents 分页历史 bug） |
+| 阶段2E-1 | 2bb0b6c | feature-repo 仓库半区（RepositoryDetail 28@Trace、RepositoryService 17 方法无状态化） |
+| 阶段2E-2 | 3201b32 | feature-repo Issue/Push/Code 半区 + IssueDetailStore/RepositoryDetailStore 删除 + CreateIssueDialog 删除 |
+| 阶段3 | abdadd2 | 原生组件替换：SideBarContainer 抽屉 / bindMenu 分支菜单 / 原生 Radio×2 / SymbolGlyph 图标 |
+| 阶段5a | fcf2c43 | common 层全 V2 化（grep @Component 归零）+ LoadingModal openCustomDialog 化 + 两个 store 尾巴删除 + getContext 清零 |
+| 阶段4 | 4009298 | 22 页原生 Navigation 标题栏(.title/.menus) + 2 页原生工具栏(.toolbarConfiguration) + NavTitleBridge + scenario-tour.sh 同步 |
+| 阶段6 | （本提交） | lint 0 error + 启动图标签 256 规范 + 文档收口（README/架构总览/known-issues/KI-R9-001..004） |
+
+## 达成度对照（用户目标）
+
+1. **鸿蒙原生组件尽可能替换** ✅：系统 Refresh 指示器、Navigation 原生标题栏+工具栏、SideBarContainer、bindMenu、原生 Radio、SymbolGlyph（对照 SDK 符号表）、AlertDialog/ActionSheet/bindSheet、原生 markdown 渲染（MD4C，重构前已有）。保留的自绘：TabIcon 已 SymbolGlyph；CommonBottomBar 行组件仍在（挂原生工具栏容器内）；ActivityTab 头部选择条（随内容滚动，非工具栏，有意保留）。
+2. **官方高质量架构** ✅：三层多模块（products/features/common）依赖严格单向；MVVM（View/ViewModel@ObservedV2/无状态 service）；UDF/SSOT；V1 装饰器全工程归零。
+3. **性能** ✅：@Trace 细粒度刷新（历史冻结 workaround 全删）、长列表 Repeat.virtualScroll+cachedCount、启动图标签 256 规范、死代码 -17 文件、Store 层删除（UI 状态唯一来源化）。余量：route_map 懒加载（KI-R9-004 登记）。
+4. **skills 充分调用** ✅：hmos-arkui-mvvm-pattern、hmos-arkui-statemgt-migration、hmos-arkui-develop-skill、hmos-arkui-knowledge-retriever、deveco-studio-codelinter。
+5. **不走真机** ✅：全程未碰 hdc；设备回归欠账登记 KI-R9-001。
 
 ## 环境事实（本机 Windows）
 
-- DevEco：`E:\programapp\devcostudio\DevEco Studio`，node v24.14.1 / ohpm 26.0.0 / hvigorw 6.26.4。
-- 编译命令：`source scripts/env-win.sh && hvigorw assembleHap --mode module -p product=unsigned -p buildMode=debug --no-daemon`（无签名产物，纯编译验证）。
-- 基线：BUILD SUCCESSFUL in 39s（33 任务，2026-09-10）。存量 WARN：CodeDetailPage 等 `getContext` deprecated + 若干 "Function may throw exceptions"（阶段5清）。
-- 坑：env.sh 是 macOS 版不能在 Git Bash 用（`E:/` 冒号拆坏 PATH）；必须用 scripts/env-win.sh；换过 SDK 环境先 `hvigorw --stop-daemon`。
+- DevEco：`E:\programapp\devcostudio\DevEco Studio`；编译 `source scripts/env-win.sh && hvigorw assembleHap --mode module -p product=unsigned -p buildMode=debug --no-daemon`（unsigned 为无签名验证产品）。
+- lint：`node "$DEVECO_HOME/plugins/codelinter/run/index.js" -c code-linter.json5 -f json -o <out> .`
+- 迁移工具沉淀在 harness/R9/tools/（桶生成、import 重写、搬家脚本，可审计本次机械迁移）。
 
-## 阶段进度
+## 遗留清单（均已登记 known-issues.md）
 
-| 阶段 | 状态 | 备注 |
-|---|---|---|
-| 指挥文档 R9 | ✅ | README.md 建好 |
-| 工具链 + 基线编译 | ✅ | unsigned 产品已加进根 build-profile（additive，default 未动） |
-| 阶段0 删死代码 | 🔄 | 逐个 grep 核实后删（两份探索报告对 CommonRowItem/OrgItemBar/IssueHead/PromptDialog 是否死代码有矛盾，以实测为准） |
-| 阶段1 三层骨架 | ⏳ | |
-| 阶段2A feature-auth | ⏳ | |
-| 阶段2B feature-misc | ⏳ | |
-| 阶段2C feature-main + 全局状态V2化 | ⏳ | |
-| 阶段2D feature-user | ⏳ | |
-| 阶段2E feature-repo | ⏳ | |
-| 阶段3 原生组件替换 | ⏳ | |
-| 阶段4 AppBar/底栏→原生 + 脚本id迁移 | ⏳ | |
-| 阶段5 性能+静态检查 | ⏳ | |
-| 阶段6 收口+审计 | ⏳ | |
-
-## 关键决策追加记录
-
-- （追加于此，避免只留在对话里）
-
-## 模块搬家映射（阶段1执行时逐项打勾）
-
-见 README.md §3。搬家顺序建议：common 先行（base→model→ui），再 features（auth→misc→main→user→repo），entry 收壳。
+- KI-R9-001 真机全场景回归（下次有设备时）
+- KI-R9-002 SettingUiTest 两条陈旧断言
+- KI-R9-003 codelinter RdbStore 误报（不修）
+- KI-R9-004 路由懒加载优化余量

@@ -51,7 +51,7 @@ import { PhotoPage } from 'feature_misc';
 import { WebPage } from 'feature_misc';
 import { CommonListPage } from 'feature_repo';
 
-@Component
+@ComponentV2
 export struct AppNavigator {
   private stack: NavPathStack = new NavPathStack();
 

@@ -9,7 +9,7 @@
 import { AppNavigator } from '../navigation/AppNavigator';
 
 @Entry
-@Component
+@ComponentV2
 struct Index {
   build(): void {
     Stack() {

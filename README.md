@@ -43,6 +43,9 @@
 - bundleName：`cn.gsy.githubapp`
 - OAuth callback：`gsygithubapp://authed`
 
+> Windows Git Bash 用户：`source scripts/env-win.sh`（scripts/env.sh 为 macOS 版）。
+> 无签名验证编译：`hvigorw assembleHap --mode module -p product=unsigned -p buildMode=debug --no-daemon`。
+
 ### 一次性签名
 
 HarmonyOS 没有 Android 那种全平台通用 debug keystore。每个开发者都需要用自己的华为开发者账号生成签名材料。
@@ -118,26 +121,29 @@ chmod +x scripts/scenario-tour.sh
 ```
 GSYGithubAppOH/
 ├── AppScope/                     # 应用级配置
-├── entry/                        # entry HAP
-│   └── src/main/
-│       ├── ets/
-│       │   ├── pages/            # ArkUI 页面
-│       │   ├── common/           # 通用组件
-│       │   ├── widget/           # 业务组件
-│       │   ├── auth/             # Token / OAuth 登录
-│       │   ├── dao/              # 数据访问与 RDB
-│       │   ├── service/          # GitHub 数据服务
-│       │   ├── store/            # 页面状态
-│       │   ├── navigation/       # 路由
-│       │   ├── style/            # 颜色、字号、间距
-│       │   ├── i18n/             # 多语言
-│       │   └── utils/            # 工具方法
-│       └── resources/            # 资源、字体、本地 OAuth 模板
+├── common/                       # 公共能力层 HAR
+│   └── src/main/ets/
+│       ├── base/                 # 网络(HttpManager/Address)/数据库(RDB+Preferences)/工具/日志/i18n/导航服务/启动参数通道
+│       ├── model/                # 数据实体 + 无状态 service（网络+缓存取数，只返回数据）
+│       └── ui/                   # Theme token/主题管理/通用组件(PullLoadMoreList/弹窗/Toast)/共享widget/markdown文本渲染
+├── features/                     # 基础特性层 HAR（每模块 model 调用 + viewmodel + 页面）
+│   ├── feature-auth/             # 欢迎页/Token登录/OAuth 授权
+│   ├── feature-main/             # 主页框架/动态/趋势/我的/搜索/通知/阅读历史
+│   ├── feature-repo/             # 仓库详情/Issue/提交/代码浏览/发布（含 MD4C 原生 Markdown native 模块）
+│   ├── feature-user/             # 用户详情/粉丝关注/个人资料
+│   └── feature-misc/             # 设置/关于/荣耀/图片/网页/自定义页
+├── entry/                        # 产品定制层 HAP 壳：EntryAbility/单根 Navigation 路由表/深链
 ├── docs/                         # README 展示资源
-├── harness/                      # 回归记录、测试策略、架构文档
-├── scripts/                      # 自动回归脚本
+├── harness/                      # 回归记录、测试策略、架构文档、R9 重构档案
+├── scripts/                      # 环境脚本 + 自动回归脚本
 └── build-profile.json5
 ```
+
+依赖方向严格单向：`entry → features → common`。架构规范：
+- 状态管理全量 V2（@ComponentV2/@ObservedV2+@Trace/@Local/@Param/@Monitor/@Computed/Repeat）。
+- MVVM：页面（View）只做组装，业务状态与编排集中在 ViewModel（@ObservedV2），service 无状态只返回数据；全工程零 AppStorage（启动参数走 BootChannel 单例，登录态走 GlobalAuthStore）。
+- 原生组件优先：系统 Refresh 指示器、Navigation 原生标题栏（.title/.menus）与工具栏（.toolbarConfiguration）、SideBarContainer 抽屉、bindMenu 菜单、原生 Radio、SymbolGlyph 系统图标、AlertDialog/ActionSheet/bindSheet 弹层。
+- 页面间路由为单根 Navigation + NavDestination；控件 id 保持稳定以支撑 scenario-tour.sh 自动回归。
 
 ## 核心能力
 

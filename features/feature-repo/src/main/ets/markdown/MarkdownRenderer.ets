@@ -158,16 +158,17 @@ function buildInlineText(inlines: MdInline[]): void {
   .fontSize(GSYFontSize.middleWhite);
 }
 
-@Component
+@ComponentV2
 export struct MarkdownRenderer {
-  @Watch('onMarkdownChange') @Prop markdown: string = '';
-  @State rows: MarkdownRow[] = [];
-  onLinkClick: (href: string) => void = (_href: string): void => {};
+  @Param markdown: string = '';
+  @Local rows: MarkdownRow[] = [];
+  @Param onLinkClick: (href: string) => void = (_href: string): void => {};
 
   aboutToAppear(): void {
     this.rebuild();
   }
 
+  @Monitor('markdown')
   onMarkdownChange(): void {
     this.rebuild();
   }
@@ -262,10 +263,12 @@ export struct MarkdownRenderer {
   build(): void {
     Scroll() {
       Column() {
-        ForEach(this.rows, (row: MarkdownRow, idx: number): void => {
-          this.buildRow(row);
-        }, (row: MarkdownRow, idx: number): string =>
-          row.kind + '_' + idx.toString() + '_' + row.text.substring(0, 16));
+        Repeat<MarkdownRow>(this.rows)
+          .each((obj: RepeatItem<MarkdownRow>): void => {
+            this.buildRow(obj.item);
+          })
+          .key((row: MarkdownRow, idx: number): string =>
+            row.kind + '_' + idx.toString() + '_' + row.text.substring(0, 16));
       }
       .id('markdown_renderer')
       .width('100%')

@@ -85,6 +85,17 @@
 | KI-050 | P1 | [CommonBottomBar.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/common/CommonBottomBar.ets) `ForEach` 子节点 `itemClick` 闭包冻结：底栏第 3 项「关闭/打开 issue」按钮真机 tap 30+ 次连续无响应，但同栏第 1 项 comment 与第 4 项 lock 正常工作。**根因**：临时探针 `Logger.i('bottom-bar/click', id=..., name=...)` 证实 onClick 触发 ✅，但 `item.itemClick()` 跑的是 `(): void => {}` 空函数（即 [CommonBottomBarItem.itemClick](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/common/CommonBottomBar.ets) 默认占位）。ForEach 第三参 key 函数返回值在 dataList 多次 rebuild 之间稳定（即使 `isOpen / itemName / iconColor` 切换也只是字段变化，key 字符串首次组成后可被 ArkUI 视为同一节点），ArkUI 因此复用旧节点，外层 onClick handler 闭包里的 `item` 引用被冻结到初始时刻、永远指向首次默认 itemClick，后续 buildBottomBarItems 重做的真业务 lambda 写不进去。**修法**：ForEach key 头部追加 `this.dataListRev.toString()` 版本号，[@Watch onDataListChanged](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/common/CommonBottomBar.ets) 在写入 dataList 时 `dataListRev++` 让 key 字符串完全变化，强制 ArkUI 重建子节点，`item` 引用同步刷新到最新 itemClick；与 [KI-019](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/regression/known-issues.md) R7-F v5 SearchPage segment ✓ 不跟手完全同款修法范式。**HARD-LAW-3 合规**：根因定位后立即移除 Logger import + Logger.i 调用，重 build + install + 验证场景 2/3 仍 work（PID=1025 hilog `[issue/state] confirm prepare isOpen=true`）。**真机三件套**：[02_close_confirm.jpeg](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/regression/reports/M6/r8-l8-issuedetail-d8-20260527-141011/02_close_confirm.jpeg) md5=`0e7d3414…` / [02_closed_state.jpeg](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/regression/reports/M6/r8-l8-issuedetail-d8-20260527-141011/02_closed_state.jpeg) md5=`73e98227…` / [03_reopen_confirm.jpeg](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/regression/reports/M6/r8-l8-issuedetail-d8-20260527-141011/03_reopen_confirm.jpeg) md5=`fd052abd…` / [03_reopened_state.jpeg](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/regression/reports/M6/r8-l8-issuedetail-d8-20260527-141011/03_reopened_state.jpeg) md5=`5709e3ab…`；GitHub API 服务端 `state=closed → state=open` 双向校验通过。 | M6 R8-L8 真机暴露 | ✅ Closed by ForEach key + dataListRev 强制重建 | AI | 2026-05-27 ✅ R8-L8 关闭 |
 | _占位_ | _占位_ | （后续按时间倒序追加） | — | — | — |
 
+## R9 重构登记（2026-09-10，全项目 V2+MVVM+三层模块重构）
+
+> 用户 2026-09-10 拍板：本轮重构不走真机（真机会阻塞工作），验证以「双构建全绿 + codelinter 0 error + 静态审查」代偿。以下条目为重构产生的登记。
+
+| ID | 严重度 | 描述 | 出现版本 | 缓解 | 负责人 | 计划修复 |
+|---|---|---|---|---|---|---|
+| KI-R9-001 | P1 | R9 全项目重构（V2 状态管理 + MVVM + common/features/entry 三层模块 + 原生组件替换）完成后未做真机回归。scenario-tour.sh 全场景、深链、下拉刷新时序、bindMenu 弹层 dump 可见性、SideBarContainer 开合、原生标题栏 dump 行为均未经设备验证。 | R9 | 每阶段编译全绿；非结构性控件 id 全量保留（appbar_main_row 除外，脚本 4 处 bounds 断言已同步改写）；stage-tour 脚本语法检查通过 | AI | 下次有设备会话：跑 scenario-tour.sh 全场景，重点 issue 弹层输入链、分支切换链、抽屉开合、搜索/动态列表分页 |
+| KI-R9-002 | P3 | SettingUiTest 两条断言引用 `setting_ok_label_text` / `setting_language_event_count`，页面上无此 id（重构前已不存在，历史遗留） | 早于 R9 | 逻辑回归（LOGIC_ONLY）不受影响，仅真机 UI 套件会失败 | AI | 与 KI-R9-001 真机回归时一并修测试 |
+| KI-R9-003 | P3 | codelinter @performance/datashare-query-unrelease-check 在 RdbStore.query/querySql 返回处报 3 warn（"结果集要关闭"）。实际消费方 DaoBase.ets:76/:82 已 rs.close()，规则对"基类返回 ResultSet"模式误报 | R9 | 人工核实关闭链路存在 | AI | 不修；若后续新增 dao 查询点，遵循 DaoBase 关闭范式 |
+| KI-R9-004 | P3 | AppNavigator routerMap 仍是 if/else 直连 import 页面（未改系统路由表 route_map.json + 动态 import 懒加载）。启动性能优化余量 | R9 | 页面数 26，直连 import 启动开销可接受 | AI | 后续性能专项：迁移系统路由表实现按需加载 |
+
 ## 模板
 
 ```

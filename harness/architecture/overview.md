@@ -1,58 +1,69 @@
-# 架构总览（ArkUI / HarmonyOS）
+# 架构总览（ArkUI / HarmonyOS · R9 三层多模块版）
 
-## 1. 分层
+> 2026-09-10 R9 重构后现状。旧单模块结构的说明已归档进 git 历史（6306986 及之前）。
+
+## 1. 模块分层（官方三层结构）
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  UI 层 (entry/src/main/ets/pages, components)        │
-├──────────────────────────────────────────────────────┤
-│  导航层 (Navigation + NavPathStack, Tabs, SideBar)   │
-├──────────────────────────────────────────────────────┤
-│  状态层 (@Observed/@ObjectLink + AppStorage, store/) │
-├──────────────────────────────────────────────────────┤
-│  数据层 (dao/ + net/ + relationalStore + preferences)│
-├──────────────────────────────────────────────────────┤
-│  系统层 (HarmonyOS API：Web/request/share/picker…)   │
-└──────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│ 产品定制层  entry (HAP)                                     │
+│   EntryAbility / Index / AppNavigator 路由表 / 深链 / 权限   │
+├────────────────────────────────────────────────────────────┤
+│ 基础特性层  features/*.har                                   │
+│   feature-auth  feature-main  feature-repo  feature-user    │
+│   feature-misc    （每模块: pages + viewmodel + views）      │
+├────────────────────────────────────────────────────────────┤
+│ 公共能力层  common.har                                       │
+│   base/(net/dao/utils/logger/i18n/navigation/launch)        │
+│   model/(实体 + 无状态 service)                              │
+│   ui/(Theme token/通用组件/共享widget/markdown)              │
+└────────────────────────────────────────────────────────────┘
+依赖方向严格单向：entry → features → common（编译器强制）
 ```
 
-- **UI 层**：ArkTS / ArkUI 声明式组件；通用控件入 `components/common`，业务卡片入 `components/widget`，屏幕级 ETS 入 `pages/`。
-- **导航层**：`Navigation + NavPathStack`（页面栈）+ `Tabs`（底部 Tab）+ `SideBarContainer`（Drawer，position End）。
-- **状态层**：`@Observed` + `@ObjectLink` 拆分领域 store 类，全局轻量数据用 `AppStorage`。
-- **数据层**：`@ohos.net.http` 统一封装；`@ohos.data.relationalStore` 持久化 24 张离线表；`@ohos.data.preferences` 存 token/语言/偏好。
-- **系统层**：`Web()` 渲染 Markdown / OAuth；`@ohos.request` 下载；`@ohos.systemShare` 分享；`@ohos.file.picker` 选图；`@ohos.pasteboard` 剪贴板；`@ohos.events.emitter` 跨页桥。
+- **native**：MD4C（C 解析器）+ NAPI 桥随 feature-repo（唯一消费方），产出 libmd4c.so。
+- **打包**：全部 HAR + 单 entry HAP（无跨 HAP 单例失效问题；如后续多产品再评估 HSP）。
 
-## 2. 关键依赖
+## 2. MVVM 与状态管理（V2）
 
-| 依赖 | 作用 | 备注 |
-|---|---|---|
-| @ohos.net.http | HTTP / GraphQL | 替代 RN fetch |
-| @ohos.data.relationalStore | 关系型数据库 | 替代 Realm，对齐 24 张表 |
-| @ohos.data.preferences | KV 存储 | 替代 AsyncStorage |
-| @ohos.web.webview / Web() | WebView | 渲染 Markdown + OAuth |
-| @ohos.events.emitter | 事件总线 | 替代 actionUtils.refreshHandler |
-| @ohos.hilog | 日志 | Logger 底座 |
-| @ohos/lottie | 动画 | 启动 / 空态动画 |
+- **View**：`@ComponentV2` 页面/组件，只做组装与事件转发；`@Local vm` 持有 ViewModel；子组件 `@Param` + `@Event`。
+- **ViewModel**：`@ObservedV2` + `@Trace`（UI 状态）/普通字段（分页游标等非 UI 态）/`@Computed`（派生值）；编排 service 调用并写 @Trace 字段。
+- **Model**：service 全部无状态（构造不收 store），只做 HTTP+缓存取数并返回数据（Result 携带 page/hasMore；缓存先行走 onCached 回调）。
+- **全局状态**：零 AppStorage。登录态 `GlobalAuthStore`（@ObservedV2 单例）+ EventBus 事件补偿；主题 `ThemeManager`；安全区 `SafeAreaInsets`；路由参数 `RouteParamStore`（Map 单例）；启动参数 `BootChannel`（EntryAbility 写、页面延时消费，键名为 scenario-tour 协议）。
+- **渲染控制**：列表统一 Repeat（长列表 `.virtualScroll()` + 容器 `.cachedCount()`）；@Builder 不做响应式值参中转（R-UI-05 沿用）。
 
-## 3. 配置入口
-- 应用：[https://github.com/CarGuo/GSYGithubAppOH/blob/main/AppScope/app.json5](https://github.com/CarGuo/GSYGithubAppOH/blob/main/AppScope/app.json5)（bundleName=cn.gsy.githubapp）
-- 模块：[https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/module.json5](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/module.json5)（OAuth scheme：gsygithub://authed）
-- 工程：[https://github.com/CarGuo/GSYGithubAppOH/blob/main/build-profile.json5](https://github.com/CarGuo/GSYGithubAppOH/blob/main/build-profile.json5)（compatibleSdkVersion 6.1.0(23)，runtimeOS HarmonyOS）
-- 入口：[https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/entryability/EntryAbility.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/entryability/EntryAbility.ets)
-- 启动页：[https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/pages/WelcomePage.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/pages/WelcomePage.ets)
-- 深链总线：[https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/auth/AuthDeepLinkBus.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/auth/AuthDeepLinkBus.ets)
-- 签名：[https://github.com/CarGuo/GSYGithubAppOH/blob/main/signature/README.md](https://github.com/CarGuo/GSYGithubAppOH/blob/main/signature/README.md)
+## 3. 导航与页面呈现
 
-## 4. 启动流程
-1. EntryAbility `onCreate` → 解析启动参数 / 深链（gsygithub://authed?code=...）→ 写入 [AuthDeepLinkBus.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/auth/AuthDeepLinkBus.ets)。
-2. `onWindowStageCreate` → loadContent('pages/WelcomePage')。
-3. WelcomePage 读 preferences 中的 token / language → 决定路由：
-   - 无 token → LoginPage（PAT 优先，OAuth Web 兜底）
-   - 有 token → 调用 `userDao.refreshUserInfo` → MainTabs（Dynamic / Trend / Search / My）。
-4. 业务页通过 store 类触发 dao.method() → `@ohos.net.http` 请求 → relationalStore 缓存 + UI 刷新。
+- 单根 Navigation（AppNavigator 持唯一 NavPathStack）+ NavDestination 页面。
+- 标题栏/工具栏：NavDestination 原生 `.title(自定义builder)` + `.menus` + `.toolbarConfiguration`；页面通过 `NavTitleBridge`（@ObservedV2 单例）注册标题/动作配置（titleGetter 支持动态标题，revision 补偿首帧时序）。
+- 弹层：AlertDialog/ActionSheet（CommonModal 封装）、bindSheet（输入/编辑表单）、bindMenu（分支选择等菜单）、LoadingModal（UIContext.openCustomDialog 句柄式）。V1 CustomDialogController 全工程清零。
 
-## 5. 关键风险点
-- HarmonyOS API 版本（6.1.0/23）与 ArkUI 声明式约束严格，三方包须确认 `compatibleSdkVersion` 兼容。
-- relationalStore 不支持 Realm 风格的对象图，列要扁平化为 TEXT/INTEGER；JSON 大字段统一存 `data TEXT`。
-- Web 组件加载 highlight.js / dracula 必须使用 `$rawfile()` 协议或 base64 注入，避免跨域。
-- OAuth 回调 scheme 与 [module.json5](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/module.json5) skills 一致（`gsygithub://authed`）。
+## 4. 数据层
+
+- net/HttpManager 门面（401 → LoginExpiredBus）、Address URL 表、NetworkMonitor。
+- dao/：relationalStore 24 张离线表 + Preferences（token/语言/搜索历史/用户信息缓存）；查询结果消费方负责 close（DaoBase 范式）。
+- service/：14 个领域 service（Repository/Issue/Issue 子操作/Commit/Code/User/Search/Notify/Trend/Dynamic/My/ReadHistory/Contribution/Oauth）。
+
+## 5. 启动流程
+
+1. EntryAbility `onCreate/onNewWant` → 解析 `boot*` want 参数写 BootChannel；OAuth 深链（gsygithubapp://authed）→ AuthDeepLinkBus。
+2. `onWindowStageCreate` → loadContent('pages/Index') → AppNavigator（注入 NavigationService.stack、LoadingModal.attach）。
+3. WelcomePage（feature-auth）读 token：无 → LoginPage；有 → 恢复用户信息 → HomePage（feature-main，Tabs：动态/趋势/我的 + SideBarContainer 抽屉）。
+4. 详情页取参优先级：RouteParamStore.consume → NavDestination ctx.pathInfo → BootChannel 兜底（延时清理时序保留）。
+
+## 6. 关键约束（变更前必读）
+
+- bundleName `cn.gsy.githubapp`、EntryAbility、深链 scheme 不可改（脚本/签名绑定）。
+- 控件 id 是 scenario-tour.sh 自动回归的协议（约 140 个），页面重构必须原样保留。
+- Theme.ets token 单一事实源（GSYColor/GSYFontSize/GSYIconSize/GSYSpacing/GSYShadow/GSYDarkColor），页面 0 字面量；hex 值被 ThemeManagerTest 锁定。
+- `aa start --ps boot*` 15 个启动参数名与格式不变（对回归协议）。
+
+## 7. 构建/测试
+
+```bash
+source scripts/env-win.sh            # Windows Git Bash（macOS 用 scripts/env.sh）
+hvigorw assembleHap --mode module -p product=unsigned -p buildMode=debug --no-daemon   # 无签名编译验证
+hvigorw assembleHap --mode module -p module=entry@ohosTest -p product=unsigned -p buildMode=debug --no-daemon
+./harness/regression/run-tests.sh    # 逻辑单测（LOGIC_ONLY）
+./scripts/scenario-tour.sh           # 真机全场景回归（需设备）
+```
