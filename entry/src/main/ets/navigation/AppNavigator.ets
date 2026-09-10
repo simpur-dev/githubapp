@@ -20,9 +20,9 @@
  * 注：每个页面 struct 必须 export，且不再使用 @Entry。
  */
 import { LoadingModal } from 'common';
-import { NavigationService } from 'common';
+import { NavigationService, SafeAreaInsets, LIGHT_PALETTE } from 'common';
 import { RouteName } from 'common';
-import { NavTitleView, NavMenusView, NavBottomBarView } from 'common';
+import { NavTitleView, NavMenusView } from 'common';
 
 import { WelcomePage } from 'feature_auth';
 import { LoginPage } from 'feature_auth';
@@ -210,18 +210,6 @@ export struct AppNavigator {
     NavMenusView({ routeName: RouteName.WebPage });
   }
 
-  // ── .toolbarConfiguration builder（底部工具栏路由）──
-
-  @Builder
-  repositoryDetailToolbar() {
-    NavBottomBarView({ routeName: RouteName.RepositoryDetail });
-  }
-
-  @Builder
-  issueDetailToolbar() {
-    NavBottomBarView({ routeName: RouteName.IssueDetail });
-  }
-
   @Builder
   routerMap(name: string, _param: Object): void {
     if (name === RouteName.LoginWeb) {
@@ -276,15 +264,13 @@ export struct AppNavigator {
         RepositoryDetailPage();
       }
         .title(this.repositoryDetailTitle)
-        .menus(this.repositoryDetailMenus)
-        .toolbarConfiguration(this.repositoryDetailToolbar);
+        .menus(this.repositoryDetailMenus);
     } else if (name === RouteName.IssueDetail) {
       NavDestination() {
         IssueDetailPage();
       }
         .title(this.issueDetailTitle)
-        .menus(this.issueDetailMenus)
-        .toolbarConfiguration(this.issueDetailToolbar);
+        .menus(this.issueDetailMenus);
     } else if (name === RouteName.CodeDetail) {
       NavDestination() {
         CodeDetailPage();
@@ -368,6 +354,11 @@ export struct AppNavigator {
     .id('app_navigator_root')
     .hideTitleBar(true)
     .mode(NavigationMode.Stack)
-    .navDestination(this.routerMap);
+    .navDestination(this.routerMap)
+    // 颜色沉浸：窗口全屏（EntryAbility.enableImmersive），此处统一把标题栏
+    // 推到状态栏之下，根背景色（标题栏同色）延伸到状态栏后面；
+    // 底部完全沉浸：内容直铺到屏幕底边，手势指示条悬浮于内容之上。
+    .padding({ top: SafeAreaInsets.top })
+    .backgroundColor(LIGHT_PALETTE.navBackground);
   }
 }

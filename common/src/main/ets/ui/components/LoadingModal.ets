@@ -1,4 +1,5 @@
 import { UIContext } from '@ohos.arkui.UIContext';
+import { ComponentContent } from '@kit.ArkUI';
 import promptAction from '@ohos.promptAction';
 import { GSYColor, GSYFontSize, GSYSpacing } from '../style/Theme';
 
@@ -7,7 +8,9 @@ import { GSYColor, GSYFontSize, GSYSpacing } from '../style/Theme';
  *
  * R9 V2：不再用 @CustomDialog + static 内 new CustomDialogController
  * （KI-046：CustomDialogController 必须在组件 build 上下文创建，static 里静默不弹）。
- * 改为 UIContext.openCustomDialog(options) → 返回 dialogId，hide 走 closeCustomDialog(id)。
+ * 改为 ComponentContent + wrapBuilder + promptAction.openCustomDialog(content)。
+ * 注意：builder 不能传"匿名函数里再调 @Builder"的闭包——@Builder 编译产物依赖
+ * observeComponentCreation2 的组件上下文，脱离组件树调用会 TypeError 闪退（R9 真机模拟器已踩）。
  * UIContext 由 UI 根注入：AppNavigator（生产）/ 测试宿主页 aboutToAppear 调
  * LoadingModal.attach(this.getUIContext())，同 NavigationService.setStack 注入模式。
  */
@@ -17,7 +20,7 @@ class LoadingDialogContentParams {
 }
 
 @Builder
-function loadingDialogContent(params: LoadingDialogContentParams): void {
+export function loadingDialogContent(params: LoadingDialogContentParams): void {
   Column() {
     LoadingProgress()
       .width(48)
@@ -38,7 +41,7 @@ function loadingDialogContent(params: LoadingDialogContentParams): void {
 
 class LoadingHolder {
   uiContext: UIContext | null = null;
-  dialogId: number = -1;
+  content: ComponentContent<LoadingDialogContentParams> | null = null;
   visible: boolean = false;
 }
 
@@ -57,40 +60,39 @@ export class LoadingModal {
     }
     const params: LoadingDialogContentParams = new LoadingDialogContentParams();
     params.text = text;
-    const options: promptAction.CustomDialogOptions = {
-      builder: (): void => {
-        loadingDialogContent(params);
-      },
+    const content: ComponentContent<LoadingDialogContentParams> =
+      new ComponentContent(ctx, wrapBuilder(loadingDialogContent), params);
+    LoadingModal.holder.content = content;
+    LoadingModal.holder.visible = true;
+    ctx.getPromptAction().openCustomDialog(content, {
       alignment: DialogAlignment.Center,
       isModal: true,
       autoCancel: cancelable,
       onDidDisappear: (): void => {
         // autoCancel 点外部关闭与 closeCustomDialog 都会走到这里，统一清句柄。
         LoadingModal.holder.visible = false;
-        LoadingModal.holder.dialogId = -1;
+        LoadingModal.holder.content = null;
       },
-    };
-    LoadingModal.holder.visible = true;
-    ctx.getPromptAction().openCustomDialog(options)
-      .then((dialogId: number): void => {
-        LoadingModal.holder.dialogId = dialogId;
+    })
+      .then((): void => {
+        // 打开成功（本 SDK 该重载返回 void，关闭走 content 句柄）。
       })
       .catch((_err: Error): void => {
         LoadingModal.holder.visible = false;
-        LoadingModal.holder.dialogId = -1;
+        LoadingModal.holder.content = null;
       });
   }
 
   static hide(): void {
     const ctx: UIContext | null = LoadingModal.holder.uiContext;
-    if (ctx !== null && LoadingModal.holder.dialogId >= 0) {
+    if (ctx !== null && LoadingModal.holder.content !== null) {
       try {
-        ctx.getPromptAction().closeCustomDialog(LoadingModal.holder.dialogId);
+        ctx.getPromptAction().closeCustomDialog(LoadingModal.holder.content);
       } catch (_e) {
         // 句柄已被 autoCancel 关闭等场景：忽略，状态照常复位。
       }
     }
-    LoadingModal.holder.dialogId = -1;
+    LoadingModal.holder.content = null;
     LoadingModal.holder.visible = false;
   }
 

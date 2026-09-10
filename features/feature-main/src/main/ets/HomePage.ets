@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_SAFE_AREA_CHANGED } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, SafeAreaInsets } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -22,7 +22,6 @@ import { TabIcon, TabIconKey } from './views/TabIcon';
 import { DynamicTabPage } from './tabs/DynamicTabPage';
 import { TrendTabPage } from './tabs/TrendTabPage';
 import { MyTabPage } from './tabs/MyTabPage';
-import { SafeAreaInsets } from 'common';
 import { BOOT_TAB_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_COMMON_LIST_KEY, BOOT_NOTIFY_ISSUE_KEY, BootChannel } from 'common';
 import { Logger } from 'common';
 
@@ -81,12 +80,10 @@ const DOUBLE_TAP_INTERVAL_MS: number = 300;
 export struct HomePage {
   @Local currentIndex: number = 0;
   @Local drawerOpen: boolean = false;
-  @Local safeAreaBottom: number = 0;
   private tabsController: HdsTabsController = new HdsTabsController();
   private lastTapAt: Map<number, number> = new Map<number, number>();
   private unsubscribeLoginExpired: (() => void) | null = null;
   private unsubscribeNetwork: (() => void) | null = null;
-  private unsubscribeSafeArea: (() => void) | null = null;
   private offlineToastShown: boolean = false;
   private tabs: HomeTabItem[] = [
     { key: 'dynamic',   title: I18n('tabDynamic'),     icon: 'aperture', index: 0 },
@@ -95,10 +92,6 @@ export struct HomePage {
   ];
 
   aboutToAppear(): void {
-    this.safeAreaBottom = SafeAreaInsets.bottom;
-    this.unsubscribeSafeArea = EventBus.on(EVENT_SAFE_AREA_CHANGED, (_payload: ESObject): void => {
-      this.safeAreaBottom = SafeAreaInsets.bottom;
-    });
     this.applyBootTab();
     this.scheduleBootRepo();
     this.scheduleBootPush();
@@ -134,10 +127,6 @@ export struct HomePage {
     if (this.unsubscribeNetwork !== null) {
       this.unsubscribeNetwork();
       this.unsubscribeNetwork = null;
-    }
-    if (this.unsubscribeSafeArea !== null) {
-      this.unsubscribeSafeArea();
-      this.unsubscribeSafeArea = null;
     }
   }
 
@@ -559,7 +548,7 @@ export struct HomePage {
         .barBackgroundColor(GSYColor.transparent)
         .barFloatingStyle({
           barSideMargin: GSYSpacing.hdsFloatingTabSideMargin,
-          barBottomMargin: this.safeAreaBottom + GSYSpacing.hdsFloatingTabBottomMargin,
+          barBottomMargin: SafeAreaInsets.bottom + GSYSpacing.hdsFloatingTabBottomMargin,
           gradientMask: {
             maskColor: GSYColor.hdsFloatingTabMask,
             maskHeight: GSYSpacing.hdsFloatingTabMaskHeight,
@@ -580,7 +569,6 @@ export struct HomePage {
       .id('home_main_content')
       .width('100%')
       .height('100%')
-      .padding({ bottom: this.safeAreaBottom })
       .backgroundColor(GSYColor.tabBackground);
   }
   .id('home_root')

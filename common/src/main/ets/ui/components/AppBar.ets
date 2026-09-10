@@ -8,8 +8,7 @@
  * entry 的 ohosTest 宿主页（HomePageHost / CommonComponentsPage）仍引用本组件做测试宿主。
  */
 import { ThemePalette, LIGHT_PALETTE, ThemeManager } from '../theme/ThemeManager';
-import { SafeAreaInsets } from '../../base/utils/SafeAreaInsets';
-import { EventBus, EVENT_THEME_CHANGED, EVENT_SAFE_AREA_CHANGED } from '../../base/utils/EventBus';
+import { EventBus, EVENT_THEME_CHANGED } from '../../base/utils/EventBus';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
 
 const APP_BAR_SIDE_WIDTH: number = 64;
@@ -45,19 +44,13 @@ export struct AppBar {
   @Param rightActions: AppBarAction[] = [];
 
   @Local palette: ThemePalette = LIGHT_PALETTE;
-  @Local safeAreaTop: number = 0;
   private offTheme: (() => void) | null = null;
-  private offSafeArea: (() => void) | null = null;
 
   aboutToAppear(): void {
     this.palette = ThemeManager.current();
-    this.safeAreaTop = SafeAreaInsets.top;
     // V2 @Local 读单例字段不会自动刷新：订阅显式事件保持等价的响应语义。
     this.offTheme = EventBus.on(EVENT_THEME_CHANGED, (_payload: ESObject): void => {
       this.palette = ThemeManager.current();
-    });
-    this.offSafeArea = EventBus.on(EVENT_SAFE_AREA_CHANGED, (_payload: ESObject): void => {
-      this.safeAreaTop = SafeAreaInsets.top;
     });
   }
 
@@ -65,10 +58,6 @@ export struct AppBar {
     if (this.offTheme !== null) {
       this.offTheme();
       this.offTheme = null;
-    }
-    if (this.offSafeArea !== null) {
-      this.offSafeArea();
-      this.offSafeArea = null;
     }
   }
 
@@ -209,13 +198,6 @@ export struct AppBar {
 
   build(): void {
     Column() {
-      if (this.immersive && this.safeAreaTop > 0) {
-        Row()
-          .id('appbar_status_spacer')
-          .width('100%')
-          .height(this.safeAreaTop)
-          .backgroundColor(this.resolveBackground());
-      }
       Row() {
         if (this.titleStart) {
           Row() {

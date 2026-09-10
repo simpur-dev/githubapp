@@ -6,7 +6,7 @@ import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { RouteParamStore } from 'common';
 import { BOOT_REPO_KEY, BootChannel } from 'common';
-import { NavBottomBarConfig, NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
+import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import { LoadingModal } from 'common';
@@ -22,7 +22,7 @@ import { ActivityTab } from './repo/ActivityTab';
 import { FilesTab, isImageOrArchiveFile } from './repo/FilesTab';
 import { ExternalUrlUtil } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
-import { CommonBottomBarItem } from 'common';
+import { CommonBottomBar, CommonBottomBarItem, SafeAreaInsets } from 'common';
 import {
   FA_STAR,
   FA_STAR_O,
@@ -64,6 +64,8 @@ const TAB_BAR_HEIGHT: number = 48;
 const BRANCH_MENU_WIDTH: number = 220;
 const BRANCH_MENU_MAX_HEIGHT: number = 300;
 const BRANCH_MENU_ROW_HEIGHT: number = 44;
+const BRANCH_MENU_DIVIDER_WIDTH: number = 0.5;
+const BRANCH_MENU_RADIUS: number = 12;
 const CREATE_ISSUE_SHEET_HEIGHT: number = 520;
 const COMMON_LIST_SHOW_TYPE_USER: string = 'user';
 const COMMON_LIST_SHOW_TYPE_REPOSITORY: string = 'repository';
@@ -221,30 +223,6 @@ export struct RepositoryDetailPage {
       titleGetter: (): string => this.buildAppBarTitle(),
       rightActions: this.buildRightActions(),
     } as NavTitleConfig);
-    NavTitleBridge.get().registerBottomBar(RouteName.RepositoryDetail, {
-      visibleGetter: (): boolean => this.vm.fullName.length > 0,
-      itemsGetter: (): CommonBottomBarItem[] => this.buildBottomBarItems(),
-      rootId: 'repo_detail_bottom_bar',
-      repoActionStyle: true,
-      materialFloatingStyle: true,
-      trailingItemId: 'branch',
-      rootHeight: GSYSpacing.bottomBarDefault,
-      rootMarginHorizontal: GSYSpacing.hdsFloatingBarSideMargin,
-      rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin,
-      rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
-      trailingMenuShowGetter: (): boolean => this.branchMenuVisible,
-      onTrailingMenuDismiss: (): void => {
-        this.branchMenuVisible = false;
-      },
-      menuItemsGetter: (): string[] => this.vm.branches,
-      onMenuItemTap: (branch: string): void => {
-        this.handleBranchChange(branch);
-      },
-      menuItemIdPrefix: 'repo_branch_menu',
-      menuWidth: BRANCH_MENU_WIDTH,
-      menuMaxHeight: BRANCH_MENU_MAX_HEIGHT,
-      menuRowHeight: BRANCH_MENU_ROW_HEIGHT,
-    } as NavBottomBarConfig);
     this.applyRouterParams();
     Logger.i('boot/ts', `RepositoryDetailPage.aboutToAppear t=${Date.now()} fullName='${this.vm.fullName}'`);
     if (this.vm.fullName.length > 0) {
@@ -600,6 +578,54 @@ export struct RepositoryDetailPage {
   }
 
   @Builder
+  buildBranchMenuContent(): void {
+    Column() {
+      Column() {
+        Scroll() {
+          Column() {
+            Repeat<string>(this.vm.branches)
+              .each((obj: RepeatItem<string>): void => {
+                Row() {
+                  Text(obj.item)
+                    .id('repo_branch_menu_item_text_' + obj.index.toString())
+                    .fontSize(GSYFontSize.small)
+                    .fontColor(GSYColor.primary)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .layoutWeight(1);
+                }
+                .id('repo_branch_menu_item_' + obj.index.toString())
+                .width('100%')
+                .height(BRANCH_MENU_ROW_HEIGHT)
+                .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
+                .alignItems(VerticalAlign.Center)
+                .onClick((): void => {
+                  this.handleBranchChange(obj.item);
+                });
+                if (obj.index < this.vm.branches.length - 1) {
+                  Divider().color(GSYColor.line).strokeWidth(BRANCH_MENU_DIVIDER_WIDTH);
+                }
+              })
+              .key((branch: string, index: number): string => index.toString() + ':' + branch);
+          }
+          .width('100%');
+        }
+        .id('repo_branch_menu_root')
+        .width(BRANCH_MENU_WIDTH)
+        .constraintSize({ maxHeight: BRANCH_MENU_MAX_HEIGHT })
+        .backgroundColor(GSYColor.hdsMaterialSurface)
+        .border({
+          width: BRANCH_MENU_DIVIDER_WIDTH,
+          color: GSYColor.hdsMaterialBorder,
+        })
+        .borderRadius(BRANCH_MENU_RADIUS);
+      }
+      .id('repo_branch_menu_scrim');
+    }
+    .id('repo_branch_menu_overlay');
+  }
+
+  @Builder
   buildCreateIssueFab(): void {
     Row() {
       IconFont({
@@ -818,6 +844,27 @@ export struct RepositoryDetailPage {
         .id('repo_detail_content_stack')
         .layoutWeight(1)
         .width('100%');
+
+        if (this.vm.fullName.length > 0) {
+          CommonBottomBar({
+            rootId: 'repo_detail_bottom_bar',
+            dataList: this.buildBottomBarItems(),
+            repoActionStyle: true,
+            materialFloatingStyle: true,
+            trailingItemId: 'branch',
+            rootMarginHorizontal: GSYSpacing.hdsFloatingBarSideMargin,
+            rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin + SafeAreaInsets.bottom,
+            rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
+            rootHeight: GSYSpacing.bottomBarDefault,
+            trailingMenuShow: this.branchMenuVisible,
+            trailingMenuBuilder: (): void => {
+              this.buildBranchMenuContent();
+            },
+            onTrailingMenuDismiss: (): void => {
+              this.branchMenuVisible = false;
+            },
+          });
+        }
 
       }
       .id('repo_detail_root')

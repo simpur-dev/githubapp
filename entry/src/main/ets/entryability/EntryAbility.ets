@@ -82,6 +82,7 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(0x0000, TAG, 'onWindowStageCreate');
+    // 颜色沉浸：窗口全屏 + 透明系统栏（状态栏白字），避让由 AppNavigator 导航根统一处理。
     enableImmersive(windowStage).catch((e: Error): void => {
       hilog.warn(0x0000, TAG, 'enableImmersive fail %{public}s', e.message);
     });

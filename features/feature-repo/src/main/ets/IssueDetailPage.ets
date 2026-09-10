@@ -13,7 +13,7 @@
  * 登录态直读 GlobalAuthStore 单例（VM 内）。
  */
 import { I18n } from 'common';
-import { NavBottomBarConfig, NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
+import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { MarkdownText } from 'common';
 import { PullLoadMoreList } from 'common';
 import { Logger } from 'common';
@@ -29,7 +29,7 @@ import {
 import { IssueService, IssueServiceResult } from 'common';
 import { TimeUtil } from 'common';
 import { renderEmoji } from 'common';
-import { CommonBottomBarItem } from 'common';
+import { CommonBottomBar, CommonBottomBarItem, SafeAreaInsets } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem, OptionListOptions } from 'common';
 import { ExternalUrlUtil } from 'common';
@@ -301,12 +301,6 @@ export struct IssueDetailPage {
       barId: 'issue_detail_appbar',
       rightActions: this.buildRightActions(),
     } as NavTitleConfig);
-    NavTitleBridge.get().registerBottomBar(RouteName.IssueDetail, {
-      visibleGetter: (): boolean => this.vm.shouldShowBottomBar(),
-      itemsGetter: (): CommonBottomBarItem[] => this.buildBottomBarItems(),
-      rootId: 'issue_detail_bottom_bar',
-      wrapperId: 'issue_detail_bottom_bar_wrap',
-    } as NavBottomBarConfig);
   }
 
   private resolveParamFromStack(stack: NavPathStack): IssueDetailRouteParam | null {
@@ -900,6 +894,14 @@ export struct IssueDetailPage {
             .id('issue_detail_pull_list')
             .layoutWeight(1);
 
+          if (this.vm.shouldShowBottomBar()) {
+            CommonBottomBar({
+              dataList: this.buildBottomBarItems(),
+              rootId: 'issue_detail_bottom_bar',
+              rootMarginBottom: SafeAreaInsets.bottom,
+            })
+              .id('issue_detail_bottom_bar_wrap');
+          }
         }
         .id('issue_detail_root')
         .width('100%')

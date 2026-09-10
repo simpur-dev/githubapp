@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "./signature/gsygithubapp.cer",
+          "certpath": "C:\\Users\\34928\\.ohos\\config\\default_githubapp_rmoxdNAEWYsNnfXx_lddCwXsCn4g_sTRG7UAqi_s-eg=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "replace-with-local-debug-key-password",
-          "profile": "./signature/gsygithubapp.p7b",
+          "keyPassword": "0000001AE1938E6BF43833EB94A001931727C48BC2432DEAE2422C2730208951C606AA5F35875A5CF48D",
+          "profile": "C:\\Users\\34928\\.ohos\\config\\default_githubapp_rmoxdNAEWYsNnfXx_lddCwXsCn4g_sTRG7UAqi_s-eg=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "./signature/gsygithubapp.p12",
-          "storePassword": "replace-with-local-debug-store-password"
+          "storeFile": "C:\\Users\\34928\\.ohos\\config\\default_githubapp_rmoxdNAEWYsNnfXx_lddCwXsCn4g_sTRG7UAqi_s-eg=.p12",
+          "storePassword": "0000001A78903F3A462C75F41812C0EE6851FFE5DF56D730E3F3794B5881428A40311694744E44BA2A5B"
         }
       }
     ],

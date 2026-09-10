@@ -8,8 +8,9 @@
  * RN 用 react-native-vector-icons/Octicons；OH 端无 Octicons，
  * 调用方需自行传入 [IconFont.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/common/IconFont.ets) 暴露的 FontAwesome 码点字符串。
  *
- * R9 阶段4：页面级底部工具栏改由 NavDestination .toolbarConfiguration 呈现
- * （经 common/ui/navigation/NavTitleBridge.ets 的 NavBottomBarView 复用本组件，id 全保留）。
+ * R9：仓库详情/Issue 详情在页面内直接挂载本组件（底栏跟随内容避让手势条：
+ * rootMarginBottom 含 SafeAreaInsets.bottom），不再走 .toolbarConfiguration
+ * （系统工具栏高度固定 56vp，无法容纳手势条避让，见 harness/R9/01-status.md）。
  * 本组件保留的直接调用方：RepositoryDetail 的 ActivityTab 头部选择条（repo_activity_select_bar，
  * 属随内容滚动的头部控件，不是页底工具栏，不做迁移）。
  */
