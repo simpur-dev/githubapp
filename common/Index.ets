@@ -42,7 +42,7 @@ export { DefaultLoginUseCase, LoginOutcome, LoginUseCase, OAuthClientConfig, Pre
 export { OAuthLocalConfigLoader, OAuthRuntimeConfig } from './src/main/ets/model/auth/OAuthLocalConfig';
 export { DEFAULT_OAUTH_REDIRECT_URI, DEFAULT_OAUTH_SCOPE, OauthService } from './src/main/ets/model/auth/OauthService';
 export { CodeService, FetchCodeContentResult, RawContentResponse, RepoOwnerNamePair } from './src/main/ets/model/service/CodeService';
-export { COMMIT_DIFF_ACCEPT, CommitCacheDao, CommitOwnerNamePair, CommitService, CommitServiceResult } from './src/main/ets/model/service/CommitService';
+export { COMMIT_DIFF_ACCEPT, CommitAuthorInfo, CommitCacheDao, CommitDetail, CommitFileItem, CommitInner, CommitOwnerNamePair, CommitService, CommitServiceResult, CommitStats, CommitUserBrief } from './src/main/ets/model/service/CommitService';
 export { CONTRIBUTION_API_HOST, ContributionResp, ContributionRespItem, ContributionService, FetchContributionsResult } from './src/main/ets/model/service/ContributionService';
 export { DynamicService, FetchReceivedResult } from './src/main/ets/model/service/DynamicService';
 export { IssueOwnerName, IssueService, IssueServiceResult } from './src/main/ets/model/service/IssueService';
@@ -55,13 +55,11 @@ export { SearchIssueResult, SearchRepoResult, SearchService, SearchUserResult } 
 export { FetchTrendingResult, TrendService } from './src/main/ets/model/service/TrendService';
 export { FetchFollowResult, FetchSubUserListResult, FetchUserReposResult, FetchUserResult, UpdateUserResult, UserService } from './src/main/ets/model/service/UserService';
 export { AuthStore, AuthUserInfo, GlobalAuthStore } from './src/main/ets/model/store/AuthStore';
-export { CodeDetailStore } from './src/main/ets/model/store/CodeDetailStore';
 export { ContributionDay, ContributionStore, clampContributionLevel, emptyContributionDay } from './src/main/ets/model/store/ContributionStore';
 export { DynamicActor, DynamicEvent, DynamicRepo, DynamicStore } from './src/main/ets/model/store/DynamicStore';
 export { ISSUE_STATE_CLOSED, ISSUE_STATE_OPEN, IssueCommentModel, IssueDetailModel, IssueUser } from './src/main/ets/model/store/IssueDetailStore';
 export { GlobalMyStore, MyStore } from './src/main/ets/model/store/MyStore';
 export { NOTIFY_FILTER_ALL, NOTIFY_FILTER_PARTICIPATING, NOTIFY_FILTER_UNREAD, NotifyFilter, NotifyRepository, NotifyStore, NotifySubject, NotifyThread, emptyRepository, emptySubject } from './src/main/ets/model/store/NotifyStore';
-export { CommitAuthorInfo, CommitDetail, CommitFileItem, CommitInner, CommitStats, CommitUserBrief, PushDetailStore } from './src/main/ets/model/store/PushDetailStore';
 export { READ_HISTORY_TYPE_REPO, READ_HISTORY_TYPE_USER, ReadHistoryItem, ReadHistoryStore, emptyReadHistoryItem } from './src/main/ets/model/store/ReadHistoryStore';
 export { RecommendOwner, RecommendRepo, RecommendSearchResponse, RecommendStore } from './src/main/ets/model/store/RecommendStore';
 export { ISSUE_STATE_ALL, RepositoryCommitAuthor, RepositoryCommitDetail, RepositoryCommitItem, RepositoryCommitUser, RepositoryDetail, RepositoryEventActor, RepositoryEventItem, RepositoryEventRepo, RepositoryFileItem, RepositoryIssueItem, RepositoryIssueUser, RepositoryLicense, RepositoryOwner, RepositoryParent, RepositoryPulseData } from './src/main/ets/model/store/RepositoryDetailStore';

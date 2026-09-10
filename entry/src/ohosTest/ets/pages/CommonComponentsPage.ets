@@ -78,6 +78,8 @@ struct CommonComponentsPage {
   });
 
   aboutToAppear(): void {
+    // LoadingModal 静态入口的 UIContext 注入（同生产 AppNavigator）。
+    LoadingModal.attach(this.getUIContext());
   }
 
   @Builder

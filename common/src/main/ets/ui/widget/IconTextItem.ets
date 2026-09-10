@@ -7,23 +7,23 @@
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
 import { IconFont } from '../components/IconFont';
 
-@Component
+@ComponentV2
 export struct IconTextItem {
-  @Prop text: string = '';
-  @Prop iconChar: string = '';
-  @Prop iconColor: string = GSYColor.miWhite;
-  @Prop iconSize: number = GSYIconSize.little;
+  @Param text: string = '';
+  @Param iconChar: string = '';
+  @Param iconColor: string = GSYColor.miWhite;
+  @Param iconSize: number = GSYIconSize.little;
 
-  @Prop textColor: string = GSYColor.miWhite;
-  @Prop textFontSize: number = GSYFontSize.small;
-  @Prop textBold: boolean = false;
-  @Prop textMaxLines: number = 1;
-  @Prop textLayoutWeight: number = 0;
+  @Param textColor: string = GSYColor.miWhite;
+  @Param textFontSize: number = GSYFontSize.small;
+  @Param textBold: boolean = false;
+  @Param textMaxLines: number = 1;
+  @Param textLayoutWeight: number = 0;
 
-  @Prop rowId: string = '';
-  @Prop rowWidthFull: boolean = false;
-  @Prop rowMarginTop: number = 0;
-  @Prop rowMarginBottom: number = 0;
+  @Param rowId: string = '';
+  @Param rowWidthFull: boolean = false;
+  @Param rowMarginTop: number = 0;
+  @Param rowMarginBottom: number = 0;
 
   private hasIcon(): boolean {
     return this.iconChar.length > 0;

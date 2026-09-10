@@ -16,7 +16,7 @@
  *       否则会触发 ArkTS 10505001 编译错误（属性签名与基类冲突）。
  */
 
-import { GSYColor } from '../style/Theme';
+import { GSYColor, GSYFontSize } from '../style/Theme';
 
 export const FA_BELL: string = '\uf0f3';
 export const FA_GROUP: string = '\uf0c0';
@@ -81,11 +81,11 @@ export const FA_BUILDING: string = '\uf0f7';
 export const FA_FILE_TEXT_O: string = '\uf0f6';
 export const FA_USER_CIRCLE: string = '\uf2bd';
 
-@Component
+@ComponentV2
 export struct IconFont {
-  @Prop char: string = '';
-  @Prop glyphSize: number = 14;
-  @Prop glyphColor: string = GSYColor.miWhite;
+  @Param char: string = '';
+  @Param glyphSize: number = GSYFontSize.small;
+  @Param glyphColor: string = GSYColor.miWhite;
 
   build(): void {
     Text(this.char)

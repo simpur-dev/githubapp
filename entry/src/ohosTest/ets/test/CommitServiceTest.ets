@@ -17,13 +17,11 @@ import {
 } from 'common';
 import {
   CommitDetail,
-  PushDetailStore,
 } from 'common';
 import {
   CodeService,
   FetchCodeContentResult,
 } from 'common';
-import { CodeDetailStore } from 'common';
 import { ReadResult } from 'common';
 
 class CapturedRequest {
@@ -143,8 +141,7 @@ export default function CommitServiceTest(): void {
       provider = new FakeHttpProvider();
       storage = new FakeTokenStorage();
       commitCacheDao = new FakeCommitCacheDao();
-      // R9 无状态化：service 不再持有 PushDetailStore / CodeDetailStore，
-      // 取数结果走返回值（双通道 content/html），store 断言改为返回值断言。
+      // R9 无状态化：service 只取数返回结果（双通道 content/html），调用方自行写 UI 状态。
       commitService = new CommitService(commitCacheDao);
       codeService = new CodeService();
 
@@ -381,50 +378,6 @@ export default function CommitServiceTest(): void {
     it('CodeService_decodeBase64_decodes_utf8', 0, (): void => {
       const decoded: string = CodeService.decodeBase64('IyBIZWxsbwo=');
       expect(decoded.indexOf('Hello') >= 0).assertTrue();
-    });
-
-    it('PushDetailStore_setCommit_copies_files', 0, (): void => {
-      const store: PushDetailStore = new PushDetailStore();
-      const detail: CommitDetail = {
-        'sha': SHA,
-        'html_url': '',
-        'commit': {
-          'message': 'm',
-          'author': { 'name': 'a', 'email': 'a@a', 'date': 'd' },
-          'committer': { 'name': 'c', 'email': 'c@c', 'date': 'd' },
-        },
-        'author': null,
-        'committer': null,
-        'files': [
-          {
-            'filename': 'x',
-            'status': 'modified',
-            'additions': 1,
-            'deletions': 1,
-            'changes': 2,
-            'blob_url': '',
-            'raw_url': '',
-            'patch': '',
-            'sha': 'sx',
-          },
-        ],
-        'stats': { 'additions': 1, 'deletions': 1, 'total': 2 },
-      } as CommitDetail;
-      store.setCommit(detail);
-      expect(store.files.length).assertEqual(1);
-      expect(store.commit !== null).assertTrue();
-      expect(store.loading).assertFalse();
-    });
-
-    it('CodeDetailStore_setContent_clears_loading_and_error', 0, (): void => {
-      const store: CodeDetailStore = new CodeDetailStore();
-      store.startLoading();
-      store.setError('e');
-      store.setContent('raw', '<html></html>');
-      expect(store.content).assertEqual('raw');
-      expect(store.htmlContent).assertEqual('<html></html>');
-      expect(store.loading).assertFalse();
-      expect(store.error.length).assertEqual(0);
     });
   });
 }

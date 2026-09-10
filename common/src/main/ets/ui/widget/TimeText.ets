@@ -7,11 +7,11 @@
 import { TimeUtil } from '../../base/utils/TimeUtil';
 import { GSYColor, GSYFontSize } from '../style/Theme';
 
-@Component
+@ComponentV2
 export struct TimeText {
-  time: string = '';
-  marginTopValue: number = 0;
-  textId: string = '';
+  @Param time: string = '';
+  @Param marginTopValue: number = 0;
+  @Param textId: string = '';
 
   build(): void {
     Text(TimeUtil.resolveTime(this.time))

@@ -3,10 +3,53 @@ import { Address } from '../../base/net/Address';
 import { HttpHeaders, HttpResult } from '../../base/net/Result';
 import { RepositoryDao } from '../../base/dao/RepositoryDao';
 import { ReadResult } from '../../base/dao/DaoBase';
-import {
-  CommitDetail,
-  CommitFileItem,
-} from '../store/PushDetailStore';
+
+// Commit 实体 interface（原 PushDetailStore.ets，随 store 删除迁入 service 文件）。
+export interface CommitAuthorInfo {
+  name: string;
+  email: string;
+  date: string;
+}
+
+export interface CommitInner {
+  message: string;
+  author: CommitAuthorInfo;
+  committer: CommitAuthorInfo;
+}
+
+export interface CommitUserBrief {
+  login: string;
+  avatar_url: string;
+  html_url: string;
+}
+
+export interface CommitFileItem {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  blob_url: string;
+  raw_url: string;
+  patch: string;
+  sha: string;
+}
+
+export interface CommitStats {
+  additions: number;
+  deletions: number;
+  total: number;
+}
+
+export interface CommitDetail {
+  sha: string;
+  html_url: string;
+  commit: CommitInner;
+  author: CommitUserBrief | null;
+  committer: CommitUserBrief | null;
+  files: CommitFileItem[];
+  stats: CommitStats;
+}
 
 export class CommitOwnerNamePair {
   owner: string;

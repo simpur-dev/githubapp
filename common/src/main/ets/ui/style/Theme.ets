@@ -130,6 +130,8 @@ export class GSYFontSize {
   static readonly middleNormal: number = 15;
   static readonly small: number = 14;
   static readonly min: number = 12;
+  // AboutPage "GSY" logo 字号 40
+  static readonly logoLarge: number = 40;
 }
 
 export class GSYIconSize {

@@ -51,7 +51,7 @@ export struct LoginPage {
   private async openOAuthWeb(): Promise<void> {
     // OAuthLocalConfigLoader.load 需要 UI 上下文读 rawfile，留在 View 层取配置，
     // 校验 / 注入 / 授权页跳转编排交给 LoginViewModel.openOAuthWeb。
-    const cfg: OAuthRuntimeConfig = await OAuthLocalConfigLoader.load(this);
+    const cfg: OAuthRuntimeConfig = await OAuthLocalConfigLoader.load(this.getUIContext().getHostContext());
     await this.vm.openOAuthWeb(cfg);
   }
 

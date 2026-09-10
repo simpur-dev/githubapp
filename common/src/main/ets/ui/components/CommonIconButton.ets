@@ -1,16 +1,16 @@
 import { GSYColor, GSYFontSize, GSYSpacing } from '../style/Theme';
 import { IconFont } from './IconFont';
 
-@Component
+@ComponentV2
 export struct CommonIconButton {
-  @Prop icon: string = '';
-  @Prop text: string = '';
-  @Prop iconColor: string = GSYColor.miWhite;
-  @Prop textColor: string = GSYColor.miWhite;
-  @Prop iconSize: number = GSYFontSize.middleWhite;
-  @Prop textFontSize: number = GSYFontSize.small;
-  @Prop textId: string = '';
-  onPress: () => void = (): void => {};
+  @Param icon: string = '';
+  @Param text: string = '';
+  @Param iconColor: string = GSYColor.miWhite;
+  @Param textColor: string = GSYColor.miWhite;
+  @Param iconSize: number = GSYFontSize.middleWhite;
+  @Param textFontSize: number = GSYFontSize.small;
+  @Param textId: string = '';
+  @Event onPress: () => void = (): void => {};
 
   @Builder
   buildText(): void {

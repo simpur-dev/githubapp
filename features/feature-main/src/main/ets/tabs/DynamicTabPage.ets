@@ -22,7 +22,7 @@ export struct DynamicTabPage {
 
   private dispatchEventTap(event: DynamicEvent): void {
     EventActionDispatcher.dispatch(event, '', (url: string): boolean => {
-      return ExternalUrlUtil.openUrlInBrowser(this, url, 'DynamicTabPage');
+      return ExternalUrlUtil.openUrlInBrowser(this.getUIContext().getHostContext(), url, 'DynamicTabPage');
     });
   }
 

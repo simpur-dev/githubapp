@@ -442,7 +442,7 @@ export struct DrawerMenu {
       return;
     }
     try {
-      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
       const want: Want = {
         action: 'ohos.want.action.viewData',
         uri: url,

@@ -6,7 +6,7 @@ import { GSYColor } from '../../ui/style/Theme';
 import { RepositoryDao } from '../../base/dao/RepositoryDao';
 import { ReadResult } from '../../base/dao/DaoBase';
 import { HttpHeaders } from '../../base/net/Result';
-import { CommitDetail, CommitFileItem } from '../store/PushDetailStore';
+import { CommitDetail, CommitFileItem } from './CommitService';
 
 export class RepoOwnerNamePair {
   owner: string;

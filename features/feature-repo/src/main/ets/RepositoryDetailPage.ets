@@ -490,11 +490,11 @@ export struct RepositoryDetailPage {
           return;
         }
         if (index === 0) {
-          ExternalUrlUtil.openUrlInBrowser(this, htmlUrl, 'RepositoryDetailPage');
+          ExternalUrlUtil.openUrlInBrowser(this.getUIContext().getHostContext(), htmlUrl, 'RepositoryDetailPage');
         } else if (index === 1) {
           this.copyToPasteboard(htmlUrl);
         } else if (index === 2) {
-          ExternalUrlUtil.openUrlInBrowser(this, htmlUrl, 'RepositoryDetailPage');
+          ExternalUrlUtil.openUrlInBrowser(this.getUIContext().getHostContext(), htmlUrl, 'RepositoryDetailPage');
         }
       }
     );

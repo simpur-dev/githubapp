@@ -8,16 +8,16 @@
 
 import { GSYColor, GSYFontSize, GSYIconSize } from '../style/Theme';
 
-@Component
+@ComponentV2
 export struct UserImage {
-  @Prop uri: string = '';
-  @Prop loginUser: string = '';
-  @Prop imageSize: number = GSYIconSize.small;
-  @Prop normalIconSize: boolean = false;
-  @Prop smallIconSize: boolean = false;
-  @Prop imageId: string = '';
+  @Param uri: string = '';
+  @Param loginUser: string = '';
+  @Param imageSize: number = GSYIconSize.small;
+  @Param normalIconSize: boolean = false;
+  @Param smallIconSize: boolean = false;
+  @Param imageId: string = '';
 
-  onAvatarTap: () => void = (): void => {};
+  @Event onAvatarTap: () => void = (): void => {};
 
   private resolveSize(): number {
     if (this.normalIconSize) {

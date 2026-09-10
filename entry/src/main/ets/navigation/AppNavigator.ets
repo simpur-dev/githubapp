@@ -9,6 +9,7 @@
  *
  * 注：每个页面 struct 必须 export，且不再使用 @Entry。
  */
+import { LoadingModal } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 
@@ -45,6 +46,8 @@ export struct AppNavigator {
 
   aboutToAppear(): void {
     NavigationService.setStack(this.stack);
+    // LoadingModal 静态入口的 UIContext 注入（同 setStack 注入模式）。
+    LoadingModal.attach(this.getUIContext());
   }
 
   @Builder

@@ -61,7 +61,7 @@ export struct AboutPage {
           Column() {
             Text('GSY')
               .id('about_logo')
-              .fontSize(40) // TODO: 字号 40 暂无 token 映射
+              .fontSize(GSYFontSize.logoLarge)
               .fontWeight(FontWeight.Bold)
               .fontColor(GSYColor.white)
               .width(96)

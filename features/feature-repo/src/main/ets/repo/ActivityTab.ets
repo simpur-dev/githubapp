@@ -349,7 +349,7 @@ export struct ActivityTab {
   private dispatchEventTap(item: RepositoryEventItem): void {
     const currentRepo: string = this.ownerName + '/' + this.repositoryName;
     EventActionDispatcher.dispatch(this.toDynamicEvent(item), currentRepo, (url: string): boolean => {
-      return ExternalUrlUtil.openUrlInBrowser(this, url, 'ActivityTab');
+      return ExternalUrlUtil.openUrlInBrowser(this.getUIContext().getHostContext(), url, 'ActivityTab');
     });
   }
 

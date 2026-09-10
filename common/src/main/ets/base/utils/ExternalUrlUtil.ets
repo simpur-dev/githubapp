@@ -5,12 +5,13 @@ import { I18n } from '../i18n/I18n';
 import { Logger } from '../logger/Logger';
 
 export class ExternalUrlUtil {
-  static openUrlInBrowser(host: Object, url: string, tag: string = 'ExternalUrl'): boolean {
-    if (url.length === 0) {
+  static openUrlInBrowser(hostContext: common.Context | undefined, url: string,
+                          tag: string = 'ExternalUrl'): boolean {
+    if (url.length === 0 || hostContext === undefined) {
       return false;
     }
     try {
-      const ctx: common.UIAbilityContext = getContext(host) as common.UIAbilityContext;
+      const ctx: common.UIAbilityContext = hostContext as common.UIAbilityContext;
       const want: Want = {
         action: 'ohos.want.action.viewData',
         uri: url,

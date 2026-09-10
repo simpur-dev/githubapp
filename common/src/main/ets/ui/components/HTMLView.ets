@@ -1,16 +1,16 @@
 import { GSYColor, GSYFontSize } from '../style/Theme';
 
-@Component
+@ComponentV2
 export struct HTMLView {
-  @Prop value: string = '';
-  @Prop html: string = '';
-  @Prop fontSize: number = 0;
-  @Prop fontColor: ResourceColor = '';
-  @Prop textFontSize: number = 0;
-  @Prop textColor: ResourceColor = '';
-  @Prop maxLines: number = 0;
-  @Prop rootId: string = '';
-  @Prop viewId: string = '';
+  @Param value: string = '';
+  @Param html: string = '';
+  @Param fontSize: number = 0;
+  @Param fontColor: ResourceColor = '';
+  @Param textFontSize: number = 0;
+  @Param textColor: ResourceColor = '';
+  @Param maxLines: number = 0;
+  @Param rootId: string = '';
+  @Param viewId: string = '';
 
   private stripTags(input: string): string {
     if (!input || input.length === 0) {

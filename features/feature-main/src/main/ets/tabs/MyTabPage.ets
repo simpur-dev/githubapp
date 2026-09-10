@@ -30,7 +30,7 @@ export struct MyTabPage {
 
   private dispatchEventTap(event: DynamicEvent): void {
     EventActionDispatcher.dispatch(event, '', (url: string): boolean => {
-      return ExternalUrlUtil.openUrlInBrowser(this, url, 'MyTabPage');
+      return ExternalUrlUtil.openUrlInBrowser(this.getUIContext().getHostContext(), url, 'MyTabPage');
     });
   }
 

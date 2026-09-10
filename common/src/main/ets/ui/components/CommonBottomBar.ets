@@ -30,39 +30,40 @@ export class CommonBottomBarItem {
 function doNothingTrailingMenuBuilder(): void {
 }
 
-@Component
+@ComponentV2
 export struct CommonBottomBar {
-  @Prop @Watch('onDataListChanged') dataList: CommonBottomBarItem[] = [];
-  rootId: string = 'common_bottom_bar';
-  rootBackgroundColor: ResourceColor = GSYColor.white;
-  rootMarginHorizontal: number = 0;
-  rootMarginTop: number = 0;
-  rootMarginBottom: number = 0;
-  rootBorderRadius: number = 0;
+  @Param dataList: CommonBottomBarItem[] = [];
+  @Param rootId: string = 'common_bottom_bar';
+  @Param rootBackgroundColor: ResourceColor = GSYColor.white;
+  @Param rootMarginHorizontal: number = 0;
+  @Param rootMarginTop: number = 0;
+  @Param rootMarginBottom: number = 0;
+  @Param rootBorderRadius: number = 0;
   // 0 表示不显式约束（保持 wrap content）。
   // 历史教训：父侧若用 `.layoutWeight(1)` 给 Tabs 撑满，再放本组件兄弟节点时
   // 子项 Row .height('100%') 会向上传染撑垮 Tabs.layoutWeight(1)。
   // 调用方应主动传一个固定 height（与 RN CommonBottomBar 高度一致 ~ 50）。
-  rootHeight: number = 0;
-  showShadow: boolean = true;
-  repoActionStyle: boolean = false;
-  materialFloatingStyle: boolean = false;
-  trailingItemId: string = 'branch';
+  @Param rootHeight: number = 0;
+  @Param showShadow: boolean = true;
+  @Param repoActionStyle: boolean = false;
+  @Param materialFloatingStyle: boolean = false;
+  @Param trailingItemId: string = 'branch';
   /** repoActionStyle 尾项受控 bindMenu（API 11+）的显隐，由调用方状态驱动。 */
-  @Prop trailingMenuShow: boolean = false;
+  @Param trailingMenuShow: boolean = false;
   /** repoActionStyle 尾项菜单内容（调用方 @Builder 经 @BuilderParam 传入）。 */
   @BuilderParam trailingMenuBuilder: () => void = doNothingTrailingMenuBuilder;
   /** 菜单因点外部等原因关闭时回传调用方，用于同步调用侧显隐状态。 */
-  onTrailingMenuDismiss: () => void = (): void => {};
-  @State private dataListRev: number = 0;
+  @Event onTrailingMenuDismiss: () => void = (): void => {};
+  @Local dataListRev: number = 0;
 
-  private onDataListChanged(): void {
+  // dataList 整体替换时也强制行重建（与旧 @Watch 版同款语义）。
+  @Monitor('dataList')
+  onDataListChanged(): void {
     this.dataListRev++;
   }
 
-  build(): void {
-    Row() {
-      ForEach(this.dataList, (item: CommonBottomBarItem, index: number): void => {
+  @Builder
+  buildItem(item: CommonBottomBarItem, index: number): void {
         if (this.repoActionStyle && item.itemId !== this.trailingItemId) {
           Column() {
             if (item.icon.length > 0) {
@@ -158,8 +159,16 @@ export struct CommonBottomBar {
             item.itemClick();
           });
         }
-      }, (item: CommonBottomBarItem, index: number): string =>
-        this.dataListRev.toString() + ':' + index.toString() + ':' + item.itemId + ':' + item.itemName + ':' + item.icon + ':' + item.iconColor + ':' + item.itemTextColor);
+  }
+
+  build(): void {
+    Row() {
+      Repeat<CommonBottomBarItem>(this.dataList)
+        .each((obj: RepeatItem<CommonBottomBarItem>): void => {
+          this.buildItem(obj.item, obj.index);
+        })
+        .key((item: CommonBottomBarItem, index: number): string =>
+          this.dataListRev.toString() + ':' + index.toString() + ':' + item.itemId + ':' + item.itemName + ':' + item.icon + ':' + item.iconColor + ':' + item.itemTextColor);
     }
     .id(this.rootId)
     .width('100%')

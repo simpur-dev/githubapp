@@ -9,19 +9,19 @@ import { HTMLView } from '../components/HTMLView';
 import { CommonIconButton } from '../components/CommonIconButton';
 import { FA_STAR_O, FA_CODE_FORK, FA_USER } from '../components/IconFont';
 
-@Component
+@ComponentV2
 export struct RepositoryItem {
-  ownerName: string = '';
-  ownerPic: string = '';
-  repositoryName: string = '';
-  repositoryStar: string = '---';
-  repositoryFork: string = '---';
-  repositoryWatch: string = '---';
-  repositoryType: string = '---';
-  repositoryDes: string = '---';
-  hideWatchIcon: boolean = false;
-  rowId: string = '';
-  onPressItem: () => void = (): void => {};
+  @Param ownerName: string = '';
+  @Param ownerPic: string = '';
+  @Param repositoryName: string = '';
+  @Param repositoryStar: string = '---';
+  @Param repositoryFork: string = '---';
+  @Param repositoryWatch: string = '---';
+  @Param repositoryType: string = '---';
+  @Param repositoryDes: string = '---';
+  @Param hideWatchIcon: boolean = false;
+  @Param rowId: string = '';
+  @Event onPressItem: () => void = (): void => {};
 
   build(): void {
     Column() {

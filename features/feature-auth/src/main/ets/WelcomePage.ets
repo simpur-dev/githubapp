@@ -27,7 +27,7 @@ export struct WelcomePage {
     this.registerIconFonts();
     let ctx: common.UIAbilityContext | null = null;
     try {
-      ctx = getContext(this) as common.UIAbilityContext;
+      ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
       Preferences.init(ctx, PREF_NAME).catch((): void => {
       });
     } catch (_e) {

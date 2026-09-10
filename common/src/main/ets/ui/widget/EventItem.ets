@@ -9,16 +9,16 @@ import { GSYColor, GSYFontSize, GSYSpacing, GSYShadow } from '../style/Theme';
 import { TimeUtil } from '../../base/utils/TimeUtil';
 import { UserImage } from './UserImage';
 
-@Component
+@ComponentV2
 export struct EventItem {
-  actionTime: string = '';
-  actionUser: string = '';
-  actionUserPic: string = '';
-  actionTarget: string = '';
-  des: string = '';
-  rowId: string = '';
-  onPressItem: () => void = (): void => {};
-  onPressUser: () => void = (): void => {};
+  @Param actionTime: string = '';
+  @Param actionUser: string = '';
+  @Param actionUserPic: string = '';
+  @Param actionTarget: string = '';
+  @Param des: string = '';
+  @Param rowId: string = '';
+  @Event onPressItem: () => void = (): void => {};
+  @Event onPressUser: () => void = (): void => {};
 
   build(): void {
     Column() {

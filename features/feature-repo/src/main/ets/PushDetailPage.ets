@@ -109,11 +109,11 @@ export struct PushDetailPage {
           return;
         }
         if (index === 0) {
-          ExternalUrlUtil.openUrlInBrowser(this, htmlUrl, 'PushDetailPage');
+          ExternalUrlUtil.openUrlInBrowser(this.getUIContext().getHostContext(), htmlUrl, 'PushDetailPage');
         } else if (index === 1) {
           this.copyToPasteboard(htmlUrl);
         } else if (index === 2) {
-          ExternalUrlUtil.openUrlInBrowser(this, htmlUrl, 'PushDetailPage');
+          ExternalUrlUtil.openUrlInBrowser(this.getUIContext().getHostContext(), htmlUrl, 'PushDetailPage');
         }
       }
     );

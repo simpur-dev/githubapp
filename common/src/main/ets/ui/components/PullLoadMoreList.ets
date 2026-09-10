@@ -1,7 +1,7 @@
 /**
  * PullLoadMoreList —— V2 受控列表容器（R9 V2 + MVVM 契约，见 harness/R9/V2-MIGRATION-GUIDE.md §4）。
  *
- * 旧 V1 版（@Component + @ObjectLink PullLoadMoreController 状态机）已删除：
+ * 旧 V1 版（V1 组件装饰器 + PullLoadMoreController 状态机）已删除：
  *   - 刷新/加载状态全部由调用方（页面 ViewModel 的 @Trace 字段或 V1 页面的 @State）受控传入；
  *   - 删掉自绘刷新 overlay（Stack 叠 LoadingProgress + refreshingContent opacity(0) 空 Row），
  *     改用原生 Refresh 自带下拉指示器，由 refreshing 参数驱动；

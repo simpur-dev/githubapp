@@ -15,34 +15,35 @@ export interface AppBarAction {
   onAction?: () => void;
 }
 
-@Component
+@ComponentV2
 export struct AppBar {
-  @Prop title: string = '';
-  @Prop titleId: string = 'appbar_title';
-  @Prop subtitle: string = '';
-  showBack: boolean = true;
-  backgroundColorValue: ResourceColor = GSYColor.primary;
-  titleColor: ResourceColor = GSYColor.white;
-  subtitleColor: ResourceColor = GSYColor.subLightText;
-  actionColor: ResourceColor = GSYColor.white;
-  barHeight: number = 64;
-  useTheme: boolean = true;
-  titleStart: boolean = true;
+  @Param title: string = '';
+  @Param titleId: string = 'appbar_title';
+  @Param subtitle: string = '';
+  @Param showBack: boolean = true;
+  @Param backgroundColorValue: ResourceColor = GSYColor.primary;
+  @Param titleColor: ResourceColor = GSYColor.white;
+  @Param subtitleColor: ResourceColor = GSYColor.subLightText;
+  @Param actionColor: ResourceColor = GSYColor.white;
+  @Param barHeight: number = 64;
+  @Param useTheme: boolean = true;
+  @Param titleStart: boolean = true;
   /** 是否让 AppBar 背景延伸到状态栏区域并自动让出 statusBar 高度（沉浸式） */
-  immersive: boolean = true;
-  onBack: () => void = (): void => {};
-  leftActions: AppBarAction[] = [];
-  rightActions: AppBarAction[] = [];
+  @Param immersive: boolean = true;
+  @Event onBack: () => void = (): void => {};
+  /** 数组随对象携带 onAction 回调（interface 字段），保持原对象字面量传法。 */
+  @Param leftActions: AppBarAction[] = [];
+  @Param rightActions: AppBarAction[] = [];
 
-  @State palette: ThemePalette = LIGHT_PALETTE;
-  @State safeAreaTop: number = 0;
+  @Local palette: ThemePalette = LIGHT_PALETTE;
+  @Local safeAreaTop: number = 0;
   private offTheme: (() => void) | null = null;
   private offSafeArea: (() => void) | null = null;
 
   aboutToAppear(): void {
     this.palette = ThemeManager.current();
     this.safeAreaTop = SafeAreaInsets.top;
-    // V1 组件读单例字段不会自动刷新：订阅显式事件保持等价的响应语义。
+    // V2 @Local 读单例字段不会自动刷新：订阅显式事件保持等价的响应语义。
     this.offTheme = EventBus.on(EVENT_THEME_CHANGED, (_payload: ESObject): void => {
       this.palette = ThemeManager.current();
     });
@@ -212,9 +213,11 @@ export struct AppBar {
             if (this.showBack) {
               this.buildBack();
             }
-            ForEach(this.leftActions, (action: AppBarAction, idx: number): void => {
-              this.buildAction(action, 'l', idx);
-            }, (action: AppBarAction, idx: number): string => 'l_' + idx.toString());
+            Repeat<AppBarAction>(this.leftActions)
+              .each((obj: RepeatItem<AppBarAction>): void => {
+                this.buildAction(obj.item, 'l', obj.index);
+              })
+              .key((action: AppBarAction, idx: number): string => 'l_' + idx.toString());
           }
           .alignItems(VerticalAlign.Center);
 
@@ -242,9 +245,11 @@ export struct AppBar {
           .justifyContent(FlexAlign.Center);
 
           Row() {
-            ForEach(this.rightActions, (action: AppBarAction, idx: number): void => {
-              this.buildAction(action, 'r', idx);
-            }, (action: AppBarAction, idx: number): string => 'r_' + idx.toString());
+            Repeat<AppBarAction>(this.rightActions)
+              .each((obj: RepeatItem<AppBarAction>): void => {
+                this.buildAction(obj.item, 'r', obj.index);
+              })
+              .key((action: AppBarAction, idx: number): string => 'r_' + idx.toString());
           }
           .padding({ right: 8 })
           .justifyContent(FlexAlign.End)
@@ -255,9 +260,11 @@ export struct AppBar {
             if (this.showBack) {
               this.buildBack();
             }
-            ForEach(this.leftActions, (action: AppBarAction, idx: number): void => {
-              this.buildAction(action, 'l', idx);
-            }, (action: AppBarAction, idx: number): string => 'l_' + idx.toString());
+            Repeat<AppBarAction>(this.leftActions)
+              .each((obj: RepeatItem<AppBarAction>): void => {
+                this.buildAction(obj.item, 'l', obj.index);
+              })
+              .key((action: AppBarAction, idx: number): string => 'l_' + idx.toString());
           }
           .width(APP_BAR_SIDE_WIDTH)
           .alignItems(VerticalAlign.Center);
@@ -286,9 +293,11 @@ export struct AppBar {
           .justifyContent(FlexAlign.Center);
 
           Row() {
-            ForEach(this.rightActions, (action: AppBarAction, idx: number): void => {
-              this.buildAction(action, 'r', idx);
-            }, (action: AppBarAction, idx: number): string => 'r_' + idx.toString());
+            Repeat<AppBarAction>(this.rightActions)
+              .each((obj: RepeatItem<AppBarAction>): void => {
+                this.buildAction(obj.item, 'r', obj.index);
+              })
+              .key((action: AppBarAction, idx: number): string => 'r_' + idx.toString());
           }
           .width(APP_BAR_SIDE_WIDTH)
           .padding({ right: 8 })

@@ -1,7 +1,7 @@
 /**
  * PushViewModel —— 提交（commit）详情页状态与编排（R9 V2 + MVVM）。
  *
- * 原 V1 页面级 PushDetailStore（common，保留给纯 store 行为测试）的字段语义平移为
+ * 原 V1 页面级 PushDetailStore（common，已随无状态化删除）的字段语义平移为
  * @Trace UI 状态：提交详情 + 文件列表 + 错误文案；CommitService 已无状态化
  * （cache-first 经 onCached 回调，不写 store），取数结果在这里写回 @Trace 字段。
  */

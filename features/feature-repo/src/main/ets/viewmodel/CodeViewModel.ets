@@ -1,7 +1,7 @@
 /**
  * CodeViewModel —— 代码文件详情页状态与编排（R9 V2 + MVVM）。
  *
- * 原 V1 页面级 CodeDetailStore（common，保留给纯 store 行为测试）的字段语义平移为
+ * 原 V1 页面级 CodeDetailStore（common，已随无状态化删除）的字段语义平移为
  * @Trace UI 状态：路径（fullName / branch / sha / path）+ 文件内容双通道
  * （content：markdown/raw 原文走原生 MarkdownRenderer；htmlContent：高亮 HTML 走 WebView）
  * + 加载 / 错误态。CodeService 已无状态化（双通道结果走返回值，cache-first 经

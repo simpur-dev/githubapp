@@ -34,13 +34,13 @@ export class OAuthLocalConfigLoader {
     OAuthLocalConfigLoader.cached = null;
   }
 
-  static async load(host: Object): Promise<OAuthRuntimeConfig> {
+  static async load(hostContext: common.Context | undefined): Promise<OAuthRuntimeConfig> {
     if (OAuthLocalConfigLoader.cached !== null) {
       return OAuthLocalConfigLoader.cached as OAuthRuntimeConfig;
     }
     const empty: OAuthRuntimeConfig = new OAuthRuntimeConfig();
     try {
-      const ctx: common.UIAbilityContext = getContext(host) as common.UIAbilityContext;
+      const ctx: common.Context = hostContext as common.Context;
       const bytes: Uint8Array = await ctx.resourceManager.getRawFileContent(LOCAL_OAUTH_RAWFILE);
       const text: string = OAuthLocalConfigLoader.decodeUtf8(bytes);
       const parsed: OAuthLocalJson = JSON.parse(text) as OAuthLocalJson;

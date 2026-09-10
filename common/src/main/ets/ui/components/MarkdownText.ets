@@ -15,12 +15,12 @@ const CODE_RADIUS: number = 4;
 const QUOTE_BAR_WIDTH: number = 3;
 const LIST_INDENT: number = 16;
 
-@Component
+@ComponentV2
 export struct MarkdownText {
-  @Prop markdown: string = '';
-  @Prop rootId: string = 'markdown_text';
-  @Prop textColor: ResourceColor = GSYColor.mainText;
-  @Prop textFontSize: number = GSYFontSize.small;
+  @Param markdown: string = '';
+  @Param rootId: string = 'markdown_text';
+  @Param textColor: ResourceColor = GSYColor.mainText;
+  @Param textFontSize: number = GSYFontSize.small;
 
   private lines(): MarkdownLine[] {
     return MarkdownUtil.parseLines(this.markdown);
@@ -98,22 +98,24 @@ export struct MarkdownText {
         .margin({ top: 2, bottom: 2 });
     } else if (line.kind === MARKDOWN_LINE_TABLE) {
       Row() {
-        ForEach(line.cells, (cell: string, cellIndex: number): void => {
-          Text(cell)
-            .id(this.rootId + '_table_' + index.toString() + '_' + cellIndex.toString())
-            .fontSize(this.textFontSize)
-            .fontWeight(line.level === 1 ? FontWeight.Bold : FontWeight.Normal)
-            .fontColor(this.textColor)
-            .layoutWeight(1)
-            .padding({
-              left: GSYSpacing.halfEdge,
-              right: GSYSpacing.halfEdge,
-              top: GSYSpacing.halfEdge,
-              bottom: GSYSpacing.halfEdge,
-            });
-        }, (cell: string, cellIndex: number): string => {
-          return cellIndex.toString() + '_' + cell;
-        });
+        Repeat<string>(line.cells)
+          .each((obj: RepeatItem<string>): void => {
+            Text(obj.item)
+              .id(this.rootId + '_table_' + index.toString() + '_' + obj.index.toString())
+              .fontSize(this.textFontSize)
+              .fontWeight(line.level === 1 ? FontWeight.Bold : FontWeight.Normal)
+              .fontColor(this.textColor)
+              .layoutWeight(1)
+              .padding({
+                left: GSYSpacing.halfEdge,
+                right: GSYSpacing.halfEdge,
+                top: GSYSpacing.halfEdge,
+                bottom: GSYSpacing.halfEdge,
+              });
+          })
+          .key((cell: string, cellIndex: number): string => {
+            return cellIndex.toString() + '_' + cell;
+          });
       }
       .id(this.rootId + '_table_row_' + index.toString())
       .width('100%')
@@ -135,11 +137,13 @@ export struct MarkdownText {
 
   build(): void {
     Column() {
-      ForEach(this.lines(), (line: MarkdownLine, index: number): void => {
-        this.buildLine(line, index);
-      }, (line: MarkdownLine, index: number): string => {
-        return index.toString() + '_' + line.kind + '_' + line.text;
-      });
+      Repeat<MarkdownLine>(this.lines())
+        .each((obj: RepeatItem<MarkdownLine>): void => {
+          this.buildLine(obj.item, obj.index);
+        })
+        .key((line: MarkdownLine, index: number): string => {
+          return index.toString() + '_' + line.kind + '_' + line.text;
+        });
     }
     .id(this.rootId)
     .width('100%')

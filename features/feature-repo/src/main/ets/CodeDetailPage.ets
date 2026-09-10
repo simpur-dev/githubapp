@@ -200,7 +200,7 @@ export struct CodeDetailPage {
   }
 
   private writeHtmlDoc(doc: string): string {
-    const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+    const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     const dir: string = ctx.cacheDir + '/code';
     this.ensureCodeDir(dir);
     const filePath: string = dir + '/' + this.safeCodeFileName();
@@ -358,7 +358,7 @@ export struct CodeDetailPage {
       return;
     }
     try {
-      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
       const want: Want = {
         action: 'ohos.want.action.viewData',
         uri: url,

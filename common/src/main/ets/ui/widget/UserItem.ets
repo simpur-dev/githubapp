@@ -17,11 +17,13 @@ interface UserDetailRouteParam {
   login: string;
 }
 
-@Component
+@ComponentV2
 export struct UserItem {
-  @Prop data: UserItemData = { login: '', avatar_url: '' };
-  rowId: string = '';
-  onPress?: () => void;
+  @Param data: UserItemData = { login: '', avatar_url: '' };
+  @Param rowId: string = '';
+  // 保留可选语义：不传时回退站内用户详情页导航（历史行为）。
+  // V2 普通属性禁止外部初始化，可选回调改 @Param 函数类型（@Event 无可选形式）。
+  @Param onPress: (() => void) | undefined = undefined;
 
   private handleClick(): void {
     if (this.onPress) {
