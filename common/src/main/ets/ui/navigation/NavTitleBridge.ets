@@ -14,6 +14,7 @@
  * 同名路由再次 push 时新页面 aboutToAppear 会整体覆盖旧配置。
  */
 
+import { NavigationService } from '../../base/navigation/NavigationService';
 import { SafeAreaInsets, setStatusBarStyle } from '../../base/utils/SafeAreaInsets';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
 
@@ -32,6 +33,8 @@ export interface NavTitleConfig {
   statusBarBg?: string;
   /** 状态栏图标是否浅色（白图标，配深色底）。 */
   statusBarLightIcon?: boolean;
+  /** 是否显示返回按钮（原生标题栏下默认显示；主页等无返回场景声明 false）。 */
+  showBack?: boolean;
   /** 静态标题；与 titleGetter 同时存在时 getter 优先。 */
   title?: string;
   /** 响应式标题：渲染时求值，读取页面 @Trace 字段可自动刷新。 */
@@ -161,35 +164,10 @@ export struct NavTitleView {
     return cfg.barId !== undefined && cfg.barId.length > 0 ? cfg.barId : 'appbar_root';
   }
 
-  build(): void {
-    Column() {
-      Text(this.resolveTitle())
-        .id(this.titleId())
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis });
-      if (this.hasSubtitle()) {
-        Text(this.resolveSubtitle())
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis });
-      }
-    }
-    .id(this.rootId())
-    .alignItems(HorizontalAlign.Start)
-    .justifyContent(FlexAlign.Center)
-    // 窗口全屏沉浸：标题栏内容避开状态栏，标题栏背景色自然延伸到状态栏后面
-    //（颜色 = 页面 NavDestination 背景，即界面本身的颜色，随页面变化）。
-    .padding({ top: SafeAreaInsets.top });
+  private showBack(): boolean {
+    const cfg: NavTitleConfig = NavTitleBridge.get().configFor(this.routeName);
+    return cfg.showBack !== false;
   }
-}
-
-/**
- * NavMenusView —— .menus(CustomBuilder) 的内容：标题栏动作按钮。
- * 动作 id 与原 AppBar 同规则：appbar_action_{l|r}_{iconKey}（无 iconKey 用下标）。
- * 背景/描边交给系统，按钮只保留命中区域与图标字号 token。
- */
-@ComponentV2
-export struct NavMenusView {
-  @Param routeName: string = '';
 
   private menuActions(): NavTitleAction[] {
     const cfg: NavTitleConfig = NavTitleBridge.get().configFor(this.routeName);
@@ -266,14 +244,61 @@ export struct NavMenusView {
 
   build(): void {
     Row() {
+      if (this.showBack()) {
+        Button() {
+          SymbolGlyph($r('sys.symbol.chevron_left'))
+            .fontSize(GSYIconSize.appBarAction)
+            .fontColor([GSYColor.primaryDark]);
+        }
+        .id('appbar_back')
+        .type(ButtonType.Normal)
+        .backgroundColor(GSYColor.transparent)
+        .width(GSYSpacing.hdsActionButtonSize)
+        .height(GSYSpacing.hdsActionButtonSize)
+        .margin({ left: GSYSpacing.halfEdge })
+        .hitTestBehavior(HitTestMode.Block)
+        .onClick((): void => {
+          NavigationService.pop();
+        });
+      }
       Repeat<NavTitleAction>(this.menuActions())
         .each((obj: RepeatItem<NavTitleAction>): void => {
-          this.actionButton(obj.item, obj.index < this.leftActionCount() ? 'l' : 'r', obj.index);
+          if (obj.index < this.leftActionCount()) {
+            this.actionButton(obj.item, 'l', obj.index);
+          }
         })
         .key((action: NavTitleAction, index: number): string =>
           index.toString() + ':' + (action.iconKey !== undefined ? action.iconKey : ''));
+      Column() {
+        Text(this.resolveTitle())
+          .id(this.titleId())
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
+        if (this.hasSubtitle()) {
+          Text(this.resolveSubtitle())
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
+        }
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+      .justifyContent(FlexAlign.Center)
+      .margin({ left: GSYSpacing.halfEdge });
+      Repeat<NavTitleAction>(this.menuActions())
+        .each((obj: RepeatItem<NavTitleAction>): void => {
+          if (obj.index >= this.leftActionCount()) {
+            this.actionButton(obj.item, 'r', obj.index - this.leftActionCount());
+          }
+        })
+        .key((action: NavTitleAction, index: number): string =>
+          'r' + index.toString() + ':' + (action.iconKey !== undefined ? action.iconKey : ''));
     }
+    .id(this.rootId())
+    .width('100%')
     .alignItems(VerticalAlign.Center)
-    .hitTestBehavior(HitTestMode.Transparent);
+    // 窗口全屏沉浸：返回键/标题/动作图标整体避开状态栏，
+    // 标题栏背景色（= 页面 NavDestination 背景，即界面本身的颜色）延伸到状态栏后面。
+    .padding({ top: SafeAreaInsets.top, left: GSYSpacing.halfEdge, right: GSYSpacing.halfEdge });
   }
 }
+
