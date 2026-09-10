@@ -175,7 +175,10 @@ export struct NavTitleView {
     }
     .id(this.rootId())
     .alignItems(HorizontalAlign.Start)
-    .justifyContent(FlexAlign.Center);
+    .justifyContent(FlexAlign.Center)
+    // 窗口全屏沉浸：标题栏内容避开状态栏，标题栏背景色自然延伸到状态栏后面
+    //（颜色 = 页面 NavDestination 背景，即界面本身的颜色，随页面变化）。
+    .padding({ top: SafeAreaInsets.top });
   }
 }
 

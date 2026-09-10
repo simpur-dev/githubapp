@@ -378,10 +378,8 @@ export struct AppNavigator {
     .hideTitleBar(true)
     .mode(NavigationMode.Stack)
     .navDestination(this.routerMap)
-    // 颜色沉浸：窗口全屏（EntryAbility.enableImmersive），此处统一把标题栏
-    // 推到状态栏之下，根背景色（标题栏同色）延伸到状态栏后面；
     // 底部完全沉浸：内容直铺到屏幕底边，手势指示条悬浮于内容之上。
-    .padding({ top: SafeAreaInsets.top })
-    .backgroundColor(NavTitleBridge.get().statusBarBg);
+    // 顶部颜色沉浸：状态栏透明 + 各页面标题栏自带状态栏高度内边距
+    // （NavTitleView），页面自身颜色直接延伸到状态栏后面（无全局固定色）。
   }
 }
