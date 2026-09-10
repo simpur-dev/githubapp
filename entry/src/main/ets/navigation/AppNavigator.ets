@@ -22,7 +22,7 @@
 import { LoadingModal } from 'common';
 import { NavigationService, SafeAreaInsets, LIGHT_PALETTE } from 'common';
 import { RouteName } from 'common';
-import { NavTitleView, NavMenusView } from 'common';
+import { NavTitleView, NavMenusView, NavTitleBridge } from 'common';
 
 import { WelcomePage } from 'feature_auth';
 import { LoginPage } from 'feature_auth';
@@ -216,119 +216,141 @@ export struct AppNavigator {
       NavDestination() {
         LoginWebPage();
       }
-        .title(this.loginWebTitle);
+        .title(this.loginWebTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.Search) {
       NavDestination() {
         SearchPage();
       }
-        .title(this.searchTitle);
+        .title(this.searchTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.Setting) {
       NavDestination() {
         SettingPage();
       }
-        .title(this.settingTitle);
+        .title(this.settingTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.About) {
       NavDestination() {
         AboutPage();
       }
-        .title(this.aboutTitle);
+        .title(this.aboutTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.Custom) {
       NavDestination() {
         CustomPage();
       }
-        .title(this.customTitle);
+        .title(this.customTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.Honor) {
       NavDestination() {
         HonorPage();
       }
-        .title(this.honorTitle);
+        .title(this.honorTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.Notify) {
       NavDestination() {
         NotifyPage();
       }
         .title(this.notifyTitle)
-        .menus(this.notifyMenus);
+        .menus(this.notifyMenus)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.ReadHistory) {
       NavDestination() {
         ReadHistoryPage();
       }
-        .title(this.readHistoryTitle);
+        .title(this.readHistoryTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.UserDetail) {
       NavDestination() {
         UserDetailPage();
       }
         .title(this.userDetailTitle)
-        .menus(this.userDetailMenus);
+        .menus(this.userDetailMenus)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.RepositoryDetail) {
       NavDestination() {
         RepositoryDetailPage();
       }
         .title(this.repositoryDetailTitle)
-        .menus(this.repositoryDetailMenus);
+        .menus(this.repositoryDetailMenus)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.IssueDetail) {
       NavDestination() {
         IssueDetailPage();
       }
         .title(this.issueDetailTitle)
-        .menus(this.issueDetailMenus);
+        .menus(this.issueDetailMenus)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.CodeDetail) {
       NavDestination() {
         CodeDetailPage();
       }
         .title(this.codeDetailTitle)
-        .menus(this.codeDetailMenus);
+        .menus(this.codeDetailMenus)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.PushDetail) {
       NavDestination() {
         PushDetailPage();
       }
         .title(this.pushDetailTitle)
-        .menus(this.pushDetailMenus);
+        .menus(this.pushDetailMenus)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.UserFollowed) {
       NavDestination() {
         UserFollowedPage();
       }
-        .title(this.userFollowedTitle);
+        .title(this.userFollowedTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.UserFollower) {
       NavDestination() {
         UserFollowerPage();
       }
-        .title(this.userFollowerTitle);
+        .title(this.userFollowerTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.RepositoryStar) {
       NavDestination() {
         RepositoryStarPage();
       }
-        .title(this.repositoryStarTitle);
+        .title(this.repositoryStarTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.RepositoryWatcher) {
       NavDestination() {
         RepositoryWatcherPage();
       }
-        .title(this.repositoryWatcherTitle);
+        .title(this.repositoryWatcherTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.RepositoryFork) {
       NavDestination() {
         RepositoryForkPage();
       }
-        .title(this.repositoryForkTitle);
+        .title(this.repositoryForkTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.PersonInfo) {
       NavDestination() {
         PersonInfoPage();
       }
-        .title(this.personInfoTitle);
+        .title(this.personInfoTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.Release) {
       NavDestination() {
         ReleasePage();
       }
-        .title(this.releaseTitle);
+        .title(this.releaseTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.WebPage) {
       NavDestination() {
         WebPage();
       }
         .title(this.webPageTitle)
-        .menus(this.webPageMenus);
+        .menus(this.webPageMenus)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else if (name === RouteName.CommonList) {
       NavDestination() {
         CommonListPage({ initialParam: _param });
       }
-        .title(this.commonListTitle);
+        .title(this.commonListTitle)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     } else {
       // 无自绘标题栏的路由：保持原 hideTitleBar 包裹结构。
       // Home 的 HomePage 自带页内 AppBar（home_appbar id 不变，见 R9 阶段4 约定）。
@@ -343,7 +365,8 @@ export struct AppNavigator {
           PhotoPage();
         }
       }
-        .hideTitleBar(true);
+        .hideTitleBar(true)
+        .onShown(() => NavTitleBridge.get().onDestinationShown(name));
     }
   }
 
@@ -359,6 +382,6 @@ export struct AppNavigator {
     // 推到状态栏之下，根背景色（标题栏同色）延伸到状态栏后面；
     // 底部完全沉浸：内容直铺到屏幕底边，手势指示条悬浮于内容之上。
     .padding({ top: SafeAreaInsets.top })
-    .backgroundColor(LIGHT_PALETTE.navBackground);
+    .backgroundColor(NavTitleBridge.get().statusBarBg);
   }
 }

@@ -14,7 +14,7 @@
  * 同名路由再次 push 时新页面 aboutToAppear 会整体覆盖旧配置。
  */
 
-import { SafeAreaInsets } from '../../base/utils/SafeAreaInsets';
+import { SafeAreaInsets, setStatusBarStyle } from '../../base/utils/SafeAreaInsets';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
 
 /** 标题栏动作项（原 AppBarAction 等价物），onAction 闭包随对象携带。 */
@@ -28,6 +28,10 @@ export interface NavTitleAction {
 
 /** 标题栏配置（原 AppBar 的 title/subtitle/actions 形参）。 */
 export interface NavTitleConfig {
+  /** 状态栏底色（颜色跟随页面）；不声明则用当前默认（白底深图标）。 */
+  statusBarBg?: string;
+  /** 状态栏图标是否浅色（白图标，配深色底）。 */
+  statusBarLightIcon?: boolean;
   /** 静态标题；与 titleGetter 同时存在时 getter 优先。 */
   title?: string;
   /** 响应式标题：渲染时求值，读取页面 @Trace 字段可自动刷新。 */
@@ -65,7 +69,37 @@ export class NavTitleBridge {
   @Trace revision: number = 0;
   @Trace private titleConfigs: Map<string, NavTitleConfig> = new Map<string, NavTitleConfig>();
 
+  /** 当前状态栏底色（颜色跟随可见页面）。 */
+  @Trace statusBarBg: string = GSYColor.mainBackground;
+  /** 当前状态栏图标是否浅色。 */
+  @Trace statusBarLightIcon: boolean = false;
+
+  /** 页面直接声明状态栏样式（无标题配置的页面用，如 HomePage）。 */
+  setStatusBar(bg: string, lightIcon: boolean): void {
+    this.statusBarBg = bg;
+    this.statusBarLightIcon = lightIcon;
+    setStatusBarStyle(bg, lightIcon);
+  }
+
+  private titleFor(routeName: string): NavTitleConfig | undefined | null {
+    const found: NavTitleConfig | undefined = this.titleConfigs.get(routeName);
+    return found !== undefined ? found : null;
+  }
+
+  /** NavDestination onShown 时调用：让状态栏颜色跟随可见页面（含返回场景）。 */
+  onDestinationShown(routeName: string): void {
+    const cfg: NavTitleConfig | undefined | null = this.titleFor(routeName);
+    if (cfg !== undefined && cfg !== null && cfg.statusBarBg !== undefined) {
+      this.setStatusBar(cfg.statusBarBg, cfg.statusBarLightIcon === true);
+    } else {
+      this.setStatusBar(GSYColor.mainBackground, false);
+    }
+  }
+
   registerTitle(routeName: string, config: NavTitleConfig): void {
+    if (config.statusBarBg !== undefined) {
+      this.setStatusBar(config.statusBarBg, config.statusBarLightIcon === true);
+    }
     this.titleConfigs.set(routeName, config);
     this.revision++;
   }

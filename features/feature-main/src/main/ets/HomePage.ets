@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP, SafeAreaInsets } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, SafeAreaInsets, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -92,6 +92,11 @@ export struct HomePage {
   ];
 
   aboutToAppear(): void {
+    // 主页头部是深色：状态栏跟随为深底白图标。
+    NavTitleBridge.get().registerTitle(RouteName.Home, {
+      statusBarBg: LIGHT_PALETTE.navBackground,
+      statusBarLightIcon: true,
+    } as NavTitleConfig);
     this.applyBootTab();
     this.scheduleBootRepo();
     this.scheduleBootPush();

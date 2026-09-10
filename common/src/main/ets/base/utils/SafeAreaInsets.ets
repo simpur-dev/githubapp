@@ -33,6 +33,27 @@ export class SafeAreaInsetsImpl {
  */
 export const SafeAreaInsets: SafeAreaInsetsImpl = new SafeAreaInsetsImpl();
 
+let mainWindow: window.Window | null = null;
+
+/**
+ * 状态栏图标深浅跟随页面。注意官方沉浸式模型：
+ * 状态栏底色永远透明（enableImmersive 已设），颜色由应用页面内容自己画出来——
+ * 这里绝不给 statusBarColor 设不透明色，否则应用退后台后颜色会残留在系统状态栏上。
+ * 只动态调整图标/内容色深浅（深底配白图标、浅底配深图标）。
+ */
+export function setStatusBarStyle(bg: string, contentLight: boolean): void {
+  if (mainWindow === null) {
+    return;
+  }
+  mainWindow.setWindowSystemBarProperties({
+    statusBarColor: GSYColor.transparent,
+    isStatusBarLightIcon: contentLight,
+    statusBarContentColor: contentLight ? GSYColor.white : GSYColor.primaryDark,
+  }).catch((e: Error): void => {
+    hilog.error(0x0000, TAG, 'setStatusBarStyle fail %{public}s', e.message);
+  });
+}
+
 /**
  * 沉浸式 + 安全区初始化（HarmonyOS 6.x 光感 UI）。
  * - setWindowLayoutFullScreen(true)：内容延伸到 statusBar / navIndicator 区域
@@ -44,14 +65,15 @@ export const SafeAreaInsets: SafeAreaInsetsImpl = new SafeAreaInsetsImpl();
 export async function enableImmersive(windowStage: window.WindowStage): Promise<void> {
   try {
     const win: window.Window = await windowStage.getMainWindow();
+    mainWindow = win;
     await win.setWindowLayoutFullScreen(true);
 
     const sysBarProps: window.SystemBarProperties = {
       statusBarColor: GSYColor.transparent,
       navigationBarColor: GSYColor.transparent,
-      isStatusBarLightIcon: true,
+      isStatusBarLightIcon: false,
       isNavigationBarLightIcon: false,
-      statusBarContentColor: GSYColor.white,
+      statusBarContentColor: GSYColor.primaryDark,
       navigationBarContentColor: GSYColor.primary,
     };
     await win.setWindowSystemBarProperties(sysBarProps);
