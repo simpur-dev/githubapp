@@ -32,7 +32,7 @@ export { ExternalUrlUtil } from './src/main/ets/base/utils/ExternalUrlUtil';
 export { HtmlUtil } from './src/main/ets/base/utils/HtmlUtil';
 export { IssuePermissionUtil } from './src/main/ets/base/utils/IssuePermissionUtil';
 export { MARKDOWN_LINE_BULLET, MARKDOWN_LINE_CODE, MARKDOWN_LINE_HEADING, MARKDOWN_LINE_ORDERED, MARKDOWN_LINE_PARAGRAPH, MARKDOWN_LINE_QUOTE, MARKDOWN_LINE_TABLE, MARKDOWN_LINE_TASK, MarkdownLine, MarkdownUtil } from './src/main/ets/base/utils/MarkdownUtil';
-export { SafeAreaInsets, SafeAreaInsetsImpl, enableImmersive, setStatusBarStyle } from './src/main/ets/base/utils/SafeAreaInsets';
+export { applySystemBars, initSystemBars } from './src/main/ets/base/utils/SafeAreaInsets';
 export { KEY_SEARCH_HISTORY, SEARCH_HISTORY_MAX, SearchHistory, SearchHistoryManager, SearchHistoryStorage } from './src/main/ets/base/utils/SearchHistory';
 export { StringUtil } from './src/main/ets/base/utils/StringUtil';
 export { TimeUtil } from './src/main/ets/base/utils/TimeUtil';
@@ -77,7 +77,7 @@ export { LoadingModal, loadingDialogContent } from './src/main/ets/ui/components
 export { MarkdownText } from './src/main/ets/ui/components/MarkdownText';
 export { PullLoadMoreList } from './src/main/ets/ui/components/PullLoadMoreList';
 export { SubListMode, SubListView } from './src/main/ets/ui/list/SubListView';
-export { NavTitleAction, NavTitleBridge, NavTitleConfig, NavTitleView } from './src/main/ets/ui/navigation/NavTitleBridge';
+export { NavBottomBarConfig, NavBottomBarView, NavMenusView, NavTitleAction, NavTitleBridge, NavTitleConfig, NavTitleView } from './src/main/ets/ui/navigation/NavTitleBridge';
 export { LANGUAGE_SELECT, LANGUAGE_SELECT_NAME, PW_KEY, REFRESH_LANGUAGE, TOKEN_KEY, TextColorMiWhtte, TextColorWhite, Themes, ThemesMap, USER_BASIC_CODE, USER_INFO, USER_NAME_KEY, actionBlue, andrnavHeaderHeight, bigIconSize, bigTextSize, cardBackgroundColor, cardShadowColor, iosnavHeaderHeight, largeIconSize, largetTextSize, lineColor, littleIconSize, mainBackgroundColor, mainTextColor, miWhite, middleTextWhite, minIconSize, minTextSize, nextIcon, normalIconSize, normalMarginEdge, normalNumberOfLine, normalTextSize, primaryColor, primaryDarkColor, primaryLightColor, selectedColor, smallIconSize, smallTextSize, subLightTextColor, subTextColor, tabBackgroundColor, tabBarHeight, tabDynamic, tabIconSize, tabMy, tabRecommended, tabSelectedColor, tabUnSelectColor, titleTextColor, transparentColor, webDraculaBackgroundColor, white } from './src/main/ets/ui/style/Constant';
 export { GSYColor, GSYDarkColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from './src/main/ets/ui/style/Theme';
 export { DARK_PALETTE, LIGHT_PALETTE, SystemColorProvider, ThemeManager, ThemeManagerImpl, ThemeMode, ThemePalette } from './src/main/ets/ui/theme/ThemeManager';

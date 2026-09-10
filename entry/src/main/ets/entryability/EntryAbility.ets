@@ -9,7 +9,7 @@ import { Preferences, KEY_USER_TOKEN, PREF_NAME } from 'common';
 import { RdbStore } from 'common';
 import { HttpManager } from 'common';
 import { GlobalAuthStore } from 'common';
-import { enableImmersive } from 'common';
+import { initSystemBars, applySystemBars, GSYColor, NavTitleBridge } from 'common';
 import { Logger } from 'common';
 import { changeLocale, LocaleKey } from 'common';
 import { KEY_SEARCH_HISTORY, BOOT_TAB_KEY, BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_NOTIFY_ISSUE_KEY, BOOT_COMMON_LIST_KEY, BootChannel } from 'common';
@@ -83,8 +83,14 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(0x0000, TAG, 'onWindowStageCreate');
     // 颜色沉浸：窗口全屏 + 透明系统栏（状态栏白字），避让由 AppNavigator 导航根统一处理。
-    enableImmersive(windowStage).catch((e: Error): void => {
-      hilog.warn(0x0000, TAG, 'enableImmersive fail %{public}s', e.message);
+    // 官方非全屏窗口模型：系统避让状态栏/手势条（原生标题栏、返回键、组件均不进入安全区）；
+    // 状态栏底色/图标深浅按页面声明经 applySystemBars 动态跟随。
+    windowStage.getMainWindow((err, win) => {
+      if (err.code) {
+        hilog.error(0x0000, TAG, 'getMainWindow fail %{public}s', JSON.stringify(err));
+      } else {
+        initSystemBars(win);
+      }
     });
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
@@ -93,6 +99,16 @@ export default class EntryAbility extends UIAbility {
       }
       hilog.info(0x0000, TAG, 'loadContent ok');
     });
+  }
+
+  onBackground(): void {
+    // 退后台把状态栏置透明：颜色不残留在系统状态栏上。
+    applySystemBars(GSYColor.transparent, false);
+  }
+
+  onForeground(): void {
+    // 回前台恢复当前页面的状态栏样式（颜色跟随页面）。
+    NavTitleBridge.get().reapplyStatusBar();
   }
 
   onWindowStageRestore(_windowStage: window.WindowStage): void {

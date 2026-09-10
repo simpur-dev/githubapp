@@ -1,116 +1,39 @@
 /**
- * SafeAreaInsets —— 沉浸式布局下读取系统安全区（状态栏 / 底部手势条），
- * 以 @ObservedV2 单例形式暴露给各页面直读：
- *   SafeAreaInsets.top      // 状态栏高度（vp）
- *   SafeAreaInsets.bottom   // 底部手势条高度（vp）
- *
- * 数据单位：vp（已转换，可直接用作 padding/height）
- *
- * V1 组件读单例字段不会自动刷新，配合 EVENT_SAFE_AREA_CHANGED 事件订阅即可；
- * V2 组件可直接订阅 @Trace 字段。
- *
- * 沉浸式开关在 [EntryAbility.onWindowStageCreate](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/entryability/EntryAbility.ets) 调
- * `enableImmersive(windowStage)` 即可。
+ * 系统状态栏样式 —— 官方非全屏窗口模型：
+ * 窗口默认避让状态栏/手势条（系统画返回键、标题栏，组件天然不与安全区冲突）；
+ * 状态栏底色/图标深浅按页面声明，经 setStatusBarStyle 调官方窗口属性实现颜色跟随。
  */
 import window from '@ohos.window';
-import display from '@ohos.display';
 import hilog from '@ohos.hilog';
 import { GSYColor } from '../../ui/style/Theme';
-import { EventBus, EVENT_SAFE_AREA_CHANGED } from './EventBus';
 
 const TAG: string = 'SafeAreaInsets';
-
-@ObservedV2
-export class SafeAreaInsetsImpl {
-  /** 状态栏避让高度（vp） */
-  @Trace top: number = 0;
-  /** 底部手势条避让高度（vp） */
-  @Trace bottom: number = 0;
-}
-
-/**
- * 安全区单例：enableImmersive / avoidAreaChange 回调更新 top/bottom。
- */
-export const SafeAreaInsets: SafeAreaInsetsImpl = new SafeAreaInsetsImpl();
 
 let mainWindow: window.Window | null = null;
 
 /**
- * 状态栏图标深浅跟随页面。注意官方沉浸式模型：
- * 状态栏底色永远透明（enableImmersive 已设），颜色由应用页面内容自己画出来——
- * 这里绝不给 statusBarColor 设不透明色，否则应用退后台后颜色会残留在系统状态栏上。
- * 只动态调整图标/内容色深浅（深底配白图标、浅底配深图标）。
+ * 由 EntryAbility.onWindowStageCreate 调用一次：缓存主窗口 + 设置初始状态栏样式。
  */
-export function setStatusBarStyle(bg: string, contentLight: boolean): void {
+export function initSystemBars(win: window.Window): void {
+  mainWindow = win;
+  applySystemBars(GSYColor.mainBackground, false);
+}
+
+/**
+ * 状态栏颜色跟随页面（官方 setWindowSystemBarProperties）：
+ * bg 为状态栏底色（GSYColor token hex 字符串），contentLight 表示图标是否白色。
+ * 应用退后台时由 EntryAbility.onBackground 重置为默认色，避免颜色残留在系统状态栏上。
+ */
+export function applySystemBars(bg: string, contentLight: boolean): void {
   if (mainWindow === null) {
     return;
   }
   mainWindow.setWindowSystemBarProperties({
-    statusBarColor: GSYColor.transparent,
+    statusBarColor: bg,
     isStatusBarLightIcon: contentLight,
     statusBarContentColor: contentLight ? GSYColor.white : GSYColor.primaryDark,
+    navigationBarColor: GSYColor.transparent,
   }).catch((e: Error): void => {
-    hilog.error(0x0000, TAG, 'setStatusBarStyle fail %{public}s', e.message);
+    hilog.error(0x0000, TAG, 'applySystemBars fail %{public}s', e.message);
   });
-}
-
-/**
- * 沉浸式 + 安全区初始化（HarmonyOS 6.x 光感 UI）。
- * - setWindowLayoutFullScreen(true)：内容延伸到 statusBar / navIndicator 区域
- * - setWindowSystemBarProperties：
- *   - statusBar 透明 + LightIcon=true（白字图标）—— AppBar 是深色 GitHub primary，需要白图标
- *   - navigationBar 透明 + LightIcon=false（深字图标）—— TabBar 是白底，需要黑图标
- * - 监听 avoidArea 变化，把 top / bottom 推给 SafeAreaInsets 单例（vp）并广播事件
- */
-export async function enableImmersive(windowStage: window.WindowStage): Promise<void> {
-  try {
-    const win: window.Window = await windowStage.getMainWindow();
-    mainWindow = win;
-    await win.setWindowLayoutFullScreen(true);
-
-    const sysBarProps: window.SystemBarProperties = {
-      statusBarColor: GSYColor.transparent,
-      navigationBarColor: GSYColor.transparent,
-      isStatusBarLightIcon: false,
-      isNavigationBarLightIcon: false,
-      statusBarContentColor: GSYColor.primaryDark,
-      navigationBarContentColor: GSYColor.primary,
-    };
-    await win.setWindowSystemBarProperties(sysBarProps);
-
-    publishInsets(win);
-
-    win.on('avoidAreaChange', (data: window.AvoidAreaOptions): void => {
-      if (data.type === window.AvoidAreaType.TYPE_SYSTEM
-        || data.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
-        publishInsets(win);
-      }
-    });
-  } catch (e) {
-    hilog.error(0x0000, TAG, 'enableImmersive fail %{public}s', (e as Error).message);
-  }
-}
-
-function publishInsets(win: window.Window): void {
-  try {
-    const sysArea: window.AvoidArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
-    const navArea: window.AvoidArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
-
-    const topPx: number = sysArea.topRect.height;
-    const bottomPx: number = navArea.bottomRect.height;
-
-    const dpInfo: display.Display = display.getDefaultDisplaySync();
-    const density: number = dpInfo.densityPixels > 0 ? dpInfo.densityPixels : 1;
-
-    const topVp: number = Math.round(topPx / density);
-    const bottomVp: number = Math.round(bottomPx / density);
-
-    SafeAreaInsets.top = topVp;
-    SafeAreaInsets.bottom = bottomVp;
-    EventBus.emit(EVENT_SAFE_AREA_CHANGED, SafeAreaInsets);
-
-    hilog.info(0x0000, TAG, 'insets top=%{public}dvp bottom=%{public}dvp', topVp, bottomVp);
-  } catch (e) {
-    hilog.error(0x0000, TAG, 'publishInsets fail %{public}s', (e as Error).message);
-  }
 }

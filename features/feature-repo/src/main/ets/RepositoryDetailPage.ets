@@ -22,7 +22,7 @@ import { ActivityTab } from './repo/ActivityTab';
 import { FilesTab, isImageOrArchiveFile } from './repo/FilesTab';
 import { ExternalUrlUtil } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
-import { CommonBottomBar, CommonBottomBarItem, SafeAreaInsets } from 'common';
+import { CommonBottomBar, CommonBottomBarItem } from 'common';
 import {
   FA_STAR,
   FA_STAR_O,
@@ -853,7 +853,7 @@ export struct RepositoryDetailPage {
             materialFloatingStyle: true,
             trailingItemId: 'branch',
             rootMarginHorizontal: GSYSpacing.hdsFloatingBarSideMargin,
-            rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin + SafeAreaInsets.bottom,
+            rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin,
             rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
             rootHeight: GSYSpacing.bottomBarDefault,
             trailingMenuShow: this.branchMenuVisible,

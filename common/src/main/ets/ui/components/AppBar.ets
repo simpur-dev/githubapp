@@ -9,7 +9,6 @@
  */
 import { ThemePalette, LIGHT_PALETTE, ThemeManager } from '../theme/ThemeManager';
 import { EventBus, EVENT_THEME_CHANGED } from '../../base/utils/EventBus';
-import { SafeAreaInsets } from '../../base/utils/SafeAreaInsets';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
 
 const APP_BAR_SIDE_WIDTH: number = 64;
@@ -199,14 +198,6 @@ export struct AppBar {
 
   build(): void {
     Column() {
-      // 窗口全屏沉浸：深色头部自己延伸到状态栏后面（内容随 padding 避开）。
-      if (this.immersive && SafeAreaInsets.top > 0) {
-        Row()
-          .id('appbar_status_spacer')
-          .width('100%')
-          .height(SafeAreaInsets.top)
-          .backgroundColor(this.resolveBackground());
-      }
       Row() {
         if (this.titleStart) {
           Row() {
