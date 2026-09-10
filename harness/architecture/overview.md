@@ -35,7 +35,8 @@
 ## 3. 导航与页面呈现
 
 - 单根 Navigation（AppNavigator 持唯一 NavPathStack）+ NavDestination 页面。
-- 标题栏/工具栏：NavDestination 原生 `.title(自定义builder)` + `.menus` + `.toolbarConfiguration`；页面通过 `NavTitleBridge`（@ObservedV2 单例）注册标题/动作配置（titleGetter 支持动态标题，revision 补偿首帧时序）。
+- 标题栏/工具栏：NavDestination 原生 `.title(自定义builder)` + `.menus`；仓库/Issue 底栏为页面内挂载（系统工具栏高度固定 56vp 无法容纳手势条避让）。页面通过 `NavTitleBridge`（@ObservedV2 单例）注册标题/动作配置（titleGetter 支持动态标题，revision 补偿首帧时序）。
+- 颜色沉浸（官方模型）：窗口全屏 + 状态栏恒透明，状态栏颜色 = 页面自身颜色延伸（NavTitleView/AppBar 自带状态栏高度内边距，无全局固定色）；窗口 API 仅动态切图标深浅（按页面声明，NavDestination .onShown 驱动）；底部内容铺到屏幕底边、可交互组件经 SafeAreaInsets.bottom 避让手势条。
 - 弹层：AlertDialog/ActionSheet（CommonModal 封装）、bindSheet（输入/编辑表单）、bindMenu（分支选择等菜单）、LoadingModal（UIContext.openCustomDialog 句柄式）。V1 CustomDialogController 全工程清零。
 
 ## 4. 数据层
