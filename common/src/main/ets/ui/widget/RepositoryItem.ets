@@ -6,6 +6,7 @@ import { GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from '../style/Theme'
 import { ThemeManager } from '../theme/ThemeManager';
 import { UserImage } from './UserImage';
 import { IconTextItem } from './IconTextItem';
+import { PressableCard } from './PressableCard';
 import { HTMLView } from '../components/HTMLView';
 import { CommonIconButton } from '../components/CommonIconButton';
 import { FA_STAR_O, FA_CODE_FORK, FA_USER } from '../components/IconFont';
@@ -25,7 +26,9 @@ export struct RepositoryItem {
   @Event onPressItem: () => void = (): void => {};
 
   build(): void {
-    Column() {
+    // R10 阶段3：整卡按压反馈（蒙层 + 0.98 缩放），行内 .id / onClick 原样保留。
+    PressableCard({ cornerRadius: GSYSpacing.cardRadiusLg }) {
+      Column() {
       Row() {
         UserImage({
           uri: this.ownerPic,
@@ -140,7 +143,7 @@ export struct RepositoryItem {
       top: GSYSpacing.halfEdge,
       bottom: GSYSpacing.halfEdge,
     })
-    .borderRadius(4)
+    .borderRadius(GSYSpacing.cardRadiusLg)
     .border({
       width: 1,
       color: ThemeManager.current().divider,
@@ -156,5 +159,6 @@ export struct RepositoryItem {
     .onClick((): void => {
       this.onPressItem();
     });
+    }
   }
 }

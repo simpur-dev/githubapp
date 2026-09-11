@@ -9,6 +9,7 @@ import { GSYFontSize, GSYSpacing, GSYShadow } from '../style/Theme';
 import { ThemeManager } from '../theme/ThemeManager';
 import { TimeUtil } from '../../base/utils/TimeUtil';
 import { UserImage } from './UserImage';
+import { PressableCard } from './PressableCard';
 
 @ComponentV2
 export struct EventItem {
@@ -22,7 +23,9 @@ export struct EventItem {
   @Event onPressUser: () => void = (): void => {};
 
   build(): void {
-    Column() {
+    // R10 阶段3：整卡按压反馈（蒙层 + 0.98 缩放），行内 .id / onClick 原样保留。
+    PressableCard({ cornerRadius: GSYSpacing.cardRadiusLg }) {
+      Column() {
       Row() {
         UserImage({
           uri: this.actionUserPic,
@@ -72,7 +75,7 @@ export struct EventItem {
       top: 12,
       bottom: 12,
     })
-    .borderRadius(8)
+    .borderRadius(GSYSpacing.cardRadiusLg)
     .backgroundColor(ThemeManager.current().card)
     .border({
       width: 1,
@@ -94,5 +97,6 @@ export struct EventItem {
       top: GSYSpacing.halfEdge,
       bottom: GSYSpacing.halfEdge,
     });
+    }
   }
 }

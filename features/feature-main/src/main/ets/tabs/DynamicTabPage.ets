@@ -71,6 +71,9 @@ export struct DynamicTabPage {
         refreshing: this.vm.refreshing,
         loadingMore: this.vm.loadingMore,
         noMore: !this.vm.hasMore,
+        // R10 阶段3：错误态接入（有数据时不打断列表，空数据时显示统一错误空态）。
+        error: this.vm.errorMessage.length > 0,
+        errorText: this.vm.errorMessage,
         renderRow: (item: Object, index: number): void => this.rowBuilder(item as DynamicEvent, index),
         renderEmpty: (): void => this.emptyBuilder(),
         onRefresh: (): void => {
@@ -78,6 +81,9 @@ export struct DynamicTabPage {
         },
         onLoadMore: (): void => {
           this.vm.loadMore();
+        },
+        retryError: (): void => {
+          this.vm.refresh();
         },
         refreshingText: I18n('refreshing'),
         loadingMoreText: I18n('loadMoreing'),

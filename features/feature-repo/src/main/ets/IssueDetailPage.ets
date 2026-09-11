@@ -660,19 +660,22 @@ export struct IssueDetailPage {
 
             Column() {
               Row() {
+                // R10 阶段3：状态文字升级为胶囊 pill（open/closed 业务色底 + 白字）。
                 Text((this.vm.issue as IssueDetailModel).state === ISSUE_STATE_OPEN
                   ? I18n('issueOpenText') : I18n('issueCloseText'))
                   .id('issue_detail_state')
                   .fontSize(GSYFontSize.min)
                   .fontWeight(FontWeight.Bold)
-                  .fontColor((this.vm.issue as IssueDetailModel).state === ISSUE_STATE_OPEN
-                    ? GSYColor.issueOpenGreen : GSYColor.issueClosedRed)
+                  .fontColor(ThemeManager.current().onBrandText)
                   .padding({
-                    left: 0,
-                    right: GSYSpacing.halfEdge,
-                    top: 0,
-                    bottom: 0,
+                    left: GSYSpacing.pillPaddingHorizontal,
+                    right: GSYSpacing.pillPaddingHorizontal,
+                    top: GSYSpacing.pillPaddingVertical,
+                    bottom: GSYSpacing.pillPaddingVertical,
                   })
+                  .borderRadius(GSYSpacing.pillRadius)
+                  .backgroundColor((this.vm.issue as IssueDetailModel).state === ISSUE_STATE_OPEN
+                    ? GSYColor.issueOpenGreen : GSYColor.issueClosedRed)
                   .margin({ left: 0 });
 
                 Text('#' + (this.vm.issue as IssueDetailModel).number.toString())

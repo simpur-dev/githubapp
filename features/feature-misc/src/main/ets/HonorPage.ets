@@ -1,7 +1,9 @@
 import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { I18n } from 'common';
-import { GSYColor, GSYFontSize } from 'common';
+import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { ThemeManager } from 'common';
+import { ContributionDay, emptyContributionDay } from 'common';
+import { ContributionHeatmap } from 'common';
 
 export class HonorEntry {
   name: string;
@@ -20,6 +22,37 @@ export const HONOR_LIST: HonorEntry[] = [
   new HonorEntry('hypium', 'OpenHarmony 单元测试 / UI 测试框架'),
   new HonorEntry('Contributors', 'GSYGithubApp 全体贡献者'),
 ];
+
+const SAMPLE_LEVEL_CYCLE: number[] = [0, 0, 1, 2, 1, 0, 3, 4, 2, 0, 1, 1, 2, 3];
+/** 一年热力图总格数（53 周 × 7 天）。 */
+const SAMPLE_TOTAL_DAYS: number = 371;
+
+function formatSampleDate(d: Date): string {
+  const m: number = d.getMonth() + 1;
+  const day: number = d.getDate();
+  return d.getFullYear().toString() + '-' + (m < 10 ? '0' + m.toString() : m.toString())
+    + '-' + (day < 10 ? '0' + day.toString() : day.toString());
+}
+
+/**
+ * TODO(R10) 接真数据：ContributionService.getContributions(login) 已就绪
+ * （返回 ContributionDay[]，与 ContributionHeatmap.days 同构），
+ * 待定下荣誉榜页展示哪位用户的贡献数据后替换此静态示例。
+ */
+function buildHonorSampleDays(): ContributionDay[] {
+  const out: ContributionDay[] = [];
+  for (let i: number = 0; i < SAMPLE_TOTAL_DAYS; i++) {
+    const d: Date = new Date(2025, 8, 14 + i);
+    const day: ContributionDay = emptyContributionDay();
+    day.date = formatSampleDate(d);
+    day.level = SAMPLE_LEVEL_CYCLE[i % SAMPLE_LEVEL_CYCLE.length];
+    day.count = day.level * 3;
+    out.push(day);
+  }
+  return out;
+}
+
+const HONOR_CONTRIBUTION_SAMPLE: ContributionDay[] = buildHonorSampleDays();
 
 /**
  * HonorPage —— 荣耀榜页 View 层（R9 V2 + MVVM）。
@@ -92,6 +125,29 @@ export struct HonorPage {
       .padding({ top: 24, bottom: 16, left: 16, right: 16 })
       .alignItems(HorizontalAlign.Start)
       .backgroundColor(ThemeManager.current().card);
+
+      // R10 阶段3：贡献热力图（数据结构对齐 ContributionStore.days；
+      // 当前为静态示例，见上方 TODO 接真数据说明）。
+      Column() {
+        ContributionHeatmap({
+          days: HONOR_CONTRIBUTION_SAMPLE,
+          userName: 'CarGuo',
+        })
+      }
+      .id('honor_heatmap_card')
+      .width('100%')
+      .padding({
+        top: GSYSpacing.padding12,
+        bottom: GSYSpacing.padding12,
+        left: GSYSpacing.normalEdge,
+        right: GSYSpacing.normalEdge,
+      })
+      .border({
+        width: { top: GSYSpacing.dividerThickness, bottom: GSYSpacing.dividerThickness },
+        color: ThemeManager.current().divider,
+      })
+      .backgroundColor(ThemeManager.current().card)
+      .alignItems(HorizontalAlign.Start);
 
       List() {
         Repeat(this.items)

@@ -12,6 +12,12 @@
 import { systemInsets } from '../../base/utils/SafeAreaInsets';
 import { GSYFontSize } from '../style/Theme';
 import { ThemeManager } from '../theme/ThemeManager';
+import { EmptyState } from './EmptyState';
+
+/** 错误态标题（空态/页脚英文文案 I18n 收口另有批次，此处默认英文）。 */
+const DEFAULT_ERROR_TITLE: string = 'Something went wrong';
+/** 重试按钮文案。 */
+const DEFAULT_RETRY_TEXT: string = 'Retry';
 
 @ComponentV2
 export struct PullLoadMoreList {
@@ -37,9 +43,15 @@ export struct PullLoadMoreList {
   @Param listScroller: Scroller | null = null;
   /** 是否渲染 footer 文案行（不支持分页的页面如趋势页传 false，保持旧版无 footer 视觉）。 */
   @Param showFooter: boolean = true;
+  /** R10 阶段3 错误态：true 且无数据时渲染 EmptyState（带重试按钮）替代 renderEmpty。 */
+  @Param error: boolean = false;
+  /** 错误详情文案（EmptyState 副标题，可选）。 */
+  @Param errorText: string = '';
 
   @Event onRefresh: () => void = (): void => {};
   @Event onLoadMore: () => void = (): void => {};
+  /** 错误态重试回调（页面侧负责清错误标记并重新拉取）。 */
+  @Event retryError: () => void = (): void => {};
 
   @BuilderParam renderRow: (item: Object, index: number) => void = this.defaultRow;
   @BuilderParam renderHeader: () => void = this.defaultEmptyBuilder;
@@ -80,14 +92,21 @@ export struct PullLoadMoreList {
 
   @Builder
   defaultEmptyState(): void {
-    Column() {
-      Text(this.emptyText)
-        .fontSize(GSYFontSize.middleNormal)
-        .fontColor(ThemeManager.current().textSecondary);
-    }
-    .width('100%')
-    .height(240)
-    .justifyContent(FlexAlign.Center);
+    // R10 阶段3：默认空态统一走 EmptyState（无重试按钮形态）。
+    EmptyState({ title: this.emptyText });
+  }
+
+  @Builder
+  buildErrorState(): void {
+    EmptyState({
+      iconText: 'more',
+      title: DEFAULT_ERROR_TITLE,
+      subtitle: this.errorText,
+      retryText: DEFAULT_RETRY_TEXT,
+      retry: (): void => {
+        this.retryError();
+      },
+    });
   }
 
   @Builder
@@ -155,7 +174,11 @@ export struct PullLoadMoreList {
             });
         } else {
           ListItem() {
-            this.renderEmpty();
+            if (this.error) {
+              this.buildErrorState();
+            } else {
+              this.renderEmpty();
+            }
           }
         }
 

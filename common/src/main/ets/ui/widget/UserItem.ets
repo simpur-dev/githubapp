@@ -3,6 +3,7 @@
 import { GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from '../style/Theme';
 import { ThemeManager } from '../theme/ThemeManager';
 import { UserImage } from './UserImage';
+import { PressableCard } from './PressableCard';
 import { IconFont, FA_CHEVRON_RIGHT } from '../components/IconFont';
 import { NavigationService } from '../../base/navigation/NavigationService';
 import { RouteName } from '../../base/navigation/Routes';
@@ -36,7 +37,9 @@ export struct UserItem {
   }
 
   build(): void {
-    Row() {
+    // R10 阶段3：整卡按压反馈（蒙层 + 0.98 缩放），行内 .id / onClick 原样保留。
+    PressableCard({ cornerRadius: GSYSpacing.cardRadiusLg }) {
+      Row() {
       UserImage({
         uri: this.data.avatar_url,
         loginUser: this.data.login,
@@ -87,7 +90,7 @@ export struct UserItem {
       top: 8,
       bottom: 8,
     })
-    .borderRadius(8)
+    .borderRadius(GSYSpacing.cardRadiusLg)
     .border({
       width: 1,
       color: ThemeManager.current().divider,
@@ -102,5 +105,6 @@ export struct UserItem {
     .onClick((): void => {
       this.handleClick();
     });
+    }
   }
 }

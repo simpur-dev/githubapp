@@ -9,8 +9,9 @@ import type { TranslationMap } from 'common';
 import { PullLoadMoreList } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
-import { GSYSpacing, GSYFontSize, GSYShadow, ThemeManager } from 'common';
-import { IconFont, FA_PLUS, FA_SEARCH, FA_TIMES, FA_BUG } from 'common';
+import { GSYColor, GSYSpacing, GSYFontSize, GSYShadow, ThemeManager } from 'common';
+import { PressableCard } from 'common';
+import { IconFont, FA_PLUS, FA_SEARCH, FA_TIMES, FA_BUG, FA_CHECK } from 'common';
 import { RepositoryIssueItem, ISSUE_STATE_OPEN, ISSUE_STATE_CLOSED, ISSUE_STATE_ALL } from 'common';
 import { IssueTabViewModel } from '../viewmodel/IssueTabViewModel';
 
@@ -204,75 +205,101 @@ export struct IssueTab {
   }
 
   @Builder
+  issueStatePill(item: RepositoryIssueItem, index: number): void {
+    // R10 阶段3：状态徽章 pill —— open/closed 各自业务底色 + 白字胶囊。
+    Text(item.state === ISSUE_STATE_OPEN ? 'open' : 'closed')
+      .id('repo_issue_row_state_pill_' + index.toString())
+      .fontSize(GSYFontSize.min)
+      .fontColor(ThemeManager.current().onBrandText)
+      .padding({
+        left: GSYSpacing.pillPaddingHorizontal,
+        right: GSYSpacing.pillPaddingHorizontal,
+        top: GSYSpacing.pillPaddingVertical,
+        bottom: GSYSpacing.pillPaddingVertical,
+      })
+      .borderRadius(GSYSpacing.pillRadius)
+      .backgroundColor(item.state === ISSUE_STATE_OPEN
+        ? GSYColor.issueOpenGreen : GSYColor.issueClosedRed);
+  }
+
+  @Builder
   rowBuilder(item: RepositoryIssueItem, index: number): void {
-    Column() {
-      Row() {
-        IconFont({
-          char: FA_BUG,
-          glyphSize: 24,
-          glyphColor: ThemeManager.current().text,
-        })
-          .id('repo_issue_row_icon_' + index.toString())
-          .margin({ right: 8 });
+    // R10 阶段3：整行按压反馈；行内 .id / onClick 原样保留。
+    PressableCard({ cornerRadius: GSYSpacing.cardRadiusLg }) {
+      Column() {
+        Row() {
+          IconFont({
+            // 图标随状态切换：open → bug（绿），closed → check（红）。
+            char: item.state === ISSUE_STATE_OPEN ? FA_BUG : FA_CHECK,
+            glyphSize: 24,
+            glyphColor: item.state === ISSUE_STATE_OPEN
+              ? GSYColor.issueOpenGreen : GSYColor.issueClosedRed,
+          })
+            .id('repo_issue_row_icon_' + index.toString())
+            .margin({ right: 8 });
 
-        Text(this.issueTitle(item))
-          .id('repo_issue_row_title_' + index.toString())
-          .fontSize(GSYFontSize.normal)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(ThemeManager.current().text)
-          .layoutWeight(1)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis });
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center);
+          Text(this.issueTitle(item))
+            .id('repo_issue_row_title_' + index.toString())
+            .fontSize(GSYFontSize.normal)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(ThemeManager.current().text)
+            .layoutWeight(1)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center);
 
-      Text(item.body)
-        .id('repo_issue_row_body_' + index.toString())
-        .fontSize(GSYFontSize.small)
-        .fontColor(ThemeManager.current().textSecondary)
-        .margin({ top: 4 })
-        .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis });
-
-      Row() {
-        Text(this.issueOpenedBy(item))
-          .id('repo_issue_row_opened_by_' + index.toString())
+        Text(item.body)
+          .id('repo_issue_row_body_' + index.toString())
           .fontSize(GSYFontSize.small)
           .fontColor(ThemeManager.current().textSecondary)
-          .layoutWeight(1)
-          .maxLines(1)
+          .margin({ top: 4 })
+          .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis });
-        Text(this.issueDate(item))
-          .id('repo_issue_row_date_' + index.toString())
-          .fontSize(GSYFontSize.small)
-          .fontColor(ThemeManager.current().textSecondary);
+
+        Row() {
+          this.issueStatePill(item, index);
+
+          Text(this.issueOpenedBy(item))
+            .id('repo_issue_row_opened_by_' + index.toString())
+            .fontSize(GSYFontSize.small)
+            .fontColor(ThemeManager.current().textSecondary)
+            .layoutWeight(1)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ left: GSYSpacing.halfEdge });
+          Text(this.issueDate(item))
+            .id('repo_issue_row_date_' + index.toString())
+            .fontSize(GSYFontSize.small)
+            .fontColor(ThemeManager.current().textSecondary);
+        }
+        .width('100%')
+        .margin({ top: 4 })
+        .alignItems(VerticalAlign.Center);
       }
-      .width('100%')
-      .margin({ top: 4 })
-      .alignItems(VerticalAlign.Center);
+      .id('repo_issue_row_' + index.toString())
+      .width('auto')
+      .margin({
+        left: GSYSpacing.normalEdge,
+        right: GSYSpacing.normalEdge,
+        top: GSYSpacing.halfEdge,
+        bottom: GSYSpacing.halfEdge,
+      })
+      .padding(GSYSpacing.normalEdge)
+      .borderRadius(GSYSpacing.cardRadiusLg)
+      .backgroundColor(ThemeManager.current().card)
+      .shadow({
+        radius: GSYShadow.radius,
+        color: GSYShadow.cardShadowAlpha,
+        offsetX: 0,
+        offsetY: 1,
+      })
+      .alignItems(HorizontalAlign.Start)
+      .onClick((): void => {
+        this.handleRowTap(item);
+      });
     }
-    .id('repo_issue_row_' + index.toString())
-    .width('auto')
-    .margin({
-      left: GSYSpacing.normalEdge,
-      right: GSYSpacing.normalEdge,
-      top: GSYSpacing.halfEdge,
-      bottom: GSYSpacing.halfEdge,
-    })
-    .padding(GSYSpacing.normalEdge)
-    .borderRadius(3)
-    .backgroundColor(ThemeManager.current().card)
-    .shadow({
-      radius: GSYShadow.radius,
-      color: GSYShadow.cardShadowAlpha,
-      offsetX: 0,
-      offsetY: 1,
-    })
-    .alignItems(HorizontalAlign.Start)
-    .onClick((): void => {
-      this.handleRowTap(item);
-    });
   }
 
   @Builder
@@ -338,6 +365,8 @@ export struct IssueTab {
           refreshing: this.vm.issueRefreshing,
           loadingMore: this.vm.issueLoadingMore,
           noMore: this.vm.issueNoMore,
+          error: this.vm.errorMessage.length > 0,
+          errorText: this.vm.errorMessage,
           renderRow: (item: Object, index: number): void =>
             this.rowBuilder(item as RepositoryIssueItem, index),
           renderEmpty: (): void => this.emptyBuilder(),
@@ -346,6 +375,9 @@ export struct IssueTab {
           },
           onLoadMore: (): void => {
             this.vm.loadMoreIssues();
+          },
+          retryError: (): void => {
+            this.vm.refreshIssues();
           },
           tailPadding: GSYSpacing.normalEdge * 5,
         })

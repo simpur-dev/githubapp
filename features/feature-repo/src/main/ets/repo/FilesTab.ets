@@ -1,8 +1,9 @@
 import { I18n } from 'common';
 import { PullLoadMoreList } from 'common';
+import { PressableCard } from 'common';
 import { RepositoryFileItem } from 'common';
 import { IconFont, FA_FOLDER, FA_CODE } from 'common';
-import { GSYSpacing, GSYColor, GSYFontSize, ThemeManager } from 'common';
+import { GSYColor, GSYFontSize, GSYSpacing, ThemeManager } from 'common';
 
 interface BreadcrumbItem {
   label: string;
@@ -82,30 +83,33 @@ export struct FilesTab {
 
   @Builder
   rowBuilder(item: RepositoryFileItem, index: number): void {
-    Row() {
-      IconFont({
-        char: item.type === 'dir' ? FA_FOLDER : FA_CODE,
-        glyphSize: 16,
-        glyphColor: item.type === 'dir' ? GSYColor.actionBlue : ThemeManager.current().textSecondary,
-      })
-        .id('repo_file_row_icon_' + index.toString());
+    // R10 阶段3：文件行按压反馈；行内 .id / onClick 原样保留。
+    PressableCard({ cornerRadius: GSYSpacing.cardRadiusLg }) {
+      Row() {
+        IconFont({
+          char: item.type === 'dir' ? FA_FOLDER : FA_CODE,
+          glyphSize: 16,
+          glyphColor: item.type === 'dir' ? GSYColor.actionBlue : ThemeManager.current().textSecondary,
+        })
+          .id('repo_file_row_icon_' + index.toString());
 
-      Text(item.name)
-        .id('repo_file_row_name_' + index.toString())
-        .fontSize(GSYFontSize.small)
-        .fontColor(ThemeManager.current().text)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .layoutWeight(1)
-        .margin({ left: 12 });
+        Text(item.name)
+          .id('repo_file_row_name_' + index.toString())
+          .fontSize(GSYFontSize.small)
+          .fontColor(ThemeManager.current().text)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1)
+          .margin({ left: 12 });
+      }
+      .id('repo_file_row_' + index.toString())
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+      .alignItems(VerticalAlign.Center)
+      .onClick((): void => {
+        this.handleRowTap(item);
+      });
     }
-    .id('repo_file_row_' + index.toString())
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-    .alignItems(VerticalAlign.Center)
-    .onClick((): void => {
-      this.handleRowTap(item);
-    });
   }
 
   @Builder

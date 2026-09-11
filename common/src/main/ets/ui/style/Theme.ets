@@ -101,6 +101,10 @@ export class GSYColor {
   static readonly loadingLightMaskBg: string = '#33000000';
   // HomePage 抽屉打开时的底层遮罩（20% alpha 黑）
   static readonly drawerScrim: string = '#33000000';
+  // R10 阶段3：PressableCard 按压反馈蒙层（8% alpha 黑/白，深色场景由
+  // ThemeManager.isDark() 切换白蒙层，避免硬编码场景色）
+  static readonly pressScrimLight: string = '#14000000';
+  static readonly pressScrimDark: string = '#14FFFFFF';
 }
 
 // R7-N：暗色主题 9 项调色板 token（OH 增强：RN 端无主题切换系统）
@@ -180,6 +184,26 @@ export class GSYSpacing {
   // 卡片圆角 / 分隔线粗细（对齐 RN [style/index.js](https://github.com/CarGuo/GSYGithubApp/blob/master/app/style/index.js)
   // borderRadius:4 / hairlineWidth ≈ 0.5；OH 增强 token，避免页面字面量违反 HARD-LAW-2）
   static readonly cardRadius: number = 4;
+  // R10 阶段3：统一卡片大圆角（cardRadius=4 观感偏硬，列表卡片统一升级 8）
+  static readonly cardRadiusLg: number = 8;
+  // R10 阶段3：Issue 状态徽章 pill（IssueTab 行内 / IssueDetailPage 头部）
+  static readonly pillRadius: number = 10;
+  static readonly pillPaddingHorizontal: number = 8;
+  static readonly pillPaddingVertical: number = 2;
+  // R10 阶段3：EmptyState 整体高度与重试胶囊按钮高度
+  // （对齐各页旧空态容器 240 的视觉占位）
+  static readonly emptyStateHeight: number = 240;
+  static readonly pillButtonHeight: number = 36;
+  // R10 阶段3：NotifyPage 三段切换条（surfaceSubtle 胶囊容器 + 选中段滑色）
+  static readonly segBarHeight: number = 40;
+  static readonly segBarRadius: number = 20;
+  static readonly segBarPadding: number = 2;
+  // R10 阶段3：未读通知行左侧指示圆点直径
+  static readonly unreadDotSize: number = 6;
+  // R10 阶段3：贡献热力图方格（GitHub 风格：10vp 方格 / 2vp 间距 / 2vp 圆角）
+  static readonly heatmapCellSize: number = 10;
+  static readonly heatmapCellGap: number = 2;
+  static readonly heatmapCellRadius: number = 2;
   static readonly dividerThickness: number = 0.5;
 }
 
