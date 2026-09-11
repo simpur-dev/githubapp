@@ -1,9 +1,11 @@
 /**
- * 系统状态栏样式 —— 官方非全屏窗口模型：
- * 窗口默认避让状态栏/手势条（系统画返回键、标题栏，组件天然不与安全区冲突）；
- * 状态栏底色/图标深浅按页面声明，经 setStatusBarStyle 调官方窗口属性实现颜色跟随。
+ * 系统状态栏样式 —— 官方全屏窗口模型：
+ * 窗口全屏（setWindowLayoutFullScreen(true)），状态栏颜色经 setWindowSystemBarProperties
+ * 按页面声明动态跟随（该接口只在全屏/最大化窗口下生效，非全屏不生效）；
+ * 原生 NavDestination 标题栏/返回键自带安全区避让（API 11+ 默认 expandSafeArea）。
  */
 import window from '@ohos.window';
+import display from '@ohos.display';
 import hilog from '@ohos.hilog';
 import { GSYColor } from '../../ui/style/Theme';
 
@@ -12,10 +14,25 @@ const TAG: string = 'SafeAreaInsets';
 let mainWindow: window.Window | null = null;
 
 /**
+ * 手势条/状态栏避让高度（vp，全屏沉浸窗口下供底部交互组件避让用）。
+ */
+@ObservedV2
+export class SystemInsets {
+  @Trace top: number = 0;
+  @Trace bottom: number = 0;
+}
+
+export const systemInsets: SystemInsets = new SystemInsets();
+
+/**
  * 由 EntryAbility.onWindowStageCreate 调用一次：缓存主窗口 + 设置初始状态栏样式。
  */
 export function initSystemBars(win: window.Window): void {
   mainWindow = win;
+  // 全屏窗口：setWindowSystemBarProperties 的 statusBarColor 才生效（非全屏下官方明确不生效）。
+  win.setWindowLayoutFullScreen(true).catch((e: Error): void => {
+    hilog.error(0x0000, TAG, 'layoutFullScreen fail %{public}s', e.message);
+  });
   applySystemBars(GSYColor.mainBackground, false);
 }
 

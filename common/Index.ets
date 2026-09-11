@@ -32,7 +32,7 @@ export { ExternalUrlUtil } from './src/main/ets/base/utils/ExternalUrlUtil';
 export { HtmlUtil } from './src/main/ets/base/utils/HtmlUtil';
 export { IssuePermissionUtil } from './src/main/ets/base/utils/IssuePermissionUtil';
 export { MARKDOWN_LINE_BULLET, MARKDOWN_LINE_CODE, MARKDOWN_LINE_HEADING, MARKDOWN_LINE_ORDERED, MARKDOWN_LINE_PARAGRAPH, MARKDOWN_LINE_QUOTE, MARKDOWN_LINE_TABLE, MARKDOWN_LINE_TASK, MarkdownLine, MarkdownUtil } from './src/main/ets/base/utils/MarkdownUtil';
-export { applySystemBars, initSystemBars } from './src/main/ets/base/utils/SafeAreaInsets';
+export { SystemInsets, applySystemBars, initSystemBars, systemInsets } from './src/main/ets/base/utils/SafeAreaInsets';
 export { KEY_SEARCH_HISTORY, SEARCH_HISTORY_MAX, SearchHistory, SearchHistoryManager, SearchHistoryStorage } from './src/main/ets/base/utils/SearchHistory';
 export { StringUtil } from './src/main/ets/base/utils/StringUtil';
 export { TimeUtil } from './src/main/ets/base/utils/TimeUtil';

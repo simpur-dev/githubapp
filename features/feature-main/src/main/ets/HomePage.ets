@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, systemInsets } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -553,7 +553,7 @@ export struct HomePage {
         .barBackgroundColor(GSYColor.transparent)
         .barFloatingStyle({
           barSideMargin: GSYSpacing.hdsFloatingTabSideMargin,
-          barBottomMargin: GSYSpacing.hdsFloatingTabBottomMargin,
+          barBottomMargin: systemInsets.bottom + GSYSpacing.hdsFloatingTabBottomMargin,
           gradientMask: {
             maskColor: GSYColor.hdsFloatingTabMask,
             maskHeight: GSYSpacing.hdsFloatingTabMaskHeight,

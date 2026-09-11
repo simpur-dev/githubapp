@@ -29,7 +29,7 @@ import {
 import { IssueService, IssueServiceResult } from 'common';
 import { TimeUtil } from 'common';
 import { renderEmoji } from 'common';
-import { CommonBottomBar, CommonBottomBarItem } from 'common';
+import { CommonBottomBar, CommonBottomBarItem, systemInsets } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem, OptionListOptions } from 'common';
 import { ExternalUrlUtil } from 'common';
@@ -898,6 +898,7 @@ export struct IssueDetailPage {
             CommonBottomBar({
               dataList: this.buildBottomBarItems(),
               rootId: 'issue_detail_bottom_bar',
+              rootMarginBottom: systemInsets.bottom,
             })
               .id('issue_detail_bottom_bar_wrap');
           }

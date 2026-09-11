@@ -82,9 +82,9 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(0x0000, TAG, 'onWindowStageCreate');
-    // 颜色沉浸：窗口全屏 + 透明系统栏（状态栏白字），避让由 AppNavigator 导航根统一处理。
-    // 官方非全屏窗口模型：系统避让状态栏/手势条（原生标题栏、返回键、组件均不进入安全区）；
-    // 状态栏底色/图标深浅按页面声明经 applySystemBars 动态跟随。
+    // 颜色沉浸（官方全屏窗口模型）：窗口全屏，状态栏颜色经 applySystemBars 按页面声明动态跟随
+    // （setWindowSystemBarProperties 只在全屏/最大化窗口下生效，非全屏不生效）；
+    // 原生 NavDestination 标题栏/返回键自带安全区避让（API 11+ 默认 expandSafeArea）。
     windowStage.getMainWindow((err, win) => {
       if (err.code) {
         hilog.error(0x0000, TAG, 'getMainWindow fail %{public}s', JSON.stringify(err));

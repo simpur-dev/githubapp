@@ -1,4 +1,7 @@
 /**
+
+const TITLE_BAR_MATERIAL: ImmersiveMaterial = new ImmersiveMaterial({ style: ImmersiveStyle.REGULAR });
+
  * AppNavigator —— R7 Phase A 单根 Navigation 容器
  *
  * 设计说明（参考 [r7-rebuild-blueprint.md § 1.1](https://github.com/CarGuo/GSYGithubAppOH/blob/main/harness/architecture/r7-rebuild-blueprint.md)）：
@@ -22,7 +25,9 @@
 import { LoadingModal } from 'common';
 import { NavigationService, LIGHT_PALETTE } from 'common';
 import { RouteName } from 'common';
-import { NavTitleView, NavMenusView, NavTitleBridge } from 'common';
+import { NavTitleView, NavMenusView, NavTitleBridge, GSYColor } from 'common';
+import { uiMaterial } from '@kit.ArkUI';
+
 
 import { WelcomePage } from 'feature_auth';
 import { LoginPage } from 'feature_auth';
@@ -49,7 +54,11 @@ import { PersonInfoPage } from 'feature_user';
 import { ReleasePage } from 'feature_repo';
 import { PhotoPage } from 'feature_misc';
 import { WebPage } from 'feature_misc';
+
 import { CommonListPage } from 'feature_repo';
+// 标题栏系统材质（API 26）：半透明沉浸材质，自动适配深浅色；低算力设备自动降级。
+const TITLE_BAR_MATERIAL: uiMaterial.Material = new uiMaterial.ImmersiveMaterial({ style: uiMaterial.ImmersiveStyle.REGULAR });
+
 
 @ComponentV2
 export struct AppNavigator {
@@ -210,163 +219,204 @@ export struct AppNavigator {
     NavMenusView({ routeName: RouteName.WebPage });
   }
 
+  private titleBarOptions(): NavigationTitleOptions {
+    return {
+      scrollEffectOptions: { scrollEffectType: ScrollEffectType.GRADUAL_BLUR },
+      systemMaterial: TITLE_BAR_MATERIAL,
+    };
+  }
+
   @Builder
   routerMap(name: string, _param: Object): void {
     if (name === RouteName.LoginWeb) {
       NavDestination() {
         LoginWebPage();
       }
-        .title(this.loginWebTitle)
+        .title(this.loginWebTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.Search) {
       NavDestination() {
         SearchPage();
       }
-        .title(this.searchTitle)
+        .title(this.searchTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.Setting) {
       NavDestination() {
         SettingPage();
       }
-        .title(this.settingTitle)
+        .title(this.settingTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.About) {
       NavDestination() {
         AboutPage();
       }
-        .title(this.aboutTitle)
+        .title(this.aboutTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.Custom) {
       NavDestination() {
         CustomPage();
       }
-        .title(this.customTitle)
+        .title(this.customTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.Honor) {
       NavDestination() {
         HonorPage();
       }
-        .title(this.honorTitle)
+        .title(this.honorTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.Notify) {
       NavDestination() {
         NotifyPage();
       }
-        .title(this.notifyTitle)
+        .title(this.notifyTitle, this.titleBarOptions())
         .menus(this.notifyMenus)
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.ReadHistory) {
       NavDestination() {
         ReadHistoryPage();
       }
-        .title(this.readHistoryTitle)
+        .title(this.readHistoryTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.UserDetail) {
       NavDestination() {
         UserDetailPage();
       }
-        .title(this.userDetailTitle)
+        .title(this.userDetailTitle, this.titleBarOptions())
         .menus(this.userDetailMenus)
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.RepositoryDetail) {
       NavDestination() {
         RepositoryDetailPage();
       }
-        .title(this.repositoryDetailTitle)
+        .title(this.repositoryDetailTitle, this.titleBarOptions())
         .menus(this.repositoryDetailMenus)
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.IssueDetail) {
       NavDestination() {
         IssueDetailPage();
       }
-        .title(this.issueDetailTitle)
+        .title(this.issueDetailTitle, this.titleBarOptions())
         .menus(this.issueDetailMenus)
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.CodeDetail) {
       NavDestination() {
         CodeDetailPage();
       }
-        .title(this.codeDetailTitle)
+        .title(this.codeDetailTitle, this.titleBarOptions())
         .menus(this.codeDetailMenus)
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.PushDetail) {
       NavDestination() {
         PushDetailPage();
       }
-        .title(this.pushDetailTitle)
+        .title(this.pushDetailTitle, this.titleBarOptions())
         .menus(this.pushDetailMenus)
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.UserFollowed) {
       NavDestination() {
         UserFollowedPage();
       }
-        .title(this.userFollowedTitle)
+        .title(this.userFollowedTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.UserFollower) {
       NavDestination() {
         UserFollowerPage();
       }
-        .title(this.userFollowerTitle)
+        .title(this.userFollowerTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.RepositoryStar) {
       NavDestination() {
         RepositoryStarPage();
       }
-        .title(this.repositoryStarTitle)
+        .title(this.repositoryStarTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.RepositoryWatcher) {
       NavDestination() {
         RepositoryWatcherPage();
       }
-        .title(this.repositoryWatcherTitle)
+        .title(this.repositoryWatcherTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.RepositoryFork) {
       NavDestination() {
         RepositoryForkPage();
       }
-        .title(this.repositoryForkTitle)
+        .title(this.repositoryForkTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.PersonInfo) {
       NavDestination() {
         PersonInfoPage();
       }
-        .title(this.personInfoTitle)
+        .title(this.personInfoTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.Release) {
       NavDestination() {
         ReleasePage();
       }
-        .title(this.releaseTitle)
+        .title(this.releaseTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.WebPage) {
       NavDestination() {
         WebPage();
       }
-        .title(this.webPageTitle)
+        .title(this.webPageTitle, this.titleBarOptions())
         .menus(this.webPageMenus)
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else if (name === RouteName.CommonList) {
       NavDestination() {
         CommonListPage({ initialParam: _param });
       }
-        .title(this.commonListTitle)
+        .title(this.commonListTitle, this.titleBarOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
+        .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
     } else {
       // 无自绘标题栏的路由：保持原 hideTitleBar 包裹结构。
       // Home 的 HomePage 自带页内 AppBar（home_appbar id 不变，见 R9 阶段4 约定）。
-      NavDestination() {
-        if (name === RouteName.Welcome) {
+      if (name === RouteName.Welcome) {
+        NavDestination() {
           WelcomePage();
-        } else if (name === RouteName.Login) {
+        }
+          .hideTitleBar(true)
+          .systemBarStyle({ statusBarContentColor: GSYColor.primaryDark });
+      } else if (name === RouteName.Login) {
+        NavDestination() {
           LoginPage();
-        } else if (name === RouteName.Home) {
+        }
+          .hideTitleBar(true)
+          .systemBarStyle({ statusBarContentColor: GSYColor.white });
+      } else if (name === RouteName.Home) {
+        NavDestination() {
           HomePage();
-        } else if (name === RouteName.Photo) {
+        }
+          .hideTitleBar(true)
+          .systemBarStyle({ statusBarContentColor: GSYColor.white });
+      } else if (name === RouteName.Photo) {
+        NavDestination() {
           PhotoPage();
         }
+          .hideTitleBar(true)
+          .systemBarStyle({ statusBarContentColor: GSYColor.white });
       }
-        .hideTitleBar(true)
-        .onShown(() => NavTitleBridge.get().onDestinationShown(name))
     }
   }
 
