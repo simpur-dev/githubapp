@@ -37,6 +37,12 @@ export default class EntryAbility extends UIAbility {
   onCreate(want: Want, _launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, TAG, 'onCreate');
     this.initRdbStore();
+    // 偏好存储先行初始化，主题恢复（ThemeManager.init 读 KEY_THEME）才不会静默回退。
+    Preferences.init(this.context, PREF_NAME)
+      .then((): Promise<void> => ThemeManager.init())
+      .catch((e: Error): void => {
+        hilog.error(0x0000, TAG, 'prefs/theme init fail %{public}s', e.message);
+      });
     this.handleOAuthDeepLink(want);
     this.handleBootLocaleInjection(want);
     this.handleBootTokenInjection(want);

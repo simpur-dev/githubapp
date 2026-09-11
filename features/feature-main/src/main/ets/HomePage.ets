@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP, NavTitleBridge, NavTitleConfig, ThemeManager, systemInsets } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, ThemeManager, systemInsets } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -83,6 +83,7 @@ export struct HomePage {
   private tabsController: HdsTabsController = new HdsTabsController();
   private lastTapAt: Map<number, number> = new Map<number, number>();
   private unsubscribeLoginExpired: (() => void) | null = null;
+  private unsubscribeTheme: (() => void) | null = null;
   private unsubscribeNetwork: (() => void) | null = null;
   private offlineToastShown: boolean = false;
   private tabs: HomeTabItem[] = [
@@ -97,6 +98,10 @@ export struct HomePage {
       statusBarBg: ThemeManager.current().navBackground,
       statusBarLightIcon: true,
     } as NavTitleConfig);
+    // 深浅色切换：状态栏声明跟随当前 palette（深底白图标 / 浅底深图标）。
+    this.unsubscribeTheme = EventBus.on(EVENT_THEME_CHANGED, (_payload: ESObject): void => {
+      NavTitleBridge.get().setStatusBar(ThemeManager.current().navBackground, this.isDarkTheme());
+    });
     this.applyBootTab();
     this.scheduleBootRepo();
     this.scheduleBootPush();
@@ -124,9 +129,14 @@ export struct HomePage {
     });
   }
 
+  private isDarkTheme(): boolean {
+    return ThemeManager.isDark();
+  }
+
   aboutToDisappear(): void {
     if (this.unsubscribeLoginExpired !== null) {
       this.unsubscribeLoginExpired();
+    this.unsubscribeTheme?.();
       this.unsubscribeLoginExpired = null;
     }
     if (this.unsubscribeNetwork !== null) {

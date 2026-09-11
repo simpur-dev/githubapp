@@ -18,6 +18,7 @@
  */
 import { CommonBottomBar, CommonBottomBarItem } from '../components/CommonBottomBar';
 import { applySystemBars } from '../../base/utils/SafeAreaInsets';
+import { ThemeManager } from '../theme/ThemeManager';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
 
 /** 标题栏动作项（原 AppBarAction 等价物），onAction 闭包随对象携带。 */
@@ -124,7 +125,7 @@ export class NavTitleBridge {
     if (cfg !== null && cfg !== undefined && cfg.statusBarBg !== undefined) {
       this.setStatusBar(cfg.statusBarBg, cfg.statusBarLightIcon === true);
     } else {
-      this.setStatusBar(GSYColor.mainBackground, false);
+      this.setStatusBar(ThemeManager.current().background, false);
     }
   }
 
