@@ -26,20 +26,14 @@ export class PreferencesHelper {
     return this.pref !== null;
   }
 
-  async init(context: common.Context, name: string = PREF_NAME): Promise<void> {
+  init(context: common.Context, name: string = PREF_NAME): Promise<void> {
     if (this.pref !== null) {
-      return;
+      return Promise.resolve();
     }
-    if (this.initializing !== null) {
-      await this.initializing;
-      return;
+    if (this.initializing === null) {
+      this.initializing = this.doInit(context, name);
     }
-    this.initializing = this.doInit(context, name);
-    try {
-      await this.initializing;
-    } finally {
-      this.initializing = null;
-    }
+    return this.initializing;
   }
 
   private async doInit(context: common.Context, name: string): Promise<void> {

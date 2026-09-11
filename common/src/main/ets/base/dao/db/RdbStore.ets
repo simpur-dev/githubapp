@@ -22,20 +22,14 @@ export class RdbStoreHelper {
     return this.store !== null;
   }
 
-  async init(context: common.Context): Promise<void> {
+  init(context: common.Context): Promise<void> {
     if (this.store !== null) {
-      return;
+      return Promise.resolve();
     }
-    if (this.initializing !== null) {
-      await this.initializing;
-      return;
+    if (this.initializing === null) {
+      this.initializing = this.doInit(context);
     }
-    this.initializing = this.doInit(context);
-    try {
-      await this.initializing;
-    } finally {
-      this.initializing = null;
-    }
+    return this.initializing;
   }
 
   private async doInit(context: common.Context): Promise<void> {
