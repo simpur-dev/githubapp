@@ -8,10 +8,6 @@ import { RepositoryItem } from 'common';
 import { ReadHistoryItem, READ_HISTORY_TYPE_REPO, READ_HISTORY_TYPE_USER } from 'common';
 import { ReadHistoryViewModel } from './viewmodel/ReadHistoryViewModel';
 
-export const READ_HISTORY_TAB_ALL: string = 'all';
-export const READ_HISTORY_TAB_REPO: string = 'repo';
-export const READ_HISTORY_TAB_USER: string = 'user';
-
 interface ReadHistoryRepoNavParam {
   fullName: string;
   owner: string;

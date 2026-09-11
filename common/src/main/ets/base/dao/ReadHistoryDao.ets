@@ -58,15 +58,18 @@ export class ReadHistoryDao {
     predicates.limitAs(1);
     const rs: relationalStore.ResultSet =
       await this.store.query(predicates, ['data', 'updateAt']);
-    if (rs.rowCount <= 0) {
+    // try-finally：异常路径也保证游标关闭。
+    try {
+      if (rs.rowCount <= 0) {
+        return { result: false, data: '', updateAt: 0 } as ReadResult;
+      }
+      rs.goToFirstRow();
+      const data: string = rs.getString(rs.getColumnIndex('data'));
+      const updateAt: number = rs.getLong(rs.getColumnIndex('updateAt'));
+      return { result: true, data: data, updateAt: updateAt } as ReadResult;
+    } finally {
       rs.close();
-      return { result: false, data: '', updateAt: 0 } as ReadResult;
     }
-    rs.goToFirstRow();
-    const data: string = rs.getString(rs.getColumnIndex('data'));
-    const updateAt: number = rs.getLong(rs.getColumnIndex('updateAt'));
-    rs.close();
-    return { result: true, data: data, updateAt: updateAt } as ReadResult;
   }
 
   clear(): Promise<number> {
@@ -87,18 +90,22 @@ export class ReadHistoryDao {
     const rs: relationalStore.ResultSet =
       await this.store.query(predicates, ['id', 'type', 'fullName', 'title', 'data', 'updateAt']);
     const out: ReadHistoryRow[] = [];
-    while (rs.goToNextRow()) {
-      const row: ReadHistoryRow = {
-        id: rs.getLong(rs.getColumnIndex('id')),
-        type: rs.getString(rs.getColumnIndex('type')),
-        fullName: rs.getString(rs.getColumnIndex('fullName')),
-        title: rs.getString(rs.getColumnIndex('title')),
-        data: rs.getString(rs.getColumnIndex('data')),
-        updateAt: rs.getLong(rs.getColumnIndex('updateAt'))
-      } as ReadHistoryRow;
-      out.push(row);
+    // try-finally：异常路径也保证游标关闭。
+    try {
+      while (rs.goToNextRow()) {
+        const row: ReadHistoryRow = {
+          id: rs.getLong(rs.getColumnIndex('id')),
+          type: rs.getString(rs.getColumnIndex('type')),
+          fullName: rs.getString(rs.getColumnIndex('fullName')),
+          title: rs.getString(rs.getColumnIndex('title')),
+          data: rs.getString(rs.getColumnIndex('data')),
+          updateAt: rs.getLong(rs.getColumnIndex('updateAt'))
+        } as ReadHistoryRow;
+        out.push(row);
+      }
+    } finally {
+      rs.close();
     }
-    rs.close();
     return out;
   }
 }

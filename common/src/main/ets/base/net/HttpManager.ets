@@ -110,7 +110,6 @@ class LoginExpiredBusImpl {
 }
 
 export const LoginExpiredBus: LoginExpiredBusImpl = new LoginExpiredBusImpl();
-export const LOGIN_EXPIRED_EVENT: string = 'LoginExpired';
 
 /**
  * 默认基于 @ohos.net.http 的实现。

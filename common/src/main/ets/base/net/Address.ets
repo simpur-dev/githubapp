@@ -10,8 +10,6 @@
 
 export const HOST_API: string = 'https://api.github.com/';
 export const HOST_WEB: string = 'https://github.com/';
-export const DOWNLOAD_URL: string = 'https://www.pgyer.com/GSYGithubApp';
-export const GRAPHIC_HOST: string = 'https://ghchart.rshah.org';
 export const TRENDING_API_HOST: string = 'https://guoshuyu.cn/github/trend/list';
 export const TRENDING_GTREND_HOST: string = 'https://gtrend.yapie.me';
 export const TRENDING_HUCHEN_HOST: string = 'https://ghapi.huchen.dev';

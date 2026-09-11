@@ -150,6 +150,8 @@ export class GSYIconSize {
   static readonly little: number = 10;
   // AppBar 动作键 SymbolGlyph 尺寸（对齐旧手绘矢量 22）
   static readonly appBarAction: number = 22;
+  // R10 阶段4：DrawerHeader 抽屉头像尺寸（对齐旧字面量 88）
+  static readonly drawerAvatar: number = 88;
 }
 
 export class GSYSpacing {
@@ -205,6 +207,8 @@ export class GSYSpacing {
   static readonly heatmapCellGap: number = 2;
   static readonly heatmapCellRadius: number = 2;
   static readonly dividerThickness: number = 0.5;
+  // R10 阶段4：DrawerHeader 抽屉头像圆角（对齐旧字面量 22）
+  static readonly drawerAvatarRadius: number = 22;
 }
 
 export class GSYShadow {

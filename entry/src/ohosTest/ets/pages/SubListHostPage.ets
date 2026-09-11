@@ -1,4 +1,3 @@
-import http from '@ohos.net.http';
 import {
   HttpManager,
   HttpProvider,
@@ -7,7 +6,11 @@ import {
 import { HttpHeaders } from 'common';
 import { SUCCESS } from 'common';
 import { Address } from 'common';
-import { RepositoryStarPage } from 'feature_repo';
+import {
+  CommonListPage,
+  COMMON_LIST_DATA_TYPE_REPO_STAR,
+  COMMON_LIST_SHOW_TYPE_USER,
+} from 'feature_repo';
 import { UserDetailPage } from 'feature_user';
 import { RouteName } from 'common';
 
@@ -114,6 +117,13 @@ class SubListHostProvider implements HttpProvider {
 
 const SUB_LIST_HOST_STUB: SubListHostProvider = new SubListHostProvider();
 
+interface CommonListStarParam {
+  dataType: string;
+  showType: string;
+  currentUser: string;
+  title: string;
+}
+
 @Entry
 @Component
 struct SubListHostPage {
@@ -128,9 +138,9 @@ struct SubListHostPage {
   }
 
   @Builder
-  navMap(name: string): void {
-    if (name === RouteName.RepositoryStar) {
-      RepositoryStarPage();
+  navMap(name: string, _param: Object): void {
+    if (name === RouteName.CommonList) {
+      CommonListPage({ initialParam: _param });
     } else if (name === RouteName.UserDetail) {
       UserDetailPage();
     }
@@ -146,9 +156,17 @@ struct SubListHostPage {
       .hideTitleBar(true)
       .navDestination(this.navMap)
       .onAppear((): void => {
+        // 原 SubList 宿主走 RepositoryStarPage（已删除的无生产入口页面），
+        // 改为直接驱动生产路由 CommonListPage（dataType=repo_star）。
+        const starParam: CommonListStarParam = {
+          dataType: COMMON_LIST_DATA_TYPE_REPO_STAR,
+          showType: COMMON_LIST_SHOW_TYPE_USER,
+          currentUser: HOST_FULL_NAME,
+          title: 'Stargazers',
+        };
         this.navStack.pushPath({
-          name: RouteName.RepositoryStar,
-          param: { 'fullName': HOST_FULL_NAME } as Record<string, Object>,
+          name: RouteName.CommonList,
+          param: starParam as Object,
         });
       });
     }

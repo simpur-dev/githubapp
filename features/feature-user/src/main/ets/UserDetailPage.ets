@@ -137,6 +137,7 @@ export struct UserDetailPage {
       Row() {
         Image(this.vm.user.avatar_url)
           .id('user_detail_avatar')
+          .alt($r('app.media.app_icon'))
           .width(GSYIconSize.large)
           .height(GSYIconSize.large)
           .borderRadius(GSYIconSize.large / 2)
@@ -405,6 +406,7 @@ export struct UserDetailPage {
     Row() {
       Image(item.avatar_url)
         .id('user_detail_org_member_avatar_' + index.toString())
+        .alt($r('app.media.app_icon'))
         .width(GSYIconSize.normal)
         .height(GSYIconSize.normal)
         .borderRadius(GSYIconSize.normal / 2)

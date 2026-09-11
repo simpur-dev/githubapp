@@ -11,6 +11,7 @@ import { ThemePalette, LIGHT_PALETTE, ThemeManager } from '../theme/ThemeManager
 import { EventBus, EVENT_THEME_CHANGED } from '../../base/utils/EventBus';
 import { systemInsets } from '../../base/utils/SafeAreaInsets';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
+import { AppSymbolSpec, appSymbolSpecFor } from './AppSymbol';
 
 const APP_BAR_SIDE_WIDTH: number = 64;
 const APP_BAR_TITLE_LINE_HEIGHT: number = 28;
@@ -96,31 +97,23 @@ export struct AppBar {
     return this.useTheme ? GSYColor.hdsMaterialSurfaceDark : GSYColor.transparent;
   }
 
+  /** 动作图标规格（AppSymbol 统一白名单）：未知 iconKey 返回 undefined，回落 Image。 */
+  private actionGlyphSpec(action: AppBarAction): AppSymbolSpec | undefined {
+    if (action.iconKey === undefined || action.iconKey === null || action.iconKey.length === 0) {
+      return undefined;
+    }
+    return appSymbolSpecFor(action.iconKey);
+  }
+
   @Builder
   buildAction(action: AppBarAction, side: string, idx: number): void {
     Button() {
       Row() {
         // 手绘矢量（Circle/Line）统一换成系统 SymbolGlyph；
-        // 只使用系统符号表中确定存在的资源名，避免运行时空白。
-        if (action.iconKey === 'search') {
-          SymbolGlyph($r('sys.symbol.magnifyingglass'))
-            .fontSize(GSYIconSize.appBarAction)
-            .fontColor([this.resolveActionColor()]);
-        } else if (action.iconKey === 'menu') {
-          SymbolGlyph($r('sys.symbol.line_3_horizontal'))
-            .fontSize(GSYIconSize.appBarAction)
-            .fontColor([this.resolveActionColor()]);
-        } else if (action.iconKey === 'done_all') {
-          SymbolGlyph($r('sys.symbol.checkmark'))
-            .fontSize(GSYIconSize.cardIcon)
-            .fontColor([this.resolveActionColor()]);
-        } else if (action.iconKey === 'filter') {
-          SymbolGlyph($r('sys.symbol.funnel'))
-            .fontSize(GSYIconSize.tab)
-            .fontColor([this.resolveActionColor()]);
-        } else if (action.iconKey === 'more') {
-          SymbolGlyph($r('sys.symbol.more'))
-            .fontSize(GSYIconSize.appBarAction)
+        // iconKey → 资源/字号映射收敛到 AppSymbol.appSymbolSpecFor（与 NavMenusView 共用）。
+        if (this.actionGlyphSpec(action) !== undefined) {
+          SymbolGlyph((this.actionGlyphSpec(action) as AppSymbolSpec).resource)
+            .fontSize((this.actionGlyphSpec(action) as AppSymbolSpec).fontSize)
             .fontColor([this.resolveActionColor()]);
         } else if (action.icon) {
           Image(action.icon)

@@ -218,6 +218,7 @@ export struct PushDetailPage {
       Row() {
         Image(this.getAuthorAvatar())
           .id('push_detail_author_avatar')
+          .alt($r('app.media.app_icon'))
           .width(GSYIconSize.normal)
           .height(GSYIconSize.normal)
           .borderRadius(GSYIconSize.normal / 2)

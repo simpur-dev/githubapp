@@ -236,6 +236,8 @@ export class NotifyViewModel {
         if (res.result) {
           this.applyThreadReadLocal(item.id);
         }
+      }).catch((e: Error): void => {
+        Logger.e('notify/click', `markAsRead id=${item.id} failed: ${e.message}`);
       });
     }
   }

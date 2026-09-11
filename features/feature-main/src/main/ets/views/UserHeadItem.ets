@@ -214,6 +214,7 @@ export struct UserHeadItem {
   buildOrgAvatar(org: UserHeadOrgItem): void {
     if (org.avatar_url && org.avatar_url.length > 0) {
       Image(org.avatar_url)
+        .alt($r('app.media.app_icon'))
         .width(GSYIconSize.small)
         .height(GSYIconSize.small)
         .borderRadius(GSYIconSize.small / 2)

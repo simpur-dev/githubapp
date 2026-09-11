@@ -44,11 +44,6 @@ import { RepositoryDetailPage } from 'feature_repo';
 import { IssueDetailPage } from 'feature_repo';
 import { CodeDetailPage } from 'feature_repo';
 import { PushDetailPage } from 'feature_repo';
-import { UserFollowedPage } from 'feature_user';
-import { UserFollowerPage } from 'feature_user';
-import { RepositoryStarPage } from 'feature_repo';
-import { RepositoryWatcherPage } from 'feature_repo';
-import { RepositoryForkPage } from 'feature_repo';
 import { PersonInfoPage } from 'feature_user';
 import { ReleasePage } from 'feature_repo';
 import { PhotoPage } from 'feature_misc';
@@ -132,31 +127,6 @@ export struct AppNavigator {
   @Builder
   pushDetailTitle() {
     NavTitleView({ routeName: RouteName.PushDetail });
-  }
-
-  @Builder
-  userFollowedTitle() {
-    NavTitleView({ routeName: RouteName.UserFollowed });
-  }
-
-  @Builder
-  userFollowerTitle() {
-    NavTitleView({ routeName: RouteName.UserFollower });
-  }
-
-  @Builder
-  repositoryStarTitle() {
-    NavTitleView({ routeName: RouteName.RepositoryStar });
-  }
-
-  @Builder
-  repositoryWatcherTitle() {
-    NavTitleView({ routeName: RouteName.RepositoryWatcher });
-  }
-
-  @Builder
-  repositoryForkTitle() {
-    NavTitleView({ routeName: RouteName.RepositoryFork });
   }
 
   @Builder
@@ -323,41 +293,6 @@ export struct AppNavigator {
         .menus(this.pushDetailMenus)
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
         .systemBarStyle({ statusBarContentColor: ThemeManager.current().text });
-    } else if (name === RouteName.UserFollowed) {
-      NavDestination() {
-        UserFollowedPage();
-      }
-        .title(this.userFollowedTitle, this.titleBarOptions())
-        .onShown(() => NavTitleBridge.get().onDestinationShown(name))
-        .systemBarStyle({ statusBarContentColor: ThemeManager.current().text });
-    } else if (name === RouteName.UserFollower) {
-      NavDestination() {
-        UserFollowerPage();
-      }
-        .title(this.userFollowerTitle, this.titleBarOptions())
-        .onShown(() => NavTitleBridge.get().onDestinationShown(name))
-        .systemBarStyle({ statusBarContentColor: ThemeManager.current().text });
-    } else if (name === RouteName.RepositoryStar) {
-      NavDestination() {
-        RepositoryStarPage();
-      }
-        .title(this.repositoryStarTitle, this.titleBarOptions())
-        .onShown(() => NavTitleBridge.get().onDestinationShown(name))
-        .systemBarStyle({ statusBarContentColor: ThemeManager.current().text });
-    } else if (name === RouteName.RepositoryWatcher) {
-      NavDestination() {
-        RepositoryWatcherPage();
-      }
-        .title(this.repositoryWatcherTitle, this.titleBarOptions())
-        .onShown(() => NavTitleBridge.get().onDestinationShown(name))
-        .systemBarStyle({ statusBarContentColor: ThemeManager.current().text });
-    } else if (name === RouteName.RepositoryFork) {
-      NavDestination() {
-        RepositoryForkPage();
-      }
-        .title(this.repositoryForkTitle, this.titleBarOptions())
-        .onShown(() => NavTitleBridge.get().onDestinationShown(name))
-        .systemBarStyle({ statusBarContentColor: ThemeManager.current().text });
     } else if (name === RouteName.PersonInfo) {
       NavDestination() {
         PersonInfoPage();
@@ -426,6 +361,9 @@ export struct AppNavigator {
     .hideTitleBar(true)
     .mode(NavigationMode.Stack)
     .navDestination(this.routerMap)
+    // API 26 NavigationConfiguration：限制页面栈最大节点数，防深层浏览内存膨胀
+    // （超限时按 FIFO 自动销毁最老节点，NavPathStack 仍可重建）。
+    .configuration({ stackSizeLimit: 30 })
     .backgroundColor(NavTitleBridge.get().statusBarBg)
     // 底部完全沉浸：内容直铺到屏幕底边，手势指示条悬浮于内容之上。
     // 顶部颜色沉浸：状态栏透明 + 全屏窗口下 NavDestination 默认避让状态栏

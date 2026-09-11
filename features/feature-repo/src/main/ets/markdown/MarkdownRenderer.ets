@@ -246,6 +246,8 @@ export struct MarkdownRenderer {
     } else if (row.kind === 'img') {
       Image(row.extra)
         .width('100%')
+        // 防大图撑跳布局：约束最大宽度 100%，超宽图缩放而非撑破容器。
+        .constraintSize({ maxWidth: '100%' })
         .objectFit(ImageFit.Contain)
         .borderRadius(GSYSpacing.cardRadius)
         .margin({ top: 6, bottom: 6 });

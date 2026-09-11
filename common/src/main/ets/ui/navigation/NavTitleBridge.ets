@@ -20,6 +20,7 @@ import { CommonBottomBar, CommonBottomBarItem } from '../components/CommonBottom
 import { applySystemBars } from '../../base/utils/SafeAreaInsets';
 import { ThemeManager } from '../theme/ThemeManager';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
+import { AppSymbolSpec, appSymbolSpecFor } from '../components/AppSymbol';
 
 /** 标题栏动作项（原 AppBarAction 等价物），onAction 闭包随对象携带。 */
 export interface NavTitleAction {
@@ -262,23 +263,19 @@ export struct NavMenusView {
     return 'appbar_action_' + side + '_' + index.toString();
   }
 
+  /** 动作图标规格（AppSymbol 统一白名单，与 AppBar 共用）：未知 iconKey 返回 undefined。 */
+  private actionGlyphSpec(action: NavTitleAction): AppSymbolSpec | undefined {
+    if (action.iconKey === undefined || action.iconKey.length === 0) {
+      return undefined;
+    }
+    return appSymbolSpecFor(action.iconKey);
+  }
+
   @Builder
   actionIcon(action: NavTitleAction): void {
-    if (action.iconKey === 'search') {
-      SymbolGlyph($r('sys.symbol.magnifyingglass'))
-        .fontSize(GSYIconSize.appBarAction);
-    } else if (action.iconKey === 'menu') {
-      SymbolGlyph($r('sys.symbol.line_3_horizontal'))
-        .fontSize(GSYIconSize.appBarAction);
-    } else if (action.iconKey === 'done_all') {
-      SymbolGlyph($r('sys.symbol.checkmark'))
-        .fontSize(GSYIconSize.cardIcon);
-    } else if (action.iconKey === 'filter') {
-      SymbolGlyph($r('sys.symbol.funnel'))
-        .fontSize(GSYIconSize.tab);
-    } else if (action.iconKey === 'more') {
-      SymbolGlyph($r('sys.symbol.more'))
-        .fontSize(GSYIconSize.appBarAction);
+    if (this.actionGlyphSpec(action) !== undefined) {
+      SymbolGlyph((this.actionGlyphSpec(action) as AppSymbolSpec).resource)
+        .fontSize((this.actionGlyphSpec(action) as AppSymbolSpec).fontSize);
     } else if (action.icon !== undefined) {
       Image(action.icon)
         .width(ACTION_ICON_SIZE)

@@ -7,7 +7,7 @@ import {
   GlobalAuthStore,
 } from 'common';
 import { EventBus, EVENT_AUTH_STATE_CHANGED } from 'common';
-import { GSYColor, GSYFontSize } from 'common';
+import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from 'common';
 import { ThemeManager } from 'common';
 
 export class DrawerHeaderTexts {
@@ -115,18 +115,19 @@ export struct DrawerHeader {
       if (user !== null && user.avatarUrl.length > 0) {
         Image(user.avatarUrl)
           .id('drawer_avatar_image')
-          .width(88)
-          .height(88)
-          .borderRadius(22)
+          .width(GSYIconSize.drawerAvatar)
+          .height(GSYIconSize.drawerAvatar)
+          .borderRadius(GSYSpacing.drawerAvatarRadius)
+          .objectFit(ImageFit.Cover)
           .backgroundColor(ThemeManager.current().surfaceSubtle);
       } else {
         Text(user !== null && user.login.length > 0
           ? user.login.substring(0, 1).toUpperCase()
           : '?')
           .id('drawer_avatar_placeholder')
-          .width(88)
-          .height(88)
-          .borderRadius(22)
+          .width(GSYIconSize.drawerAvatar)
+          .height(GSYIconSize.drawerAvatar)
+          .borderRadius(GSYSpacing.drawerAvatarRadius)
           .textAlign(TextAlign.Center)
           .fontSize(24) // TODO: 字号 24 暂无 token 映射
           .fontWeight(FontWeight.Bold)
@@ -135,8 +136,8 @@ export struct DrawerHeader {
       }
     }
     .id('drawer_avatar')
-    .width(88)
-    .height(88)
+    .width(GSYIconSize.drawerAvatar)
+    .height(GSYIconSize.drawerAvatar)
     .onClick((): void => {
       this.handleAvatarTap();
     });

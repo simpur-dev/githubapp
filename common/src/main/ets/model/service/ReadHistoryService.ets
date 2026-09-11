@@ -181,18 +181,22 @@ export class ReadHistoryService {
     const rs: relationalStore.ResultSet = await this.rdb.query(predicates,
       ['id', 'type', 'fullName', 'title', 'data', 'updateAt']);
     const out: ReadHistoryRow[] = [];
-    while (rs.goToNextRow()) {
-      const row: ReadHistoryRow = {
-        id: rs.getLong(rs.getColumnIndex('id')),
-        type: rs.getString(rs.getColumnIndex('type')),
-        fullName: rs.getString(rs.getColumnIndex('fullName')),
-        title: rs.getString(rs.getColumnIndex('title')),
-        data: rs.getString(rs.getColumnIndex('data')),
-        updateAt: rs.getLong(rs.getColumnIndex('updateAt'))
-      } as ReadHistoryRow;
-      out.push(row);
+    // try-finally：异常路径也保证游标关闭。
+    try {
+      while (rs.goToNextRow()) {
+        const row: ReadHistoryRow = {
+          id: rs.getLong(rs.getColumnIndex('id')),
+          type: rs.getString(rs.getColumnIndex('type')),
+          fullName: rs.getString(rs.getColumnIndex('fullName')),
+          title: rs.getString(rs.getColumnIndex('title')),
+          data: rs.getString(rs.getColumnIndex('data')),
+          updateAt: rs.getLong(rs.getColumnIndex('updateAt'))
+        } as ReadHistoryRow;
+        out.push(row);
+      }
+    } finally {
+      rs.close();
     }
-    rs.close();
     return out;
   }
 

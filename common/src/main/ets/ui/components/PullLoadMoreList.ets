@@ -161,7 +161,9 @@ export struct PullLoadMoreList {
 
         if (this.hasData()) {
           Repeat<Object>(this.dataSource)
-            .virtualScroll()
+            // API 26 VirtualScrollOptions.memoryOptimizationStrategy：
+            // Repeat 自动缓存优化，进一步降低长列表内存占用。
+            .virtualScroll({ memoryOptimizationStrategy: RepeatMemOptStrategy.ENABLE_AUTO_CACHE_OPTIMIZATION })
             .each((obj: RepeatItem<Object>): void => {
               ListItem() {
                 this.renderRow(obj.item, obj.index);

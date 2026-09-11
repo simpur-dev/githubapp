@@ -2,13 +2,13 @@
 
 export { HomePage } from './src/main/ets/HomePage';
 export { NotifyPage } from './src/main/ets/NotifyPage';
-export { READ_HISTORY_TAB_ALL, READ_HISTORY_TAB_REPO, READ_HISTORY_TAB_USER, ReadHistoryPage } from './src/main/ets/ReadHistoryPage';
+export { ReadHistoryPage } from './src/main/ets/ReadHistoryPage';
 export { SearchPage } from './src/main/ets/SearchPage';
 export { DynamicTabPage } from './src/main/ets/tabs/DynamicTabPage';
 export { MyTabPage } from './src/main/ets/tabs/MyTabPage';
 export { TrendTabPage } from './src/main/ets/tabs/TrendTabPage';
 export { DynamicTabViewModel } from './src/main/ets/viewmodel/DynamicTabViewModel';
-export { MyTabPageDeps, MyTabViewModel, UserHeadOrgItemLite } from './src/main/ets/viewmodel/MyTabViewModel';
+export { MyTabPageDeps, MyTabViewModel } from './src/main/ets/viewmodel/MyTabViewModel';
 export { NotifyTabItem, NotifyViewModel } from './src/main/ets/viewmodel/NotifyViewModel';
 export { ReadHistoryServiceFactory, ReadHistoryViewModel, buildReadHistoryService, setReadHistoryServiceFactory } from './src/main/ets/viewmodel/ReadHistoryViewModel';
 export { SearchPageDeps, SearchViewModel } from './src/main/ets/viewmodel/SearchViewModel';

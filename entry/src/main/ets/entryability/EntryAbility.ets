@@ -33,6 +33,40 @@ const PARAM_BOOT_LOCALE: string = 'bootLocale';
 const PARAM_BOOT_NOTIFY_ISSUE: string = 'bootNotifyIssue';
 const PARAM_BOOT_SEARCH_HISTORY: string = 'bootSearchHistory';
 
+/**
+ * 表驱动 boot 注入项：onCreate/onNewWant 循环读 want.parameters[param]，
+ * 字符串非空则 BootChannel.set(key, value)。行为与原 handleBootXxxInjection 逐一等价：
+ * - boolFlag=true：'false'/'0' 视为未注入，注入值固定 '1'（bootLogin / bootWelcomeHold）；
+ * - lowerCase=true：值转小写后注入（bootTab / bootLogin / bootWelcomeHold）；
+ * - loggerTs=true：保留原 Logger.i('boot/ts', ...) 埋点文本。
+ * bootLocale（必须最先注入）/ bootToken（授权副作用）/ bootSearchHistory（写 Preferences，
+ * 不走 BootChannel）三个特殊处理保留为显式调用。
+ */
+interface BootInjectionSpec {
+  param: string;
+  key: string;
+  logTag: string;
+  methodName: string;
+  lowerCase: boolean;
+  boolFlag: boolean;
+  loggerTs: boolean;
+}
+
+const BOOT_INJECTION_TABLE: BootInjectionSpec[] = [
+  { param: PARAM_BOOT_LOGIN, key: BOOT_LOGIN_KEY, logTag: 'bootLogin', methodName: 'handleBootLoginInjection', lowerCase: true, boolFlag: true, loggerTs: false },
+  { param: PARAM_BOOT_WELCOME_HOLD, key: BOOT_WELCOME_HOLD_KEY, logTag: 'bootWelcomeHold', methodName: 'handleBootWelcomeHoldInjection', lowerCase: true, boolFlag: true, loggerTs: false },
+  { param: PARAM_BOOT_TAB, key: BOOT_TAB_KEY, logTag: 'bootTab', methodName: 'handleBootTabInjection', lowerCase: true, boolFlag: false, loggerTs: false },
+  { param: PARAM_BOOT_REPO, key: BOOT_REPO_KEY, logTag: 'bootRepo', methodName: 'handleBootRepoInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+  { param: PARAM_BOOT_PUSH, key: BOOT_PUSH_KEY, logTag: 'bootPush', methodName: 'handleBootPushInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+  { param: PARAM_BOOT_ISSUE, key: BOOT_ISSUE_KEY, logTag: 'bootIssue', methodName: 'handleBootIssueInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+  { param: PARAM_BOOT_CODE, key: BOOT_CODE_KEY, logTag: 'bootCode', methodName: 'handleBootCodeInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+  { param: PARAM_BOOT_USER, key: BOOT_USER_KEY, logTag: 'bootUser', methodName: 'handleBootUserInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+  { param: PARAM_BOOT_PHOTO, key: BOOT_PHOTO_KEY, logTag: 'bootPhoto', methodName: 'handleBootPhotoInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+  { param: PARAM_BOOT_WEB, key: BOOT_WEB_KEY, logTag: 'bootWeb', methodName: 'handleBootWebInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+  { param: PARAM_BOOT_COMMON_LIST, key: BOOT_COMMON_LIST_KEY, logTag: 'bootCommonList', methodName: 'handleBootCommonListInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+  { param: PARAM_BOOT_NOTIFY_ISSUE, key: BOOT_NOTIFY_ISSUE_KEY, logTag: 'bootNotifyIssue', methodName: 'handleBootNotifyIssueInjection', lowerCase: false, boolFlag: false, loggerTs: true },
+];
+
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, _launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, TAG, 'onCreate');
@@ -44,20 +78,12 @@ export default class EntryAbility extends UIAbility {
         hilog.error(0x0000, TAG, 'prefs/theme init fail %{public}s', e.message);
       });
     this.handleOAuthDeepLink(want);
+    // bootLocale 必须最先注入（消费端按注入顺序读取，语义保留）。
     this.handleBootLocaleInjection(want);
+    // bootToken 带授权副作用（GlobalAuthStore/HttpManager/Preferences），仅 onCreate 显式处理。
     this.handleBootTokenInjection(want);
-    this.handleBootLoginInjection(want);
-    this.handleBootWelcomeHoldInjection(want);
-    this.handleBootTabInjection(want);
-    this.handleBootRepoInjection(want);
-    this.handleBootPushInjection(want);
-    this.handleBootIssueInjection(want);
-    this.handleBootCodeInjection(want);
-    this.handleBootUserInjection(want);
-    this.handleBootPhotoInjection(want);
-    this.handleBootWebInjection(want);
-    this.handleBootCommonListInjection(want);
-    this.handleBootNotifyIssueInjection(want);
+    // 其余 boot 参数统一表驱动注入（行为与原 handleBootXxxInjection 逐一等价）。
+    this.applyBootInjections(want);
     this.handleBootSearchHistoryInjection(want);
   }
 
@@ -65,18 +91,7 @@ export default class EntryAbility extends UIAbility {
     hilog.info(0x0000, TAG, 'onNewWant');
     this.handleOAuthDeepLink(want);
     this.handleBootLocaleInjection(want);
-    this.handleBootLoginInjection(want);
-    this.handleBootWelcomeHoldInjection(want);
-    this.handleBootTabInjection(want);
-    this.handleBootRepoInjection(want);
-    this.handleBootPushInjection(want);
-    this.handleBootIssueInjection(want);
-    this.handleBootCodeInjection(want);
-    this.handleBootUserInjection(want);
-    this.handleBootPhotoInjection(want);
-    this.handleBootWebInjection(want);
-    this.handleBootCommonListInjection(want);
-    this.handleBootNotifyIssueInjection(want);
+    this.applyBootInjections(want);
     this.handleBootSearchHistoryInjection(want);
   }
 
@@ -186,6 +201,45 @@ export default class EntryAbility extends UIAbility {
   }
 
   /**
+   * 表驱动 boot 注入（原 12 个 handleBootXxxInjection 收敛）：
+   * 读 want.parameters[spec.param]，字符串非空按 spec 语义写入 BootChannel。
+   * bootLocale / bootToken / bootSearchHistory 三个特殊处理仍为显式调用。
+   */
+  private applyBootInjections(want: Want): void {
+    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
+    if (!params) {
+      return;
+    }
+    for (let i = 0; i < BOOT_INJECTION_TABLE.length; i++) {
+      const spec: BootInjectionSpec = BOOT_INJECTION_TABLE[i];
+      const raw: Object | undefined = params[spec.param];
+      if (typeof raw !== 'string') {
+        continue;
+      }
+      let value: string = (raw as string).trim();
+      if (value.length === 0) {
+        continue;
+      }
+      if (spec.lowerCase) {
+        value = value.toLowerCase();
+      }
+      if (spec.boolFlag) {
+        if (value === 'false' || value === '0') {
+          continue;
+        }
+        hilog.info(0x0000, TAG, '%{public}s injected', spec.logTag);
+        BootChannel.set(spec.key, '1');
+        continue;
+      }
+      hilog.info(0x0000, TAG, '%{public}s injected %{public}s', spec.logTag, value);
+      BootChannel.set(spec.key, value);
+      if (spec.loggerTs) {
+        Logger.i('boot/ts', `EntryAbility.${spec.methodName} done t=${Date.now()} value=${value}`);
+      }
+    }
+  }
+
+  /**
    * 测试通道：want.parameters.bootSearchHistory=react|flutter，
    * 用于 Search 首屏/聚焦态对照截图。生产路径不会带该参数。
    */
@@ -223,266 +277,4 @@ export default class EntryAbility extends UIAbility {
       });
   }
 
-  /**
-   * 测试通道：want.parameters.bootLogin=true，
-   * 仅强制 WelcomePage 进入 LoginPage，不清除现有 token，方便保留登录态做 UI 回归。
-   */
-  private handleBootLoginInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_LOGIN];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim().toLowerCase();
-    if (value.length === 0 || value === 'false' || value === '0') {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootLogin injected');
-    BootChannel.set(BOOT_LOGIN_KEY, '1');
-  }
-
-  /**
-   * 测试通道：want.parameters.bootWelcomeHold=true，
-   * 保持 WelcomePage 不自动路由，用于短时间动画截图对比。
-   */
-  private handleBootWelcomeHoldInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_WELCOME_HOLD];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim().toLowerCase();
-    if (value.length === 0 || value === 'false' || value === '0') {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootWelcomeHold injected');
-    BootChannel.set(BOOT_WELCOME_HOLD_KEY, '1');
-  }
-
-  /**
-   * 测试通道：want.parameters.bootTab=dynamic|trend|my，
-   * 通过 BootChannel 推送给 HomePage，绕开 uinput 在 navIndicator 区误触桌面的问题。
-   */
-  private handleBootTabInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_TAB];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const tab: string = (raw as string).trim().toLowerCase();
-    if (tab.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootTab injected %{public}s', tab);
-    BootChannel.set(BOOT_TAB_KEY, tab);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootRepo=owner/name，
-   * HomePage 启动后会读取该值并 push 到 RepositoryDetailPage，方便对详情页做真机回归。
-   * 用完即清，避免下次冷启动残留。
-   */
-  private handleBootRepoInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_REPO];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const repo: string = (raw as string).trim();
-    if (repo.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootRepo injected %{public}s', repo);
-    BootChannel.set(BOOT_REPO_KEY, repo);
-    Logger.i('boot/ts', `EntryAbility.handleBootRepoInjection done t=${Date.now()} repo=${repo}`);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootPush=owner/name|sha，
-   * HomePage 启动后会读取该值并 push 到 PushDetailPage，方便对详情页做真机回归。
-   */
-  private handleBootPushInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_PUSH];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim();
-    if (value.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootPush injected %{public}s', value);
-    BootChannel.set(BOOT_PUSH_KEY, value);
-    Logger.i('boot/ts', `EntryAbility.handleBootPushInjection done t=${Date.now()} value=${value}`);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootIssue=fullName|number，
-   * HomePage 启动后会读取该值并 push 到 IssueDetailPage，方便对详情页做真机回归。
-   */
-  private handleBootIssueInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_ISSUE];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim();
-    if (value.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootIssue injected %{public}s', value);
-    BootChannel.set(BOOT_ISSUE_KEY, value);
-    Logger.i('boot/ts', `EntryAbility.handleBootIssueInjection done t=${Date.now()} value=${value}`);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootCode=fullName|branch|path，
-   * HomePage 启动后会读取该值并 push 到 CodeDetailPage，方便对详情页做真机回归。
-   */
-  private handleBootCodeInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_CODE];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim();
-    if (value.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootCode injected %{public}s', value);
-    BootChannel.set(BOOT_CODE_KEY, value);
-    Logger.i('boot/ts', `EntryAbility.handleBootCodeInjection done t=${Date.now()} value=${value}`);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootUser=login，
-   * HomePage 启动后会读取该值并 push 到 UserDetailPage，方便对详情页做真机回归。
-   */
-  private handleBootUserInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_USER];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim();
-    if (value.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootUser injected %{public}s', value);
-    BootChannel.set(BOOT_USER_KEY, value);
-    Logger.i('boot/ts', `EntryAbility.handleBootUserInjection done t=${Date.now()} value=${value}`);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootPhoto=<image url>，
-   * HomePage 启动后会读取该值并 push 到 PhotoPage，方便对大图预览页做真机回归。
-   */
-  private handleBootPhotoInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_PHOTO];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim();
-    if (value.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootPhoto injected %{public}s', value);
-    BootChannel.set(BOOT_PHOTO_KEY, value);
-    Logger.i('boot/ts', `EntryAbility.handleBootPhotoInjection done t=${Date.now()} value=${value}`);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootWeb=<http(s) url>，
-   * HomePage 启动后会读取该值并 push 到 WebPage，方便对通用 Web 页做真机回归。
-   * 与 [handleBootPhotoInjection](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/entryability/EntryAbility.ets) 同款做法。
-   */
-  private handleBootWebInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_WEB];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim();
-    if (value.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootWeb injected %{public}s', value);
-    BootChannel.set(BOOT_WEB_KEY, value);
-    Logger.i('boot/ts', `EntryAbility.handleBootWebInjection done t=${Date.now()} value=${value}`);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootCommonList=dataType|showType|currentUser|repoName，
-   * HomePage 启动后会 push 到 CommonListPage，补足无自然入口的 Compose list 类型回归。
-   */
-  private handleBootCommonListInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_COMMON_LIST];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim();
-    if (value.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootCommonList injected %{public}s', value);
-    BootChannel.set(BOOT_COMMON_LIST_KEY, value);
-    Logger.i('boot/ts', `EntryAbility.handleBootCommonListInjection done t=${Date.now()} value=${value}`);
-  }
-
-  /**
-   * 测试通道：want.parameters.bootNotifyIssue=fullName|number，
-   * HomePage 启动后会进入 NotifyPage，NotifyPage 注入一条 Issue 通知用于点击路由回归。
-   */
-  private handleBootNotifyIssueInjection(want: Want): void {
-    const params: Record<string, Object> | undefined = want.parameters as Record<string, Object> | undefined;
-    if (!params) {
-      return;
-    }
-    const raw: Object | undefined = params[PARAM_BOOT_NOTIFY_ISSUE];
-    if (typeof raw !== 'string') {
-      return;
-    }
-    const value: string = (raw as string).trim();
-    if (value.length === 0) {
-      return;
-    }
-    hilog.info(0x0000, TAG, 'bootNotifyIssue injected %{public}s', value);
-    BootChannel.set(BOOT_NOTIFY_ISSUE_KEY, value);
-    Logger.i('boot/ts', `EntryAbility.handleBootNotifyIssueInjection done t=${Date.now()} value=${value}`);
-  }
 }

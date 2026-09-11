@@ -72,15 +72,18 @@ export async function readByKey(store: RdbStoreLike, spec: TableSpec,
   key: string): Promise<ReadResult> {
   const predicates: relationalStore.RdbPredicates = buildPredicatesByKey(store, spec, key);
   const rs: relationalStore.ResultSet = await store.query(predicates, ['data', 'updateAt']);
-  if (rs.rowCount <= 0) {
+  // try-finally：异常路径（getString/goToFirstRow 抛错）也保证游标关闭。
+  try {
+    if (rs.rowCount <= 0) {
+      return { result: false, data: '', updateAt: 0 } as ReadResult;
+    }
+    rs.goToFirstRow();
+    const data: string = rs.getString(rs.getColumnIndex('data'));
+    const updateAt: number = rs.getLong(rs.getColumnIndex('updateAt'));
+    return { result: true, data: data, updateAt: updateAt } as ReadResult;
+  } finally {
     rs.close();
-    return { result: false, data: '', updateAt: 0 } as ReadResult;
   }
-  rs.goToFirstRow();
-  const data: string = rs.getString(rs.getColumnIndex('data'));
-  const updateAt: number = rs.getLong(rs.getColumnIndex('updateAt'));
-  rs.close();
-  return { result: true, data: data, updateAt: updateAt } as ReadResult;
 }
 
 export async function saveByKey(store: RdbStoreLike, spec: TableSpec,

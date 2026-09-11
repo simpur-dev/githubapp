@@ -653,6 +653,7 @@ export struct IssueDetailPage {
           Row() {
             Image((this.vm.issue as IssueDetailModel).user.avatar_url)
               .id('issue_detail_user_avatar')
+              .alt($r('app.media.app_icon'))
               .width(HEADER_AVATAR_SIZE)
               .height(HEADER_AVATAR_SIZE)
               .borderRadius(HEADER_AVATAR_SIZE / 2)
@@ -792,6 +793,7 @@ export struct IssueDetailPage {
       Row() {
         Image(item.user.avatar_url)
           .id('issue_comment_avatar_' + index.toString())
+          .alt($r('app.media.app_icon'))
           .width(COMMENT_AVATAR_SIZE)
           .height(COMMENT_AVATAR_SIZE)
           .borderRadius(COMMENT_AVATAR_SIZE / 2)
