@@ -33,6 +33,7 @@ import {
   FA_SIGN_OUT,
 } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { ThemeManager } from 'common';
 
 export class DrawerMenuItem {
   key: string;
@@ -126,8 +127,8 @@ struct DrawerFeedbackSheet {
       .id(actionId)
       .type(ButtonType.Normal)
       .fontSize(GSYFontSize.min)
-      .fontColor(GSYColor.darkText)
-      .backgroundColor(GSYColor.surfaceGray)
+      .fontColor(ThemeManager.current().text)
+      .backgroundColor(ThemeManager.current().surfaceSubtle)
       .borderRadius(6)
       .height(32)
       .padding({ left: 10, right: 10 })
@@ -142,15 +143,15 @@ struct DrawerFeedbackSheet {
         .id('create_issue_dialog_title')
         .fontSize(GSYFontSize.middleNormal)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.primary)
+        .fontColor(ThemeManager.current().text)
         .margin({ bottom: GSYSpacing.normalEdge });
 
       TextInput({ placeholder: this.titlePlaceholder, text: this.titleText })
         .id('create_issue_dialog_title_input')
         .fontSize(GSYFontSize.normal)
-        .fontColor(GSYColor.primary)
-        .placeholderColor(GSYColor.subText)
-        .backgroundColor(GSYColor.surfaceSubtle)
+        .fontColor(ThemeManager.current().text)
+        .placeholderColor(ThemeManager.current().textSecondary)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .borderRadius(4)
         .height(40)
         .padding({ left: GSYSpacing.halfEdge, right: GSYSpacing.halfEdge })
@@ -161,9 +162,9 @@ struct DrawerFeedbackSheet {
       TextArea({ placeholder: this.bodyPlaceholder, text: this.bodyText })
         .id('create_issue_dialog_body_input')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.primary)
-        .placeholderColor(GSYColor.subText)
-        .backgroundColor(GSYColor.surfaceSubtle)
+        .fontColor(ThemeManager.current().text)
+        .placeholderColor(ThemeManager.current().textSecondary)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .borderRadius(4)
         .height(200)
         .margin({ top: GSYSpacing.normalEdge })
@@ -199,7 +200,7 @@ struct DrawerFeedbackSheet {
         Button(I18n('cancel'))
           .id('create_issue_dialog_cancel')
           .fontSize(GSYFontSize.normal)
-          .fontColor(GSYColor.subText)
+          .fontColor(ThemeManager.current().textSecondary)
           .backgroundColor(Color.Transparent)
           .layoutWeight(1)
           .onClick((): void => {
@@ -226,7 +227,7 @@ struct DrawerFeedbackSheet {
     .id('create_issue_dialog_root')
     .width('90%')
     .padding(GSYSpacing.normalEdge)
-    .backgroundColor(GSYColor.white)
+    .backgroundColor(ThemeManager.current().card)
     .borderRadius(8);
   }
 }
@@ -464,14 +465,14 @@ export struct DrawerMenu {
         .id('drawer_about_dialog_title')
         .fontSize(GSYFontSize.middleWhite)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.darkText)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .textAlign(TextAlign.Start)
         .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 18, bottom: 8 });
       Text(I18n('appVersionPrefix') + this.aboutVersionText)
         .id('drawer_about_dialog_text')
         .fontSize(GSYFontSize.normal)
-        .fontColor(GSYColor.primary)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .textAlign(TextAlign.Start)
         .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 4, bottom: 18 });
@@ -494,7 +495,7 @@ export struct DrawerMenu {
     }
     .id('drawer_about_dialog_root')
     .width('86%')
-    .backgroundColor(Color.White)
+    .backgroundColor(ThemeManager.current().card)
     .borderRadius(12);
   }
 
@@ -521,7 +522,7 @@ export struct DrawerMenu {
       Text(item.label)
         .id('drawer_language_label_' + item.value)
         .fontSize(GSYFontSize.normal)
-        .fontColor(GSYColor.primary)
+        .fontColor(ThemeManager.current().text)
         .layoutWeight(1)
         .margin({ left: GSYSpacing.halfEdge });
     }
@@ -535,7 +536,7 @@ export struct DrawerMenu {
       this.selectLanguage(item.value);
     });
     if (index < buildDrawerLanguageOptions().length - 1) {
-      Divider().color(GSYColor.pillDivider).strokeWidth(0.5);
+      Divider().color(ThemeManager.current().divider).strokeWidth(0.5);
     }
   }
 
@@ -546,7 +547,7 @@ export struct DrawerMenu {
         .id('drawer_language_dialog_title')
         .fontSize(GSYFontSize.middleWhite)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.darkText)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .textAlign(TextAlign.Start)
         .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 16, bottom: 12 });
@@ -558,7 +559,7 @@ export struct DrawerMenu {
     }
     .id('drawer_language_dialog_root')
     .width('86%')
-    .backgroundColor(Color.White)
+    .backgroundColor(ThemeManager.current().card)
     .borderRadius(12);
   }
 
@@ -585,11 +586,11 @@ export struct DrawerMenu {
           .id('drawer_menu_label_' + item.key)
           .fontSize(GSYFontSize.middleWhite)
           .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.white);
+          .fontColor(ThemeManager.current().onBrandText);
       }
       .id('drawer_menu_item_' + item.key)
       .type(ButtonType.Capsule)
-      .backgroundColor(GSYColor.dangerRed)
+      .backgroundColor(ThemeManager.current().danger)
       .width('90%')
       .height(56)
       .margin({ left: 18, right: 18, top: 24, bottom: 20 })
@@ -600,7 +601,7 @@ export struct DrawerMenu {
       Text(item.title)
         .id('drawer_menu_label_' + item.key)
         .fontSize(GSYFontSize.normal)
-        .fontColor(GSYColor.mainText)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .height(64)
         .padding({ left: 32, right: 24 })
@@ -628,14 +629,14 @@ export struct DrawerMenu {
       .width('100%')
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
-      .backgroundColor(GSYColor.white)
-      .border({ width: { top: 1 }, color: GSYColor.divider })
+      .backgroundColor(ThemeManager.current().card)
+      .border({ width: { top: 1 }, color: ThemeManager.current().divider })
       .padding({ top: GSYSpacing.padding12 })
       .bindSheet(this.feedbackSheetOpen, this.feedbackSheetBuilder(), {
         height: 520,
         dragBar: false,
         showClose: false,
-        backgroundColor: GSYColor.white,
+        backgroundColor: ThemeManager.current().card,
       });
 
       // bindSheet 单节点只能挂一个弹层，三个弹层分别挂在菜单根 / 两个 0 高锚点上。
@@ -646,7 +647,7 @@ export struct DrawerMenu {
           height: 260,
           dragBar: false,
           showClose: false,
-          backgroundColor: GSYColor.white,
+          backgroundColor: ThemeManager.current().card,
         });
 
       Row()
@@ -656,7 +657,7 @@ export struct DrawerMenu {
           height: 200,
           dragBar: false,
           showClose: false,
-          backgroundColor: GSYColor.white,
+          backgroundColor: ThemeManager.current().card,
         });
     }
     .width('100%')

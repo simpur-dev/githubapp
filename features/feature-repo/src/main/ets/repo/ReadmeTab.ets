@@ -13,7 +13,7 @@ import { I18n } from 'common';
 import { CommonToast } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYColor, GSYDarkColor, GSYFontSize, GSYSpacing, ThemeManager } from 'common';
 import { Logger } from 'common';
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer';
 
@@ -71,10 +71,19 @@ export struct ReadmeTab {
       return '<html><body></body></html>';
     }
     const baseTag: string = '<base href="' + baseUrl + '">';
+    // 深浅色按 ThemeManager 实际模式生成内联样式（palette 无 isDark 位，走 isDark()）：
+    // dark 时 body 用暗底 + 亮字，pre 代码块用 GitHub Dark 官方底色；light 保持原样式。
+    const bodyStyle: string = ThemeManager.isDark()
+      ? 'body{padding:15px;background:' + GSYDarkColor.darkPagePrimary
+        + ';color:' + GSYDarkColor.darkPaletteText + ';}'
+        + 'pre{background-color:' + GSYDarkColor.darkBackground
+        + ';padding:16px;overflow:auto;border-radius:6px;}'
+      : 'body{padding:15px;}'
+        + 'pre{background-color:' + GSYColor.surfaceSubtle
+        + ';padding:16px;overflow:auto;border-radius:6px;}';
     const mobileStyle: string = '<style>'
-      + 'body{padding:15px;}'
+      + bodyStyle
       + 'img{max-width:100% !important;height:auto !important;}'
-      + 'pre{background-color:#f6f8fa;padding:16px;overflow:auto;border-radius:6px;}'
       + '</style>';
     const headEnd: number = html.indexOf('</head>');
     if (headEnd > -1) {
@@ -238,11 +247,11 @@ export struct ReadmeTab {
         .id('readme_tab_loading_indicator')
         .width(28)
         .height(28)
-        .color(GSYColor.primary);
+        .color(ThemeManager.current().text);
       Text(I18n('loading'))
         .id('readme_tab_loading_text')
         .fontSize(GSYFontSize.middleNormal)
-        .fontColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({ top: GSYSpacing.halfEdge });
     }
     .id('readme_tab_loading_root')
@@ -250,7 +259,7 @@ export struct ReadmeTab {
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().background);
   }
 
   @Builder
@@ -259,11 +268,11 @@ export struct ReadmeTab {
       Text(I18n('reposReadme'))
         .id('readme_tab_empty_title')
         .fontSize(GSYFontSize.middleNormal)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
       Text(this.readmeError.length > 0 ? this.readmeError : I18n('userInfoNoting'))
         .id('readme_tab_empty_desc')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.tabUnSelect)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({ top: GSYSpacing.halfEdge });
     }
     .id('readme_tab_empty_root')
@@ -271,7 +280,7 @@ export struct ReadmeTab {
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().background);
   }
 
   build(): void {
@@ -360,6 +369,6 @@ export struct ReadmeTab {
     .id('readme_tab_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

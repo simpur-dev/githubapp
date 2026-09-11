@@ -3,6 +3,7 @@ import { I18n } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
+import { ThemeManager } from 'common';
 
 export const APP_VERSION: string = '1.0.0';
 export const APP_AUTHOR: string = 'CarGuo';
@@ -73,7 +74,7 @@ export struct AboutPage {
               .id('about_app_name')
               .fontSize(GSYFontSize.normal)
               .fontWeight(FontWeight.Bold)
-              .fontColor(GSYColor.primary)
+              .fontColor(ThemeManager.current().text)
               .margin({ top: 12 });
           }
           .id('about_logo_block')
@@ -87,12 +88,12 @@ export struct AboutPage {
                 Text(obj.item.label)
                   .id(obj.item.idValue + '_label')
                   .fontSize(GSYFontSize.small)
-                  .fontColor(GSYColor.textSubtle)
+                  .fontColor(ThemeManager.current().textSecondary)
                   .width(96);
                 Text(obj.item.value)
                   .id(obj.item.idValue + '_value')
                   .fontSize(GSYFontSize.small)
-                  .fontColor(GSYColor.primary)
+                  .fontColor(ThemeManager.current().text)
                   .layoutWeight(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
                   .maxLines(2);
@@ -100,8 +101,8 @@ export struct AboutPage {
               .id(obj.item.idValue + '_row')
               .width('100%')
               .padding({ top: 12, bottom: 12, left: 16, right: 16 })
-              .backgroundColor(GSYColor.white)
-              .border({ width: { bottom: 0.5 }, color: GSYColor.borderSubtle });
+              .backgroundColor(ThemeManager.current().card)
+              .border({ width: { bottom: 0.5 }, color: ThemeManager.current().divider });
             })
             .key((item: AboutInfoRow): string => item.idValue)
 
@@ -142,6 +143,6 @@ export struct AboutPage {
     .id('about_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.pageBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

@@ -9,7 +9,8 @@ import { EventItem } from 'common';
 import { EventActionUtil } from 'common';
 import { EventActionDispatcher } from 'common';
 import { ExternalUrlUtil } from 'common';
-import { GSYColor, GSYFontSize } from 'common';
+import { GSYFontSize } from 'common';
+import { ThemeManager } from 'common';
 import { DynamicTabViewModel } from '../viewmodel/DynamicTabViewModel';
 
 @ComponentV2
@@ -55,7 +56,7 @@ export struct DynamicTabPage {
       Text(I18n('listEmpty'))
         .id('dynamic_empty_text')
         .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
     }
     .id('dynamic_empty_root')
     .width('100%')
@@ -89,6 +90,6 @@ export struct DynamicTabPage {
     .id('tab_page_root_dynamic')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.mainBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

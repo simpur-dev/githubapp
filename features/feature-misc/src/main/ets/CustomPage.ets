@@ -1,6 +1,7 @@
 import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { I18n } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
+import { ThemeManager } from 'common';
 
 export class CustomScriptItem {
   name: string;
@@ -36,19 +37,19 @@ export struct CustomPage {
         .id('custom_item_name_' + index.toString())
         .fontSize(GSYFontSize.middleNormal)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.primary);
+        .fontColor(ThemeManager.current().text);
       Text(item.hint)
         .id('custom_item_hint_' + index.toString())
         .fontSize(GSYFontSize.min)
-        .fontColor(GSYColor.textSubtle)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({ top: 4 });
     }
     .id('custom_item_' + index.toString())
     .width('100%')
     .alignItems(HorizontalAlign.Start)
     .padding({ top: 12, bottom: 12, left: 16, right: 16 })
-    .backgroundColor(GSYColor.white)
-    .border({ width: { bottom: 0.5 }, color: GSYColor.borderSubtle });
+    .backgroundColor(ThemeManager.current().card)
+    .border({ width: { bottom: 0.5 }, color: ThemeManager.current().divider });
   }
 
   // R9 阶段4：标题栏交给 NavDestination 原生 .title（配置经 NavTitleBridge 上报）。
@@ -65,18 +66,18 @@ export struct CustomPage {
           .id('custom_header_title')
           .fontSize(GSYFontSize.middleWhite)
           .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.primary);
+          .fontColor(ThemeManager.current().text);
         Text(I18n('feedback'))
           .id('custom_header_subtitle')
           .fontSize(GSYFontSize.min)
-          .fontColor(GSYColor.textSubtle)
+          .fontColor(ThemeManager.current().textSecondary)
           .margin({ top: 4 });
       }
       .id('custom_header')
       .width('100%')
       .padding({ top: 24, bottom: 16, left: 16, right: 16 })
       .alignItems(HorizontalAlign.Start)
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().card);
 
       List() {
         Repeat(this.items)
@@ -108,6 +109,6 @@ export struct CustomPage {
     .id('custom_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.pageBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

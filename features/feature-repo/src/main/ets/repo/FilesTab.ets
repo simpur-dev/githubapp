@@ -2,7 +2,7 @@ import { I18n } from 'common';
 import { PullLoadMoreList } from 'common';
 import { RepositoryFileItem } from 'common';
 import { IconFont, FA_FOLDER, FA_CODE } from 'common';
-import { GSYSpacing, GSYColor, GSYFontSize } from 'common';
+import { GSYSpacing, GSYColor, GSYFontSize, ThemeManager } from 'common';
 
 interface BreadcrumbItem {
   label: string;
@@ -86,14 +86,14 @@ export struct FilesTab {
       IconFont({
         char: item.type === 'dir' ? FA_FOLDER : FA_CODE,
         glyphSize: 16,
-        glyphColor: item.type === 'dir' ? GSYColor.actionBlue : GSYColor.subText,
+        glyphColor: item.type === 'dir' ? GSYColor.actionBlue : ThemeManager.current().textSecondary,
       })
         .id('repo_file_row_icon_' + index.toString());
 
       Text(item.name)
         .id('repo_file_row_name_' + index.toString())
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.primary)
+        .fontColor(ThemeManager.current().text)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1)
@@ -113,12 +113,12 @@ export struct FilesTab {
     Column() {
       Text(I18n('reposFile'))
         .id('repo_file_empty_title')
-        .fontSize(15) // TODO: 字号 15 暂无 token 映射
-        .fontColor(GSYColor.subText);
+        .fontSize(GSYFontSize.middleNormal)
+        .fontColor(ThemeManager.current().textSecondary);
       Text(I18n('userInfoNoting'))
         .id('repo_file_empty_desc')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.tabUnSelect)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({ top: 8 });
     }
     .id('repo_file_empty_root')
@@ -135,7 +135,8 @@ export struct FilesTab {
           Text(obj.item.label)
             .id('repo_file_breadcrumb_seg_' + obj.item.index.toString())
             .fontSize(GSYFontSize.small)
-            .fontColor(obj.item.path === this.currentPath ? GSYColor.primary : GSYColor.actionBlue)
+            .fontColor(obj.item.path === this.currentPath
+              ? ThemeManager.current().text : GSYColor.actionBlue)
             .fontWeight(obj.item.path === this.currentPath ? FontWeight.Bold : FontWeight.Normal)
             .onClick((): void => {
               this.handleCrumbTap(obj.item);
@@ -143,7 +144,7 @@ export struct FilesTab {
           Text('>')
             .id('repo_file_breadcrumb_sep_' + obj.item.index.toString())
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.tabUnSelect)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ left: 4, right: 4 });
         })
         .key((crumb: BreadcrumbItem): string => crumb.index.toString() + '_' + crumb.path);
@@ -151,7 +152,7 @@ export struct FilesTab {
     .id('repo_file_breadcrumb')
     .width('100%')
     .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-    .backgroundColor(GSYColor.surfaceSubtle)
+    .backgroundColor(ThemeManager.current().surfaceSubtle)
     .alignItems(VerticalAlign.Center);
   }
 
@@ -179,6 +180,6 @@ export struct FilesTab {
     .id('repo_file_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

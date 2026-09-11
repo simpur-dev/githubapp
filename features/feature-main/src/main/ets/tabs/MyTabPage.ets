@@ -7,7 +7,7 @@
  * View 只做组装（@ComponentV2），状态在 [MyTabViewModel]（viewmodel/MyTabViewModel.ets）。
  */
 
-import { I18n } from 'common';
+import { I18n, GSYColor } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { DynamicEvent } from 'common';
@@ -16,7 +16,8 @@ import { EventItem } from 'common';
 import { EventActionUtil } from 'common';
 import { EventActionDispatcher } from 'common';
 import { ExternalUrlUtil } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYFontSize, GSYSpacing } from 'common';
+import { ThemeManager } from 'common';
 import { UserHeadItem } from '../views/UserHeadItem';
 import { MyTabViewModel, MyTabPageDeps } from '../viewmodel/MyTabViewModel';
 
@@ -156,7 +157,7 @@ export struct MyTabPage {
       Text(I18n('listEmpty'))
         .id('my_empty_text')
         .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
     }
     .id('my_empty_root')
     .width('100%')
@@ -204,6 +205,6 @@ export struct MyTabPage {
     .id('tab_page_root_my')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.mainBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

@@ -2,7 +2,8 @@ import { I18n } from 'common';
 import { TimeUtil } from 'common';
 import { PullLoadMoreList } from 'common';
 import { NavTitleAction, NavTitleBridge, NavTitleConfig, RouteName } from 'common';
-import { GSYColor, GSYFontSize, GSYShadow, GSYSpacing } from 'common';
+import { GSYFontSize, GSYShadow, GSYSpacing } from 'common';
+import { ThemeManager } from 'common';
 import { NotifyThread } from 'common';
 import { NotifyViewModel, NotifyTabItem } from './viewmodel/NotifyViewModel';
 
@@ -44,11 +45,13 @@ export struct NotifyPage {
             .type(ButtonType.Normal)
             .height(56)
             .layoutWeight(1)
-            .backgroundColor(this.vm.currentTabIndex === obj.index ? GSYColor.primary : GSYColor.white)
-            .fontColor(this.vm.currentTabIndex === obj.index ? GSYColor.white : GSYColor.subText)
+            .backgroundColor(this.vm.currentTabIndex === obj.index
+              ? ThemeManager.current().navBackground : ThemeManager.current().card)
+            .fontColor(this.vm.currentTabIndex === obj.index
+              ? ThemeManager.current().onBrandText : ThemeManager.current().textSecondary)
             .fontSize(GSYFontSize.normal)
             .borderRadius(obj.index === 0 || obj.index === this.vm.tabs.length - 1 ? 8 : 0)
-            .border({ width: 1, color: GSYColor.primary })
+            .border({ width: 1, color: ThemeManager.current().navBackground })
             .onClick((): void => {
               this.vm.onTabChanged(obj.index);
             });
@@ -59,7 +62,7 @@ export struct NotifyPage {
     .width('100%')
     .height(72)
     .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().tabBackground);
   }
 
   @Builder
@@ -70,7 +73,7 @@ export struct NotifyPage {
           Text(item.repository.full_name)
             .id('notify_row_repo_' + index.toString())
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.primary)
+            .fontColor(ThemeManager.current().text)
             .layoutWeight(1)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
@@ -78,7 +81,7 @@ export struct NotifyPage {
           Text(TimeUtil.resolveTime(item.updated_at))
             .id('notify_row_time_' + index.toString())
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.mediumText)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ left: GSYSpacing.halfEdge });
         }
         .id('notify_row_meta_' + index.toString())
@@ -88,7 +91,7 @@ export struct NotifyPage {
         Text(item.subject.title)
           .id('notify_row_title_' + index.toString())
           .fontSize(GSYFontSize.middleWhite)
-          .fontColor(GSYColor.mainText)
+          .fontColor(ThemeManager.current().text)
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .margin({ top: GSYSpacing.halfEdge });
@@ -96,7 +99,7 @@ export struct NotifyPage {
         Text(this.buildStatusText(item))
           .id('notify_row_status_' + index.toString())
           .fontSize(GSYFontSize.small)
-          .fontColor(GSYColor.mediumText)
+          .fontColor(ThemeManager.current().textSecondary)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .margin({ top: GSYSpacing.halfEdge });
@@ -105,11 +108,11 @@ export struct NotifyPage {
       .width('100%')
       .padding({ left: 10, right: 10, top: 10, bottom: 10 })
       .borderRadius(8)
-      .border({ width: 1, color: GSYColor.borderSubtle })
-      .backgroundColor(GSYColor.cardBackground)
+      .border({ width: 1, color: ThemeManager.current().divider })
+      .backgroundColor(ThemeManager.current().card)
       .shadow({
         radius: GSYShadow.radius,
-        color: GSYColor.cardShadow,
+        color: GSYShadow.cardShadowAlpha,
         offsetX: 1,
         offsetY: 1,
       })
@@ -128,8 +131,8 @@ export struct NotifyPage {
     Column() {
       Text(I18n('notifyEmpty'))
         .id('notify_empty_text')
-        .fontSize(15) // TODO: 字号 15 暂无 token 映射
-        .fontColor(GSYColor.subText);
+        .fontSize(GSYFontSize.middleNormal)
+        .fontColor(ThemeManager.current().textSecondary);
     }
     .id('notify_empty_root')
     .width('100%')
@@ -144,7 +147,7 @@ export struct NotifyPage {
         .id('notify_initial_loading_indicator')
         .width(36)
         .height(36)
-        .color(GSYColor.primary);
+        .color(ThemeManager.current().text);
     }
     .id('notify_initial_loading')
     .width('100%')
@@ -159,7 +162,7 @@ export struct NotifyPage {
       Text(this.vm.error.length > 0 ? this.vm.error : I18n('unknown'))
         .id('notify_initial_error_text')
         .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().textSecondary)
         .textAlign(TextAlign.Center)
         .padding({ left: 24, right: 24 });
     }
@@ -206,7 +209,7 @@ export struct NotifyPage {
       .id('notify_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().background);
     }
     .onReady((ctx: NavDestinationContext): void => {
       const stack: NavPathStack | undefined = ctx.pathStack;

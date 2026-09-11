@@ -12,7 +12,8 @@ import { PullLoadMoreList } from '../components/PullLoadMoreList';
 import { SubUserItem, SubRepositoryItem } from '../../model/service/RepositoryService';
 import { RepositoryItem } from '../widget/RepositoryItem';
 import { UserItem } from '../widget/UserItem';
-import { GSYColor, GSYFontSize, GSYSpacing } from '../style/Theme';
+import { GSYFontSize, GSYSpacing } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 
 export enum SubListMode {
   USER = 0,
@@ -41,13 +42,13 @@ export struct SubListView {
       Text(this.title)
         .id(this.idPrefix + '_title')
         .fontSize(GSYFontSize.middleNormal)
-        .fontColor(GSYColor.primary)
+        .fontColor(ThemeManager.current().text)
         .fontWeight(FontWeight.Bold);
     }
     .id(this.idPrefix + '_header')
     .width('100%')
     .padding(GSYSpacing.normalEdge)
-    .backgroundColor(GSYColor.surfaceSubtle);
+    .backgroundColor(ThemeManager.current().surfaceSubtle);
   }
 
   @Builder
@@ -165,6 +166,6 @@ export struct SubListView {
     .id(this.idPrefix + '_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.pageBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

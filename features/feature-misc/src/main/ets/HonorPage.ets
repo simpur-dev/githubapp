@@ -1,6 +1,7 @@
 import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { I18n } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
+import { ThemeManager } from 'common';
 
 export class HonorEntry {
   name: string;
@@ -46,11 +47,11 @@ export struct HonorPage {
           .id('honor_name_' + index.toString())
           .fontSize(GSYFontSize.middleNormal)
           .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.primary);
+          .fontColor(ThemeManager.current().text);
         Text(item.desc)
           .id('honor_desc_' + index.toString())
           .fontSize(GSYFontSize.min)
-          .fontColor(GSYColor.textSubtle)
+          .fontColor(ThemeManager.current().textSecondary)
           .margin({ top: 4 });
       }
       .alignItems(HorizontalAlign.Start)
@@ -60,8 +61,8 @@ export struct HonorPage {
     .id('honor_row_' + index.toString())
     .width('100%')
     .padding({ top: 12, bottom: 12, left: 16, right: 16 })
-    .backgroundColor(GSYColor.white)
-    .border({ width: { bottom: 0.5 }, color: GSYColor.borderSubtle })
+    .backgroundColor(ThemeManager.current().card)
+    .border({ width: { bottom: 0.5 }, color: ThemeManager.current().divider })
     .alignItems(VerticalAlign.Center);
   }
 
@@ -79,18 +80,18 @@ export struct HonorPage {
           .id('honor_header_title')
           .fontSize(GSYFontSize.middleWhite)
           .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.primary);
+          .fontColor(ThemeManager.current().text);
         Text(I18n('beStared100Title'))
           .id('honor_header_subtitle')
           .fontSize(GSYFontSize.min)
-          .fontColor(GSYColor.textSubtle)
+          .fontColor(ThemeManager.current().textSecondary)
           .margin({ top: 4 });
       }
       .id('honor_header')
       .width('100%')
       .padding({ top: 24, bottom: 16, left: 16, right: 16 })
       .alignItems(HorizontalAlign.Start)
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().card);
 
       List() {
         Repeat(this.items)
@@ -110,6 +111,6 @@ export struct HonorPage {
     .id('honor_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.pageBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

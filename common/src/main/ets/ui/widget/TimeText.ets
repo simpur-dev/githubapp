@@ -5,7 +5,8 @@
  */
 
 import { TimeUtil } from '../../base/utils/TimeUtil';
-import { GSYColor, GSYFontSize } from '../style/Theme';
+import { GSYFontSize } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 
 @ComponentV2
 export struct TimeText {
@@ -17,7 +18,7 @@ export struct TimeText {
     Text(TimeUtil.resolveTime(this.time))
       .id(this.textId.length > 0 ? this.textId : 'time_text')
       .fontSize(GSYFontSize.small)
-      .fontColor(GSYColor.subText)
+      .fontColor(ThemeManager.current().textSecondary)
       .margin({ top: this.marginTopValue });
   }
 }

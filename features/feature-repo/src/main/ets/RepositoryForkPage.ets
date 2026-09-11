@@ -1,5 +1,5 @@
 
-import { GSYColor } from 'common';
+import { ThemeManager } from 'common';
 import { NavTitleBridge, NavTitleConfig } from 'common';
 import {
   RepositoryService,
@@ -137,7 +137,7 @@ export struct RepositoryForkPage {
       .id('repo_fork_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().background);
     }
     .hideTitleBar(true)
     .onBackPressed((): boolean => {

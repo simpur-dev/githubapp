@@ -71,7 +71,8 @@ export struct AppBar {
 
   private resolveTitleColor(): ResourceColor {
     if (this.useTheme && this.palette) {
-      return GSYColor.white;
+      // 品牌头部上的文字：深浅色下都接近白，走 palette.onBrandText。
+      return this.palette.onBrandText;
     }
     return this.titleColor;
   }
@@ -85,7 +86,8 @@ export struct AppBar {
 
   private resolveActionColor(): ResourceColor {
     if (this.useTheme && this.palette) {
-      return GSYColor.white;
+      // 品牌头部上的文字/图标：深浅色下都接近白，走 palette.onBrandText。
+      return this.palette.onBrandText;
     }
     return this.actionColor;
   }

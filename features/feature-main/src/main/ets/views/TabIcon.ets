@@ -16,7 +16,8 @@
  * 只使用系统符号表中确定存在的资源名；iconKey / tab_icon_* 测试 id 保持不变。
  */
 
-import { GSYColor, GSYFontSize, GSYIconSize } from 'common';
+import { GSYFontSize, GSYIconSize } from 'common';
+import { ThemeManager } from 'common';
 
 export type TabIconKey = 'aperture' | 'activity' | 'user';
 
@@ -28,7 +29,8 @@ export struct TabIcon {
   iconSize: number = GSYIconSize.tab;
 
   private resolveColor(): string {
-    return this.selected ? GSYColor.tabSelected : GSYColor.tabUnSelect;
+    // 选中 = 主文字色，未选中 = 次文字色；随 palette 深浅色自适应。
+    return this.selected ? ThemeManager.current().text : ThemeManager.current().textSecondary;
   }
 
   private resolveSymbol(): Resource {

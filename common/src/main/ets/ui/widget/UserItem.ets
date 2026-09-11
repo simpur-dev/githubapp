@@ -1,6 +1,7 @@
 // RN 行号映射: [components/widget/UserItem.js](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/widget/UserItem.js) L36-L72
 
-import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from '../style/Theme';
+import { GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 import { UserImage } from './UserImage';
 import { IconFont, FA_CHEVRON_RIGHT } from '../components/IconFont';
 import { NavigationService } from '../../base/navigation/NavigationService';
@@ -49,7 +50,7 @@ export struct UserItem {
           .id(this.rowId.length > 0 ? this.rowId + '_login' : 'user_item_login')
           .fontSize(GSYFontSize.small)
           .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.mainText)
+          .fontColor(ThemeManager.current().text)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis });
 
@@ -57,7 +58,7 @@ export struct UserItem {
           Text(this.data.desc)
             .id(this.rowId.length > 0 ? this.rowId + '_desc' : 'user_item_desc')
             .fontSize(GSYFontSize.min)
-            .fontColor(GSYColor.subText)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ top: GSYSpacing.halfEdge / 2 })
             .maxLines(GSYSpacing.normalNumberOfLine)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
@@ -70,7 +71,7 @@ export struct UserItem {
         IconFont({
           char: FA_CHEVRON_RIGHT,
           glyphSize: GSYFontSize.small,
-          glyphColor: GSYColor.subLightText,
+          glyphColor: ThemeManager.current().textSecondary,
         });
       }
         .id(this.rowId.length > 0 ? this.rowId + '_chevron' : 'user_item_chevron')
@@ -89,9 +90,9 @@ export struct UserItem {
     .borderRadius(8)
     .border({
       width: 1,
-      color: GSYColor.borderSubtle,
+      color: ThemeManager.current().divider,
     })
-    .backgroundColor(GSYColor.cardBackground)
+    .backgroundColor(ThemeManager.current().card)
     .shadow({
       radius: GSYShadow.radius,
       color: GSYShadow.cardShadowAlpha,

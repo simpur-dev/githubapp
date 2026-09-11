@@ -7,7 +7,7 @@
  * 数据来源：MD4C（C 端）SAX 事件流 → MarkdownNative.parse → 本组件建树。
  */
 import { MdEvent, MarkdownNative } from './MarkdownNative';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYFontSize, GSYSpacing, ThemeManager } from 'common';
 
 /** 行内片段（一段文字 + 样式） */
 export interface MdInline {
@@ -132,37 +132,44 @@ export function buildRows(events: MdEvent[]): MarkdownRow[] {
 const MD_NUMBER_PREFIX: string = '•';
 const MD_CODE_FONT: string = 'monospace';
 
-@Builder
-function buildInlineText(inlines: MdInline[]): void {
-  Text() {
-    ForEach(inlines, (span: MdInline, idx: number): void => {
-      Span(span.text)
-        .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.primaryDark)
-        .fontWeight(span.bold ? FontWeight.Bold : FontWeight.Normal)
-        .fontStyle(span.italic ? FontStyle.Italic : FontStyle.Normal)
-        .fontFamily(span.code ? MD_CODE_FONT : undefined)
-        .decoration({
-          type: span.del ? TextDecorationType.LineThrough : TextDecorationType.None,
-          color: GSYColor.primaryDark,
-        })
-        .onClick(() => {
-          if (span.link && span.href.length > 0) {
-            // 链接点击：交给上层处理（这里留空，上层绑定 onLinkClick）
-          }
-        });
-    }, (span: MdInline, idx: number): string => idx.toString() + '_' + span.text.substring(0, 8));
-  }
-  .lineHeight(24)
-  .fontColor(GSYColor.primaryDark)
-  .fontSize(GSYFontSize.middleWhite);
-}
-
 @ComponentV2
 export struct MarkdownRenderer {
   @Param markdown: string = '';
   @Local rows: MarkdownRow[] = [];
   @Param onLinkClick: (href: string) => void = (_href: string): void => {};
+
+  /**
+   * 行内片段渲染（原模块级 @Builder 上移为组件方法，Span onClick 才能拿到
+   * this.onLinkClick；ForEach → Repeat，key 规则保持不变）。
+   */
+  @Builder
+  private buildInlineText(inlines: MdInline[]): void {
+    Text() {
+      Repeat<MdInline>(inlines)
+        .each((obj: RepeatItem<MdInline>): void => {
+          Span(obj.item.text)
+            .fontSize(GSYFontSize.middleWhite)
+            .fontColor(ThemeManager.current().text)
+            .fontWeight(obj.item.bold ? FontWeight.Bold : FontWeight.Normal)
+            .fontStyle(obj.item.italic ? FontStyle.Italic : FontStyle.Normal)
+            .fontFamily(obj.item.code ? MD_CODE_FONT : undefined)
+            .decoration({
+              type: obj.item.del ? TextDecorationType.LineThrough : TextDecorationType.None,
+              color: ThemeManager.current().text,
+            })
+            .onClick((): void => {
+              if (obj.item.link && obj.item.href.length > 0) {
+                // 链接点击：交给上层处理（宿主经 @Param onLinkClick 绑定）
+                this.onLinkClick(obj.item.href);
+              }
+            });
+        })
+        .key((span: MdInline, idx: number): string => idx.toString() + '_' + span.text.substring(0, 8));
+    }
+    .lineHeight(24)
+    .fontColor(ThemeManager.current().text)
+    .fontSize(GSYFontSize.middleWhite);
+  }
 
   aboutToAppear(): void {
     this.rebuild();
@@ -192,15 +199,15 @@ export struct MarkdownRenderer {
       Text(row.text)
         .fontSize(row.kind === 'h1' ? GSYFontSize.big : GSYFontSize.normal)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.primaryDark)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .margin({ top: 16, bottom: 8 });
     } else if (row.kind === 'code') {
       Text(row.text)
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.primaryDark)
+        .fontColor(ThemeManager.current().text)
         .fontFamily(MD_CODE_FONT)
-        .backgroundColor(GSYColor.surfaceSubtle)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .borderRadius(GSYSpacing.cardRadius)
         .width('100%')
         .padding({ left: 12, right: 12, top: 8, bottom: 8 })
@@ -209,28 +216,28 @@ export struct MarkdownRenderer {
       Column() {
         Text(row.text)
           .fontSize(GSYFontSize.middleWhite)
-          .fontColor(GSYColor.mediumDarkText)
+          .fontColor(ThemeManager.current().textSecondary)
           .width('100%');
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
       .border({
         width: { left: 3 },
-        color: GSYColor.pillDivider,
+        color: ThemeManager.current().divider,
       })
       .margin({ top: 6, bottom: 6 });
     } else if (row.kind === 'li') {
       Row() {
         Text(MD_NUMBER_PREFIX)
           .fontSize(GSYFontSize.middleWhite)
-          .fontColor(GSYColor.subText)
+          .fontColor(ThemeManager.current().textSecondary)
           .margin({ right: 8 });
         if (row.inlines.length > 0) {
-          buildInlineText(row.inlines);
+          this.buildInlineText(row.inlines);
         } else {
           Text(row.text)
             .fontSize(GSYFontSize.middleWhite)
-            .fontColor(GSYColor.primaryDark);
+            .fontColor(ThemeManager.current().text);
         }
       }
       .width('100%')
@@ -244,15 +251,15 @@ export struct MarkdownRenderer {
         .margin({ top: 6, bottom: 6 });
     } else if (row.kind === 'hr') {
       Divider()
-        .color(GSYColor.pillDivider)
+        .color(ThemeManager.current().divider)
         .margin({ top: 12, bottom: 12 });
     } else {
       if (row.inlines.length > 0) {
-        buildInlineText(row.inlines);
+        this.buildInlineText(row.inlines);
       } else {
         Text(row.text)
           .fontSize(GSYFontSize.middleWhite)
-          .fontColor(GSYColor.primaryDark)
+          .fontColor(ThemeManager.current().text)
           .width('100%')
           .lineHeight(24)
           .margin({ top: 4, bottom: 4 });

@@ -9,7 +9,7 @@ import { Preferences, KEY_USER_TOKEN, PREF_NAME } from 'common';
 import { RdbStore } from 'common';
 import { HttpManager } from 'common';
 import { GlobalAuthStore } from 'common';
-import { initSystemBars, applySystemBars, GSYColor, NavTitleBridge } from 'common';
+import { initSystemBars, applySystemBars, GSYColor, NavTitleBridge, ThemeManager } from 'common';
 import { Logger } from 'common';
 import { changeLocale, LocaleKey } from 'common';
 import { KEY_SEARCH_HISTORY, BOOT_TAB_KEY, BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_NOTIFY_ISSUE_KEY, BOOT_COMMON_LIST_KEY, BootChannel } from 'common';

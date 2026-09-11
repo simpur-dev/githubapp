@@ -21,7 +21,7 @@ import { I18n } from 'common';
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
-import { GSYColor, GSYFontSize } from 'common';
+import { GSYColor, GSYFontSize, ThemeManager } from 'common';
 import { Logger } from 'common';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import { CodeViewModel } from './viewmodel/CodeViewModel';
@@ -392,11 +392,11 @@ export struct CodeDetailPage {
         .id('code_detail_loading_indicator')
         .width(28)
         .height(28)
-        .color(GSYColor.primary);
+        .color(ThemeManager.current().text);
       Text(I18n('loading'))
         .id('code_detail_loading_text')
         .fontSize(GSYFontSize.middleNormal)
-        .fontColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({ top: 12 });
     }
     .id('code_detail_loading_root')
@@ -412,7 +412,7 @@ export struct CodeDetailPage {
       Text(I18n('fileNotSupport'))
         .id('code_detail_empty_title')
         .fontSize(GSYFontSize.middleNormal)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
       if (this.vm.error.length > 0) {
         Text(this.vm.error)
           .id('code_detail_empty_error')
@@ -497,7 +497,7 @@ export struct CodeDetailPage {
       .id('code_detail_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().background);
     }
     .onReady((ctx: NavDestinationContext): void => {
       const stack: NavPathStack | undefined = ctx.pathStack;

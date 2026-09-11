@@ -2,7 +2,7 @@ import webview from '@ohos.web.webview';
 import router from '@ohos.router';
 import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { HOST_WEB } from 'common';
-import { GSYColor } from 'common';
+import { ThemeManager } from 'common';
 import { I18n } from 'common';
 import { LoginWebViewModel } from './viewmodel/LoginWebViewModel';
 
@@ -45,7 +45,7 @@ export struct LoginWebPage {
     .id('login_web_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().background);
   }
 }
 

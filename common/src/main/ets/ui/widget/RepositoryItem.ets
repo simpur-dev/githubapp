@@ -2,7 +2,8 @@
  * RepositoryItem —— 对齐 Android Compose shared `RepositoryItem` / `GSYCardItem`.
  */
 
-import { GSYColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from '../style/Theme';
+import { GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 import { UserImage } from './UserImage';
 import { IconTextItem } from './IconTextItem';
 import { HTMLView } from '../components/HTMLView';
@@ -40,7 +41,7 @@ export struct RepositoryItem {
             .width('100%')
             .fontSize(GSYFontSize.normal)
             .fontWeight(FontWeight.Bold)
-            .fontColor(GSYColor.mainText)
+            .fontColor(ThemeManager.current().text)
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
 
@@ -48,7 +49,7 @@ export struct RepositoryItem {
             Text(this.repositoryType)
               .id(this.rowId.length > 0 ? this.rowId + '_type' : 'repo_item_type')
               .fontSize(GSYFontSize.min)
-              .fontColor(GSYColor.subText)
+              .fontColor(ThemeManager.current().textSecondary)
               .maxLines(1)
               .margin({ top: 2 });
           }
@@ -56,9 +57,9 @@ export struct RepositoryItem {
           IconTextItem({
             text: this.ownerName,
             iconChar: FA_USER,
-            iconColor: GSYColor.subLightText,
+            iconColor: ThemeManager.current().textSecondary,
             iconSize: GSYFontSize.small,
-            textColor: GSYColor.subLightText,
+            textColor: ThemeManager.current().textSecondary,
             textFontSize: GSYFontSize.small,
             rowId: this.rowId.length > 0 ? this.rowId + '_owner' : 'repo_item_owner',
           });
@@ -72,7 +73,7 @@ export struct RepositoryItem {
       HTMLView({
         value: this.repositoryDes && this.repositoryDes.length > 0 ? this.repositoryDes : '---',
         fontSize: GSYFontSize.small,
-        fontColor: GSYColor.subText,
+        fontColor: ThemeManager.current().textSecondary,
         maxLines: GSYSpacing.normalNumberOfLine,
         viewId: this.rowId.length > 0 ? this.rowId + '_des' : 'repo_item_des',
       })
@@ -83,10 +84,10 @@ export struct RepositoryItem {
         Column() {
           CommonIconButton({
             icon: FA_STAR_O,
-            iconColor: GSYColor.subText,
+            iconColor: ThemeManager.current().textSecondary,
             iconSize: GSYIconSize.minIcon,
             text: this.repositoryStar,
-            textColor: GSYColor.subText,
+            textColor: ThemeManager.current().textSecondary,
             textFontSize: GSYFontSize.small,
             textId: this.rowId.length > 0 ? this.rowId + '_star_text' : '',
           });
@@ -97,10 +98,10 @@ export struct RepositoryItem {
         Column() {
           CommonIconButton({
             icon: FA_CODE_FORK,
-            iconColor: GSYColor.subText,
+            iconColor: ThemeManager.current().textSecondary,
             iconSize: GSYIconSize.minIcon,
             text: this.repositoryFork,
-            textColor: GSYColor.subText,
+            textColor: ThemeManager.current().textSecondary,
             textFontSize: GSYFontSize.small,
             textId: this.rowId.length > 0 ? this.rowId + '_fork_text' : '',
           });
@@ -111,10 +112,10 @@ export struct RepositoryItem {
         Column() {
           CommonIconButton({
             icon: FA_USER,
-            iconColor: GSYColor.subText,
+            iconColor: ThemeManager.current().textSecondary,
             iconSize: this.hideWatchIcon ? 1 : GSYIconSize.minIcon,
             text: this.repositoryWatch,
-            textColor: GSYColor.subText,
+            textColor: ThemeManager.current().textSecondary,
             textFontSize: GSYFontSize.small,
             textId: this.rowId.length > 0 ? this.rowId + '_watch_text' : '',
           });
@@ -142,9 +143,9 @@ export struct RepositoryItem {
     .borderRadius(4)
     .border({
       width: 1,
-      color: GSYColor.borderSubtle,
+      color: ThemeManager.current().divider,
     })
-    .backgroundColor(GSYColor.cardBackground)
+    .backgroundColor(ThemeManager.current().card)
     .shadow({
       radius: GSYShadow.radius,
       color: GSYShadow.cardShadowAlpha,

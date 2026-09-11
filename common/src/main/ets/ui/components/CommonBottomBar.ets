@@ -16,6 +16,7 @@
  */
 
 import { GSYColor, GSYFontSize, GSYSpacing, GSYShadow } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 import { IconFont } from './IconFont';
 
 const ITEM_ICON_SIZE: number = 14;
@@ -26,8 +27,8 @@ const REPO_ACTION_ICON_TEXT_GAP: number = 4;
 export class CommonBottomBarItem {
   itemName: string = '';
   icon: string = '';
-  iconColor: string = GSYColor.primary;
-  itemTextColor: string = GSYColor.primary;
+  iconColor: string = ThemeManager.current().text;
+  itemTextColor: string = ThemeManager.current().text;
   itemClick: () => void = (): void => {};
   itemId: string = '';
 }
@@ -40,7 +41,7 @@ function doNothingTrailingMenuBuilder(): void {
 export struct CommonBottomBar {
   @Param dataList: CommonBottomBarItem[] = [];
   @Param rootId: string = 'common_bottom_bar';
-  @Param rootBackgroundColor: ResourceColor = GSYColor.white;
+  @Param rootBackgroundColor: ResourceColor = ThemeManager.current().card;
   @Param rootMarginHorizontal: number = 0;
   @Param rootMarginTop: number = 0;
   @Param rootMarginBottom: number = 0;

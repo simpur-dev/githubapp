@@ -15,7 +15,7 @@
 import { I18n } from 'common';
 import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { NavigationService } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYColor, GSYFontSize, GSYSpacing, ThemeManager } from 'common';
 import { PullLoadMoreList } from 'common';
 import { ReleaseItem } from './views/ReleaseItem';
 import { ReleaseListItem } from 'common';
@@ -86,12 +86,13 @@ export struct ReleasePage {
     Column() {
       Text(item.title)
         .fontSize(GSYFontSize.small)
-        .fontColor(this.currentIndex === item.index ? GSYColor.primary : GSYColor.subText)
+        .fontColor(this.currentIndex === item.index
+          ? ThemeManager.current().text : ThemeManager.current().textSecondary)
         .fontWeight(this.currentIndex === item.index ? FontWeight.Bold : FontWeight.Normal)
         .layoutWeight(1);
       Divider()
         .strokeWidth(GSYSpacing.tabIndicatorThickness)
-        .color(this.currentIndex === item.index ? GSYColor.primary : Color.Transparent)
+        .color(this.currentIndex === item.index ? ThemeManager.current().text : Color.Transparent)
         .width('100%');
     }
     .id('release_tab_bar_' + item.key)
@@ -185,7 +186,7 @@ export struct ReleasePage {
       .id('release_page_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.mainBackground);
+      .backgroundColor(ThemeManager.current().background);
     }
     .hideTitleBar(true)
     .onBackPressed((): boolean => {

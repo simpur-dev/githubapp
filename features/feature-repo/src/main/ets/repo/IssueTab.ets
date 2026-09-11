@@ -9,7 +9,7 @@ import type { TranslationMap } from 'common';
 import { PullLoadMoreList } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
-import { GSYSpacing, GSYColor, GSYFontSize, GSYShadow } from 'common';
+import { GSYSpacing, GSYFontSize, GSYShadow, ThemeManager } from 'common';
 import { IconFont, FA_PLUS, FA_SEARCH, FA_TIMES, FA_BUG } from 'common';
 import { RepositoryIssueItem, ISSUE_STATE_OPEN, ISSUE_STATE_CLOSED, ISSUE_STATE_ALL } from 'common';
 import { IssueTabViewModel } from '../viewmodel/IssueTabViewModel';
@@ -95,12 +95,12 @@ export struct IssueTab {
         .layoutWeight(1)
         .height(ISSUE_SEARCH_INPUT_HEIGHT)
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.primary)
-        .placeholderColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().text)
+        .placeholderColor(ThemeManager.current().textSecondary)
         .placeholderFont({ size: GSYFontSize.small })
-        .caretColor(GSYColor.primary)
+        .caretColor(ThemeManager.current().text)
         .defaultFocus(false)
-        .backgroundColor(GSYColor.white)
+        .backgroundColor(ThemeManager.current().card)
         .borderRadius(3)
         .padding({
           left: GSYSpacing.halfEdge,
@@ -122,7 +122,7 @@ export struct IssueTab {
         IconFont({
           char: this.hasSearchQuery() ? FA_TIMES : FA_SEARCH,
           glyphSize: ISSUE_SEARCH_ICON_SIZE,
-          glyphColor: GSYColor.mainText,
+          glyphColor: ThemeManager.current().text,
         })
           .id(this.hasSearchQuery() ? 'repo_issue_search_clear_icon' : 'repo_issue_search_icon');
       }
@@ -147,10 +147,10 @@ export struct IssueTab {
       right: GSYSpacing.normalEdge,
       top: GSYSpacing.normalEdge,
     })
-    .backgroundColor(GSYColor.white)
+    .backgroundColor(ThemeManager.current().card)
     .border({
       width: 0.5,
-      color: GSYColor.line,
+      color: ThemeManager.current().divider,
       radius: 3,
     })
     .alignItems(VerticalAlign.Center);
@@ -163,14 +163,15 @@ export struct IssueTab {
         IconFont({
           char: '\uf00c',
           glyphSize: 12,
-          glyphColor: GSYColor.miWhite,
+          glyphColor: ThemeManager.current().onBrandText,
         })
           .margin({ right: 4 });
       }
       Text(I18n(chip.label))
         .id(chip.id)
         .fontSize(GSYFontSize.small)
-        .fontColor(this.vm.issueState === chip.key ? GSYColor.miWhite : GSYColor.subText);
+        .fontColor(this.vm.issueState === chip.key
+          ? ThemeManager.current().onBrandText : ThemeManager.current().textSecondary);
     }
     .layoutWeight(1)
     .padding({ top: 8, bottom: 8 })
@@ -185,9 +186,9 @@ export struct IssueTab {
   chipBarBuilder(): void {
     Row() {
       this.chipBuilder(this.chipDefs[0]);
-      Divider().vertical(true).strokeWidth(0.5).color(GSYColor.line).height(16);
+      Divider().vertical(true).strokeWidth(0.5).color(ThemeManager.current().divider).height(16);
       this.chipBuilder(this.chipDefs[1]);
-      Divider().vertical(true).strokeWidth(0.5).color(GSYColor.line).height(16);
+      Divider().vertical(true).strokeWidth(0.5).color(ThemeManager.current().divider).height(16);
       this.chipBuilder(this.chipDefs[2]);
     }
     .id('repo_issue_chip_bar')
@@ -197,7 +198,7 @@ export struct IssueTab {
       right: GSYSpacing.normalEdge,
       top: GSYSpacing.normalEdge,
     })
-    .backgroundColor(GSYColor.primary)
+    .backgroundColor(ThemeManager.current().navBackground)
     .borderRadius(4)
     .alignItems(VerticalAlign.Center);
   }
@@ -209,7 +210,7 @@ export struct IssueTab {
         IconFont({
           char: FA_BUG,
           glyphSize: 24,
-          glyphColor: GSYColor.mainText,
+          glyphColor: ThemeManager.current().text,
         })
           .id('repo_issue_row_icon_' + index.toString())
           .margin({ right: 8 });
@@ -218,7 +219,7 @@ export struct IssueTab {
           .id('repo_issue_row_title_' + index.toString())
           .fontSize(GSYFontSize.normal)
           .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.mainText)
+          .fontColor(ThemeManager.current().text)
           .layoutWeight(1)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis });
@@ -229,7 +230,7 @@ export struct IssueTab {
       Text(item.body)
         .id('repo_issue_row_body_' + index.toString())
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({ top: 4 })
         .maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis });
@@ -238,14 +239,14 @@ export struct IssueTab {
         Text(this.issueOpenedBy(item))
           .id('repo_issue_row_opened_by_' + index.toString())
           .fontSize(GSYFontSize.small)
-          .fontColor(GSYColor.subText)
+          .fontColor(ThemeManager.current().textSecondary)
           .layoutWeight(1)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis });
         Text(this.issueDate(item))
           .id('repo_issue_row_date_' + index.toString())
           .fontSize(GSYFontSize.small)
-          .fontColor(GSYColor.subText);
+          .fontColor(ThemeManager.current().textSecondary);
       }
       .width('100%')
       .margin({ top: 4 })
@@ -261,7 +262,7 @@ export struct IssueTab {
     })
     .padding(GSYSpacing.normalEdge)
     .borderRadius(3)
-    .backgroundColor(GSYColor.white)
+    .backgroundColor(ThemeManager.current().card)
     .shadow({
       radius: GSYShadow.radius,
       color: GSYShadow.cardShadowAlpha,
@@ -280,11 +281,11 @@ export struct IssueTab {
       Text(I18n('reposIssue'))
         .id('repo_issue_empty_title')
         .fontSize(GSYFontSize.middleNormal)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
       Text(I18n('userInfoNoting'))
         .id('repo_issue_empty_desc')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.tabUnSelect)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({ top: 8 });
     }
     .id('repo_issue_empty_root')
@@ -299,14 +300,14 @@ export struct IssueTab {
       IconFont({
         char: FA_PLUS,
         glyphSize: 24,
-        glyphColor: GSYColor.miWhite,
+        glyphColor: ThemeManager.current().onBrandText,
       });
     }
     .id('repo_issue_create_fab')
     .width(48)
     .height(48)
     .borderRadius(24)
-    .backgroundColor(GSYColor.primary)
+    .backgroundColor(ThemeManager.current().navBackground)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
     .shadow({
@@ -354,7 +355,7 @@ export struct IssueTab {
       .id('repo_issue_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().background);
 
       if (this.showCreateFab) {
         this.fabBuilder();

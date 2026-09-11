@@ -3,7 +3,7 @@ import pasteboard from '@ohos.pasteboard';
 import common from '@ohos.app.ability.common';
 import Want from '@ohos.app.ability.Want';
 import { PullLoadMoreList } from 'common';
-import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
+import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow, ThemeManager } from 'common';
 import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import { CommonToast } from 'common';
@@ -334,7 +334,8 @@ export struct UserDetailPage {
     })
     .alignItems(HorizontalAlign.Start)
     .id('user_detail_header_stack')
-    .backgroundColor(GSYColor.primary)
+    // 品牌头部底（palette 驱动）；头部内 white/miWhite/subLightText 为深色表面白字，保留。
+    .backgroundColor(ThemeManager.current().navBackground)
     .borderRadius({ bottomLeft: GSYShadow.radius, bottomRight: GSYShadow.radius })
     .shadow({
       radius: GSYShadow.radius,
@@ -358,7 +359,7 @@ export struct UserDetailPage {
     .width(GSYSpacing.tabBarHeight)
     .height(GSYSpacing.tabBarHeight)
     .borderRadius(GSYSpacing.tabBarHeight / 2)
-    .backgroundColor(GSYColor.primary)
+    .backgroundColor(ThemeManager.current().navBackground)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
     .margin({
@@ -411,7 +412,7 @@ export struct UserDetailPage {
       Text(item.login)
         .id('user_detail_org_member_login_' + index.toString())
         .fontSize(GSYFontSize.middleNormal)
-        .fontColor(GSYColor.primary)
+        .fontColor(ThemeManager.current().text)
         .margin({ left: GSYSpacing.normalEdge })
         .layoutWeight(1);
     }
@@ -445,7 +446,7 @@ export struct UserDetailPage {
       Text(I18n('listEmpty'))
         .id('user_detail_empty_text')
         .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
     }
     .id('user_detail_empty_root')
     .width('100%')
@@ -588,7 +589,7 @@ export struct UserDetailPage {
       .id('user_detail_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().background);
     }
     .hideTitleBar(true)
     .onBackPressed((): boolean => {

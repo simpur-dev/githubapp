@@ -2,6 +2,7 @@ import { NavTitleBridge, NavTitleConfig } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
+import { ThemeManager } from 'common';
 import { SettingViewModel, SettingOptionItem } from './viewmodel/SettingViewModel';
 
 // 设置域端口/助手已抽到 common/base/settings/SettingPorts（R9 阶段1a），
@@ -64,7 +65,7 @@ export struct SettingPage {
             .id('setting_language_title')
             .fontSize(GSYFontSize.middleNormal)
             .fontWeight(FontWeight.Bold)
-            .fontColor(GSYColor.primary)
+            .fontColor(ThemeManager.current().text)
             .width('100%')
             .padding({ top: 16, bottom: 8, left: 16, right: 16 });
           Row() {
@@ -75,8 +76,10 @@ export struct SettingPage {
                   .type(ButtonType.Capsule)
                   .height(36)
                   .fontSize(GSYFontSize.small)
-                  .fontColor(obj.item.option === this.vm.currentLanguage ? GSYColor.white : GSYColor.primary)
-                  .backgroundColor(obj.item.option === this.vm.currentLanguage ? GSYColor.linkBlue : GSYColor.surfacePill)
+                  .fontColor(obj.item.option === this.vm.currentLanguage
+                    ? ThemeManager.current().onBrandText : ThemeManager.current().text)
+                  .backgroundColor(obj.item.option === this.vm.currentLanguage
+                    ? GSYColor.linkBlue : ThemeManager.current().surfaceSubtle)
                   .margin({ right: 8 })
                   .onClick((): void => {
                     this.vm.chooseLanguage(obj.item.option);
@@ -93,7 +96,7 @@ export struct SettingPage {
             .id('setting_theme_title')
             .fontSize(GSYFontSize.middleNormal)
             .fontWeight(FontWeight.Bold)
-            .fontColor(GSYColor.primary)
+            .fontColor(ThemeManager.current().text)
             .width('100%')
             .padding({ top: 16, bottom: 8, left: 16, right: 16 });
           Row() {
@@ -104,8 +107,10 @@ export struct SettingPage {
                   .type(ButtonType.Capsule)
                   .height(36)
                   .fontSize(GSYFontSize.small)
-                  .fontColor(obj.item.option === this.vm.currentTheme ? GSYColor.white : GSYColor.primary)
-                  .backgroundColor(obj.item.option === this.vm.currentTheme ? GSYColor.linkBlue : GSYColor.surfacePill)
+                  .fontColor(obj.item.option === this.vm.currentTheme
+                    ? ThemeManager.current().onBrandText : ThemeManager.current().text)
+                  .backgroundColor(obj.item.option === this.vm.currentTheme
+                    ? GSYColor.linkBlue : ThemeManager.current().surfaceSubtle)
                   .margin({ right: 8 })
                   .onClick((): void => {
                     this.vm.chooseTheme(obj.item.option);
@@ -137,8 +142,8 @@ export struct SettingPage {
             .width('90%')
             .height(46)
             .fontSize(GSYFontSize.middleNormal)
-            .fontColor(GSYColor.white)
-            .backgroundColor(GSYColor.dangerRed)
+            .fontColor(ThemeManager.current().onBrandText)
+            .backgroundColor(ThemeManager.current().danger)
             .margin({ top: 12, bottom: 24 })
             .onClick((): void => {
               this.vm.runLogout();

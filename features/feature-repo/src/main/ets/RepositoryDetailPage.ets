@@ -21,7 +21,7 @@ import { IssueTab } from './repo/IssueTab';
 import { ActivityTab } from './repo/ActivityTab';
 import { FilesTab, isImageOrArchiveFile } from './repo/FilesTab';
 import { ExternalUrlUtil } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYColor, GSYFontSize, GSYSpacing, ThemeManager } from 'common';
 import { CommonBottomBar, CommonBottomBarItem, systemInsets } from 'common';
 import {
   FA_STAR,
@@ -95,8 +95,8 @@ struct RepoCreateIssueSheet {
       .id(actionId)
       .type(ButtonType.Normal)
       .fontSize(GSYFontSize.min)
-      .fontColor(GSYColor.darkText)
-      .backgroundColor(GSYColor.surfaceGray)
+      .fontColor(ThemeManager.current().text)
+      .backgroundColor(ThemeManager.current().surfaceSubtle)
       .borderRadius(6)
       .height(32)
       .padding({ left: 10, right: 10 })
@@ -111,15 +111,15 @@ struct RepoCreateIssueSheet {
         .id('create_issue_dialog_title')
         .fontSize(GSYFontSize.middleNormal)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.primary)
+        .fontColor(ThemeManager.current().text)
         .margin({ bottom: GSYSpacing.normalEdge });
 
       TextInput({ placeholder: this.titlePlaceholder, text: this.titleText })
         .id('create_issue_dialog_title_input')
         .fontSize(GSYFontSize.normal)
-        .fontColor(GSYColor.primary)
-        .placeholderColor(GSYColor.subText)
-        .backgroundColor(GSYColor.surfaceSubtle)
+        .fontColor(ThemeManager.current().text)
+        .placeholderColor(ThemeManager.current().textSecondary)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .borderRadius(4)
         .height(40)
         .padding({ left: GSYSpacing.halfEdge, right: GSYSpacing.halfEdge })
@@ -130,9 +130,9 @@ struct RepoCreateIssueSheet {
       TextArea({ placeholder: this.bodyPlaceholder, text: this.bodyText })
         .id('create_issue_dialog_body_input')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.primary)
-        .placeholderColor(GSYColor.subText)
-        .backgroundColor(GSYColor.surfaceSubtle)
+        .fontColor(ThemeManager.current().text)
+        .placeholderColor(ThemeManager.current().textSecondary)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .borderRadius(4)
         .height(200)
         .margin({ top: GSYSpacing.normalEdge })
@@ -168,7 +168,7 @@ struct RepoCreateIssueSheet {
         Button(I18n('cancel'))
           .id('create_issue_dialog_cancel')
           .fontSize(GSYFontSize.normal)
-          .fontColor(GSYColor.subText)
+          .fontColor(ThemeManager.current().textSecondary)
           .backgroundColor(Color.Transparent)
           .layoutWeight(1)
           .onClick((): void => {
@@ -177,8 +177,8 @@ struct RepoCreateIssueSheet {
         Button(I18n('ok'))
           .id('create_issue_dialog_confirm')
           .fontSize(GSYFontSize.normal)
-          .fontColor(GSYColor.miWhite)
-          .backgroundColor(GSYColor.primary)
+          .fontColor(ThemeManager.current().onBrandText)
+          .backgroundColor(ThemeManager.current().navBackground)
           .layoutWeight(1)
           .margin({ left: GSYSpacing.normalEdge })
           .onClick((): void => {
@@ -195,7 +195,7 @@ struct RepoCreateIssueSheet {
     .id('create_issue_dialog_root')
     .width('100%')
     .padding(GSYSpacing.normalEdge)
-    .backgroundColor(GSYColor.white)
+    .backgroundColor(ThemeManager.current().card)
     .borderRadius(8);
   }
 }
@@ -559,12 +559,13 @@ export struct RepositoryDetailPage {
     Column() {
       Text(item.title)
         .fontSize(GSYFontSize.small)
-        .fontColor(this.currentIndex === item.index ? GSYColor.primary : GSYColor.subText)
+        .fontColor(this.currentIndex === item.index
+          ? ThemeManager.current().text : ThemeManager.current().textSecondary)
         .fontWeight(this.currentIndex === item.index ? FontWeight.Bold : FontWeight.Normal)
         .layoutWeight(1);
       Divider()
         .strokeWidth(GSYSpacing.tabIndicatorThickness)
-        .color(this.currentIndex === item.index ? GSYColor.primary : Color.Transparent)
+        .color(this.currentIndex === item.index ? ThemeManager.current().text : Color.Transparent)
         .width('100%');
     }
     .id('repo_detail_tab_bar_' + item.key)
@@ -589,7 +590,7 @@ export struct RepositoryDetailPage {
                   Text(obj.item)
                     .id('repo_branch_menu_item_text_' + obj.index.toString())
                     .fontSize(GSYFontSize.small)
-                    .fontColor(GSYColor.primary)
+                    .fontColor(ThemeManager.current().text)
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                     .layoutWeight(1);
@@ -603,7 +604,7 @@ export struct RepositoryDetailPage {
                   this.handleBranchChange(obj.item);
                 });
                 if (obj.index < this.vm.branches.length - 1) {
-                  Divider().color(GSYColor.line).strokeWidth(BRANCH_MENU_DIVIDER_WIDTH);
+                  Divider().color(ThemeManager.current().divider).strokeWidth(BRANCH_MENU_DIVIDER_WIDTH);
                 }
               })
               .key((branch: string, index: number): string => index.toString() + ':' + branch);
@@ -631,14 +632,14 @@ export struct RepositoryDetailPage {
       IconFont({
         char: FA_PLUS,
         glyphSize: GSYFontSize.middleWhite,
-        glyphColor: GSYColor.miWhite,
+        glyphColor: ThemeManager.current().onBrandText,
       });
     }
     .id('repo_detail_create_issue_fab')
     .width(GSYSpacing.tabBarHeight)
     .height(GSYSpacing.tabBarHeight)
     .borderRadius(GSYSpacing.tabBarHeight / 2)
-    .backgroundColor(GSYColor.primary)
+    .backgroundColor(ThemeManager.current().navBackground)
     .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
     .border({
       width: 0.5,
@@ -684,8 +685,8 @@ export struct RepositoryDetailPage {
     starItem.itemId = 'star';
     starItem.itemName = this.vm.starred ? I18n('reposUnStar') : I18n('reposStar');
     starItem.icon = this.vm.starred ? FA_STAR : FA_STAR_O;
-    starItem.iconColor = GSYColor.primary;
-    starItem.itemTextColor = GSYColor.primary;
+    starItem.iconColor = ThemeManager.current().text;
+    starItem.itemTextColor = ThemeManager.current().text;
     starItem.itemClick = (): void => {
       this.toggleStar();
     };
@@ -695,8 +696,8 @@ export struct RepositoryDetailPage {
     watchItem.itemId = 'watch';
     watchItem.itemName = this.vm.watching ? I18n('reposUnWatcher') : I18n('reposWatcher');
     watchItem.icon = this.vm.watching ? FA_EYE_SLASH : FA_EYE;
-    watchItem.iconColor = GSYColor.primary;
-    watchItem.itemTextColor = GSYColor.primary;
+    watchItem.iconColor = ThemeManager.current().text;
+    watchItem.itemTextColor = ThemeManager.current().text;
     watchItem.itemClick = (): void => {
       this.toggleWatch();
     };
@@ -706,8 +707,8 @@ export struct RepositoryDetailPage {
     forkItem.itemId = 'fork';
     forkItem.itemName = I18n('reposFork');
     forkItem.icon = FA_CODE_FORK;
-    forkItem.iconColor = GSYColor.primary;
-    forkItem.itemTextColor = GSYColor.primary;
+    forkItem.iconColor = ThemeManager.current().text;
+    forkItem.itemTextColor = ThemeManager.current().text;
     forkItem.itemClick = (): void => {
       this.doFork();
     };
@@ -717,8 +718,8 @@ export struct RepositoryDetailPage {
     branchItem.itemId = 'branch';
     branchItem.itemName = this.vm.currentBranchName();
     branchItem.icon = FA_CHEVRON_DOWN;
-    branchItem.iconColor = GSYColor.primary;
-    branchItem.itemTextColor = GSYColor.primary;
+    branchItem.iconColor = ThemeManager.current().text;
+    branchItem.itemTextColor = ThemeManager.current().text;
     branchItem.itemClick = (): void => {
       this.openBranchSelector();
     };
@@ -870,12 +871,12 @@ export struct RepositoryDetailPage {
       .id('repo_detail_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white)
+      .backgroundColor(ThemeManager.current().background)
       .bindSheet(this.createIssueSheetOpen, this.buildCreateIssueSheet(), {
         height: CREATE_ISSUE_SHEET_HEIGHT,
         dragBar: false,
         showClose: false,
-        backgroundColor: GSYColor.white,
+        backgroundColor: ThemeManager.current().card,
       });
     }
     .hideTitleBar(true)

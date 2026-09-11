@@ -17,7 +17,7 @@
 
 import { I18n } from 'common';
 import { TimeUtil } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing, GSYIconSize, GSYShadow } from 'common';
+import { GSYFontSize, GSYSpacing, GSYIconSize, GSYShadow, ThemeManager } from 'common';
 import { PullLoadMoreList } from 'common';
 import {
   RepositoryDetail,
@@ -88,9 +88,9 @@ export struct ActivityTab {
     activityItem.itemId = 'activity';
     activityItem.itemName = I18n('reposEvents');
     activityItem.itemTextColor = this.select === ACTIVITY_SELECT_ACTIVITY
-      ? GSYColor.primary : GSYColor.subText;
+      ? ThemeManager.current().text : ThemeManager.current().textSecondary;
     activityItem.icon = this.select === ACTIVITY_SELECT_ACTIVITY ? FA_CHECK : '';
-    activityItem.iconColor = GSYColor.primary;
+    activityItem.iconColor = ThemeManager.current().text;
     activityItem.itemClick = (): void => {
       if (this.select === ACTIVITY_SELECT_ACTIVITY) {
         return;
@@ -105,9 +105,9 @@ export struct ActivityTab {
     pushItem.itemId = 'push';
     pushItem.itemName = I18n('reposCommits');
     pushItem.itemTextColor = this.select === ACTIVITY_SELECT_PUSH
-      ? GSYColor.primary : GSYColor.subText;
+      ? ThemeManager.current().text : ThemeManager.current().textSecondary;
     pushItem.icon = this.select === ACTIVITY_SELECT_PUSH ? FA_CHECK : '';
-    pushItem.iconColor = GSYColor.primary;
+    pushItem.iconColor = ThemeManager.current().text;
     pushItem.itemClick = (): void => {
       if (this.select === ACTIVITY_SELECT_PUSH) {
         return;
@@ -265,21 +265,21 @@ export struct ActivityTab {
             .id('repo_commit_row_' + index.toString() + '_message')
             .fontSize(GSYFontSize.middleWhite)
             .fontWeight(FontWeight.Bold)
-            .fontColor(GSYColor.mainText)
+            .fontColor(ThemeManager.current().text)
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
 
           Text(this.resolveCommitName(item))
             .id('repo_commit_row_' + index.toString() + '_author')
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.textSubtle)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ top: GSYSpacing.halfEdge });
 
           if (this.resolveCommitDate(item).length > 0) {
             Text(TimeUtil.resolveTime(this.resolveCommitDate(item)))
               .id('repo_commit_row_' + index.toString() + '_time')
               .fontSize(GSYFontSize.min)
-              .fontColor(GSYColor.subText)
+              .fontColor(ThemeManager.current().textSecondary)
               .margin({ top: GSYSpacing.halfEdge });
           }
         }
@@ -307,10 +307,10 @@ export struct ActivityTab {
     })
     .border({
       width: GSYSpacing.dividerThickness,
-      color: GSYColor.divider,
+      color: ThemeManager.current().divider,
     })
     .borderRadius(GSYSpacing.cardRadius * 2)
-    .backgroundColor(GSYColor.cardBackground)
+    .backgroundColor(ThemeManager.current().card)
     .shadow({
       radius: GSYShadow.radius,
       color: GSYShadow.cardShadowAlpha,
@@ -404,11 +404,11 @@ export struct ActivityTab {
       Text(I18n('reposEvents'))
         .id('repo_event_empty_title')
         .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
       Text(I18n('userInfoNoting'))
         .id('repo_event_empty_desc')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({ top: GSYSpacing.halfEdge });
     }
     .id('repo_event_empty_root')
@@ -442,6 +442,6 @@ export struct ActivityTab {
     .id('repo_event_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

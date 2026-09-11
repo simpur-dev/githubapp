@@ -17,7 +17,7 @@ import { BOOT_PUSH_KEY, BootChannel } from 'common';
 import { NavigationService } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
-import { GSYColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from 'common';
+import { GSYColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing, ThemeManager } from 'common';
 import { IconFont } from 'common';
 import { TimeUtil } from 'common';
 import {
@@ -229,12 +229,12 @@ export struct PushDetailPage {
               IconFont({
                 char: FA_EDIT,
                 glyphSize: 16,
-                glyphColor: GSYColor.primary,
+                glyphColor: ThemeManager.current().text,
               });
               Text((this.vm.commit as CommitDetail).stats.total.toString())
                 .id('push_detail_file_count_text')
                 .fontSize(GSYFontSize.min)
-                .fontColor(GSYColor.primary)
+                .fontColor(ThemeManager.current().text)
                 .margin({ left: GSYSpacing.halfEdge, right: GSYSpacing.normalEdge });
               Text('+' + (this.vm.commit as CommitDetail).stats.additions.toString())
                 .id('push_detail_additions_text')
@@ -252,7 +252,7 @@ export struct PushDetailPage {
           Text(TimeUtil.resolveTime(this.getAuthorDate()))
             .id('push_detail_date_text')
             .fontSize(GSYFontSize.min)
-            .fontColor(GSYColor.mediumText)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ top: GSYSpacing.halfEdge });
         }
         .layoutWeight(1)
@@ -266,7 +266,7 @@ export struct PushDetailPage {
         .id('push_detail_message_text')
         .fontSize(GSYFontSize.small)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.mainText)
+        .fontColor(ThemeManager.current().text)
         .margin({ top: GSYSpacing.normalEdge })
         .maxLines(4)
         .textOverflow({ overflow: TextOverflow.Ellipsis });
@@ -286,9 +286,9 @@ export struct PushDetailPage {
       bottom: GSYSpacing.normalEdge
     })
     .borderRadius(8)
-    .border({ width: 1, color: GSYColor.borderSubtle })
+    .border({ width: 1, color: ThemeManager.current().divider })
     .alignItems(HorizontalAlign.Start)
-    .backgroundColor(GSYColor.composePrimaryContainer)
+    .backgroundColor(ThemeManager.current().card)
     .shadow({
       radius: GSYShadow.radius,
       color: GSYShadow.cardShadowAlpha,
@@ -304,7 +304,7 @@ export struct PushDetailPage {
         Text(this.filePathOf(item.filename))
           .id('push_detail_file_path_' + idx.toString())
           .fontSize(GSYFontSize.min)
-          .fontColor(GSYColor.mediumText)
+          .fontColor(ThemeManager.current().textSecondary)
           .margin({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, bottom: 2 });
       }
 
@@ -313,12 +313,12 @@ export struct PushDetailPage {
           IconFont({
             char: FA_EDIT,
             glyphSize: GSYIconSize.cardIcon,
-            glyphColor: GSYColor.mainText,
+            glyphColor: ThemeManager.current().text,
           });
           Text(this.fileNameOf(item.filename))
             .id('push_detail_file_filename_' + idx.toString())
             .fontSize(GSYFontSize.normal)
-            .fontColor(GSYColor.mainText)
+            .fontColor(ThemeManager.current().text)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .margin({ left: GSYSpacing.normalEdge });
@@ -332,8 +332,8 @@ export struct PushDetailPage {
           bottom: GSYSpacing.normalEdge
         })
         .borderRadius(8)
-        .border({ width: 1, color: GSYColor.borderSubtle })
-        .backgroundColor(GSYColor.cardBackground)
+        .border({ width: 1, color: ThemeManager.current().divider })
+        .backgroundColor(ThemeManager.current().card)
         .shadow({
           radius: GSYShadow.radius,
           color: GSYShadow.cardShadowAlpha,
@@ -384,7 +384,7 @@ export struct PushDetailPage {
       .id('push_detail_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.composeBackgroundLight);
+      .backgroundColor(ThemeManager.current().background);
     }
     .onReady((ctx: NavDestinationContext): void => {
       const stack: NavPathStack | undefined = ctx.pathStack;

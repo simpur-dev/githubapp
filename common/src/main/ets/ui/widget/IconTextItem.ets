@@ -4,17 +4,19 @@
  * RN L18-L34 render；L20 halfEdge=normalMarginEdge/2；L21-L23 条件 icon；L28-L32 Text+marginLeft；L49-L54 defaults。
  */
 
-import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
+import { GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 import { IconFont } from '../components/IconFont';
 
 @ComponentV2
 export struct IconTextItem {
   @Param text: string = '';
   @Param iconChar: string = '';
-  @Param iconColor: string = GSYColor.miWhite;
+  // 默认值面向品牌/深色表面（历史 miWhite 白字场景），深浅色下都接近白。
+  @Param iconColor: string = ThemeManager.current().onBrandText;
   @Param iconSize: number = GSYIconSize.little;
 
-  @Param textColor: string = GSYColor.miWhite;
+  @Param textColor: string = ThemeManager.current().onBrandText;
   @Param textFontSize: number = GSYFontSize.small;
   @Param textBold: boolean = false;
   @Param textMaxLines: number = 1;

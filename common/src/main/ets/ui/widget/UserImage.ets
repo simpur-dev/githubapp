@@ -7,6 +7,7 @@
  */
 
 import { GSYColor, GSYFontSize, GSYIconSize } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 
 @ComponentV2
 export struct UserImage {
@@ -45,7 +46,7 @@ export struct UserImage {
         .height(this.resolveSize())
         .borderRadius(this.resolveSize() / 2)
         .objectFit(ImageFit.Cover)
-        .backgroundColor(GSYColor.miWhite)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .onClick((): void => {
           this.onAvatarTap();
         });

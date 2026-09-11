@@ -1,4 +1,5 @@
 import { GSYColor, GSYFontSize, GSYSpacing } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 import {
   MarkdownLine,
   MarkdownUtil,
@@ -19,7 +20,7 @@ const LIST_INDENT: number = 16;
 export struct MarkdownText {
   @Param markdown: string = '';
   @Param rootId: string = 'markdown_text';
-  @Param textColor: ResourceColor = GSYColor.mainText;
+  @Param textColor: ResourceColor = ThemeManager.current().text;
   @Param textFontSize: number = GSYFontSize.small;
 
   private lines(): MarkdownLine[] {
@@ -52,7 +53,7 @@ export struct MarkdownText {
         Text(line.marker)
           .id(this.rootId + '_marker_' + index.toString())
           .fontSize(this.textFontSize)
-          .fontColor(line.kind === MARKDOWN_LINE_TASK && line.checked ? GSYColor.actionBlue : GSYColor.mediumText)
+          .fontColor(line.kind === MARKDOWN_LINE_TASK && line.checked ? GSYColor.actionBlue : ThemeManager.current().textSecondary)
           .width(line.kind === MARKDOWN_LINE_ORDERED ? 28 : 22);
         Text(line.text)
           .id(this.rootId + '_text_' + index.toString())
@@ -65,16 +66,16 @@ export struct MarkdownText {
       .margin({ left: line.level * LIST_INDENT, top: 2, bottom: 2 });
     } else if (line.kind === MARKDOWN_LINE_QUOTE) {
       Row() {
-        Blank()
-          .width(QUOTE_BAR_WIDTH)
-          .height('100%')
-          .backgroundColor(GSYColor.lightDivider);
-        Text(line.text)
-          .id(this.rootId + '_quote_' + index.toString())
-          .fontSize(this.textFontSize)
-          .fontColor(GSYColor.mediumText)
-          .layoutWeight(1)
-          .margin({ left: GSYSpacing.halfEdge });
+      Blank()
+        .width(QUOTE_BAR_WIDTH)
+        .height('100%')
+        .backgroundColor(ThemeManager.current().divider);
+      Text(line.text)
+        .id(this.rootId + '_quote_' + index.toString())
+        .fontSize(this.textFontSize)
+        .fontColor(ThemeManager.current().textSecondary)
+        .layoutWeight(1)
+        .margin({ left: GSYSpacing.halfEdge });
       }
       .width('100%')
       .padding({
@@ -83,17 +84,17 @@ export struct MarkdownText {
         top: GSYSpacing.halfEdge,
         bottom: GSYSpacing.halfEdge,
       })
-      .backgroundColor(GSYColor.surfaceGray)
+      .backgroundColor(ThemeManager.current().surfaceSubtle)
       .margin({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge });
     } else if (line.kind === MARKDOWN_LINE_CODE) {
       Text(line.text)
         .id(this.rootId + '_code_' + index.toString())
         .fontSize(GSYFontSize.min)
         .fontFamily('monospace')
-        .fontColor(GSYColor.mainText)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .padding(GSYSpacing.halfEdge)
-        .backgroundColor(GSYColor.surfaceGray)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .borderRadius(CODE_RADIUS)
         .margin({ top: 2, bottom: 2 });
     } else if (line.kind === MARKDOWN_LINE_TABLE) {
@@ -119,10 +120,10 @@ export struct MarkdownText {
       }
       .id(this.rootId + '_table_row_' + index.toString())
       .width('100%')
-      .backgroundColor(line.level === 1 ? GSYColor.surfaceGray : GSYColor.cardBackground)
+      .backgroundColor(line.level === 1 ? ThemeManager.current().surfaceSubtle : ThemeManager.current().card)
       .border({
         width: 1,
-        color: GSYColor.lightDivider,
+        color: ThemeManager.current().divider,
       })
       .alignItems(VerticalAlign.Top);
     } else {

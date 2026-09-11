@@ -28,7 +28,7 @@
 import webview from '@ohos.web.webview';
 import hilog from '@ohos.hilog';
 import { NavTitleAction, NavTitleBridge, NavTitleConfig, RouteName } from 'common';
-import { GSYColor } from 'common';
+import { ThemeManager } from 'common';
 import { WebViewModel } from './viewmodel/WebViewModel';
 
 const DOMAIN: number = 0x0666;
@@ -93,7 +93,7 @@ export struct WebPage {
       .id('web_page_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.mainBackground);
+      .backgroundColor(ThemeManager.current().background);
     }
     .hideTitleBar(true)
     .onReady((ctx: NavDestinationContext): void => {

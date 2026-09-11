@@ -8,6 +8,7 @@ import {
 } from 'common';
 import { EventBus, EVENT_AUTH_STATE_CHANGED } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
+import { ThemeManager } from 'common';
 
 export class DrawerHeaderTexts {
   nameText: string;
@@ -117,7 +118,7 @@ export struct DrawerHeader {
           .width(88)
           .height(88)
           .borderRadius(22)
-          .backgroundColor(GSYColor.surfacePill);
+          .backgroundColor(ThemeManager.current().surfaceSubtle);
       } else {
         Text(user !== null && user.login.length > 0
           ? user.login.substring(0, 1).toUpperCase()
@@ -179,7 +180,7 @@ export struct DrawerHeader {
         .id('drawer_name')
         .fontSize(GSYFontSize.big)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.mainText)
+        .fontColor(ThemeManager.current().text)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .margin({ top: 18 });
@@ -187,7 +188,7 @@ export struct DrawerHeader {
       Text(DrawerHeaderLogic.buildTexts(this.resolveUser()).loginText)
         .id('drawer_login')
         .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().textSecondary)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .margin({ top: 8 });
@@ -196,6 +197,6 @@ export struct DrawerHeader {
     .width('100%')
     .padding({ left: 24, right: 24, top: 56, bottom: 28 })
     .alignItems(HorizontalAlign.Center)
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().card);
   }
 }

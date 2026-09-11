@@ -10,7 +10,8 @@
  *   - 调用方 .id() 机制不变（组件本身不带 id，由调用方挂在实例上）。
  */
 import { systemInsets } from '../../base/utils/SafeAreaInsets';
-import { GSYColor, GSYFontSize } from '../style/Theme';
+import { GSYFontSize } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 
 @ComponentV2
 export struct PullLoadMoreList {
@@ -81,8 +82,8 @@ export struct PullLoadMoreList {
   defaultEmptyState(): void {
     Column() {
       Text(this.emptyText)
-        .fontSize(15) // TODO: 字号 15 暂无 token 映射
-        .fontColor(GSYColor.mediumText);
+        .fontSize(GSYFontSize.middleNormal)
+        .fontColor(ThemeManager.current().textSecondary);
     }
     .width('100%')
     .height(240)
@@ -98,11 +99,11 @@ export struct PullLoadMoreList {
             .id('pull_load_more_indicator')
             .width(24)
             .height(24)
-            .color(GSYColor.primary);
+            .color(ThemeManager.current().text);
           Text(this.loadingMoreText)
             .id('pull_load_more_text')
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.mediumDarkText)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ left: 8 });
         }
         .width('100%')
@@ -113,7 +114,7 @@ export struct PullLoadMoreList {
           Text(this.loadEndText)
             .id('pull_load_more_end_text')
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.lightText);
+            .fontColor(ThemeManager.current().textSecondary);
         }
         .width('100%')
         .height(50)
@@ -123,7 +124,7 @@ export struct PullLoadMoreList {
           Text(this.loadingMoreText)
             .id('pull_load_more_text')
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.mediumDarkText);
+            .fontColor(ThemeManager.current().textSecondary);
         }
         .width('100%')
         .height(50)

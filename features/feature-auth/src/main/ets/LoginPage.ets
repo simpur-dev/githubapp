@@ -2,7 +2,7 @@ import font from '@ohos.font';
 import hilog from '@ohos.hilog';
 import { OAuthLocalConfigLoader, OAuthRuntimeConfig } from 'common';
 import { I18n } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYColor, GSYFontSize, GSYSpacing, ThemeManager } from 'common';
 import { FA_KEY } from 'common';
 import { LANGUAGE_OPTION_ZH, LANGUAGE_OPTION_EN, LANGUAGE_OPTION_SYSTEM } from 'common';
 import { HarmonyLogoMark } from './views/HarmonyLogoMark';
@@ -63,8 +63,8 @@ export struct LoginPage {
         .id('login_language_radio_' + value)
         .checked(this.vm.currentLanguage === value)
         .radioStyle({
-          checkedBackgroundColor: GSYColor.linkBlue,
-          uncheckedBorderColor: GSYColor.textSubtle,
+          checkedBackgroundColor: ThemeManager.current().accent,
+          uncheckedBorderColor: ThemeManager.current().textSecondary,
           indicatorColor: GSYColor.white,
         })
         .width(20)
@@ -78,7 +78,7 @@ export struct LoginPage {
       Text(label)
         .id('login_language_label_' + value)
         .fontSize(GSYFontSize.normal)
-        .fontColor(GSYColor.primary)
+        .fontColor(ThemeManager.current().text)
         .layoutWeight(1)
         .margin({ left: GSYSpacing.halfEdge });
     }
@@ -123,20 +123,20 @@ export struct LoginPage {
             .id('login_title')
             .fontSize(GSYFontSize.big)
             .fontWeight(FontWeight.Bold)
-            .fontColor(GSYColor.primary)
+            .fontColor(ThemeManager.current().text)
             .textAlign(TextAlign.Center);
 
           Text(I18n('LoginSubtitle'))
             .id('login_subtitle')
             .fontSize(GSYFontSize.middleWhite)
-            .fontColor(GSYColor.textSubtle)
+            .fontColor(ThemeManager.current().textSecondary)
             .textAlign(TextAlign.Center)
             .margin({ top: 8, bottom: 32 });
 
           Text(I18n('LoginTokenLabel'))
             .id('login_token_label')
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.primary)
+            .fontColor(ThemeManager.current().text)
             .width('100%')
             .textAlign(TextAlign.Start)
             .margin({ bottom: GSYSpacing.halfEdge });
@@ -146,7 +146,7 @@ export struct LoginPage {
               .id('login_token_leading_icon')
               .fontFamily('FontAwesome')
               .fontSize(GSYFontSize.middleWhite)
-              .fontColor(GSYColor.textSubtle)
+              .fontColor(ThemeManager.current().textSecondary)
               .textAlign(TextAlign.Center)
               .width(40);
 
@@ -164,14 +164,14 @@ export struct LoginPage {
             .id('login_token_field')
             .width('100%')
             .height(52)
-            .backgroundColor(GSYColor.surfaceSubtle)
+            .backgroundColor(ThemeManager.current().surfaceSubtle)
             .borderRadius(8)
             .alignItems(VerticalAlign.Center);
 
           Text(I18n('LoginTokenHelper'))
             .id('login_token_helper')
             .fontSize(GSYFontSize.min)
-            .fontColor(GSYColor.textSubtle)
+            .fontColor(ThemeManager.current().textSecondary)
             .textAlign(TextAlign.Center)
             .width('100%')
             .margin({ top: 8, bottom: 24 });
@@ -184,7 +184,7 @@ export struct LoginPage {
               .height(50)
               .fontSize(GSYFontSize.middleWhite)
               .fontColor(GSYColor.textWhite)
-              .backgroundColor(GSYColor.primary)
+              .backgroundColor(ThemeManager.current().navBackground)
               .borderRadius(8)
               .enabled(!this.vm.loading && this.vm.token.trim().length > 0)
               .onClick((): void => {
@@ -198,7 +198,7 @@ export struct LoginPage {
               .height(50)
               .fontSize(GSYFontSize.middleWhite)
               .fontColor(GSYColor.textWhite)
-              .backgroundColor(GSYColor.primary)
+              .backgroundColor(ThemeManager.current().navBackground)
               .borderRadius(8)
               .enabled(!this.vm.loading)
               .onClick((): void => {
@@ -213,7 +213,7 @@ export struct LoginPage {
           Text(I18n('language'))
             .id('login_language_btn')
             .fontSize(GSYFontSize.middleWhite)
-            .fontColor(GSYColor.primary)
+            .fontColor(ThemeManager.current().text)
             .textAlign(TextAlign.Center)
             .width('100%')
             .padding({ top: 16, bottom: 8 })
@@ -225,7 +225,7 @@ export struct LoginPage {
             Text(this.vm.errorMessage)
               .id('login_error_text')
               .fontSize(GSYFontSize.min)
-              .fontColor(GSYColor.primary)
+              .fontColor(ThemeManager.current().text)
               .margin({ top: GSYSpacing.halfEdge });
           }
         }
@@ -242,7 +242,7 @@ export struct LoginPage {
         left: 30,
         right: 30,
       })
-      .backgroundColor(GSYColor.cardBackground)
+      .backgroundColor(ThemeManager.current().card)
       .borderRadius(8)
       .alignItems(HorizontalAlign.Center);
 
@@ -253,20 +253,20 @@ export struct LoginPage {
               .id('login_language_title')
               .fontSize(GSYFontSize.middleWhite)
               .fontWeight(FontWeight.Bold)
-              .fontColor(GSYColor.darkText)
+              .fontColor(ThemeManager.current().text)
               .width('100%')
               .textAlign(TextAlign.Start)
               .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 16, bottom: 12 });
 
             this.buildLanguageOption(LANGUAGE_OPTION_SYSTEM, I18n('systemLanguage'));
-            Divider().color(GSYColor.pillDivider).strokeWidth(0.5);
+            Divider().color(ThemeManager.current().divider).strokeWidth(0.5);
             this.buildLanguageOption(LANGUAGE_OPTION_ZH, I18n('zhLanguage'));
-            Divider().color(GSYColor.pillDivider).strokeWidth(0.5);
+            Divider().color(ThemeManager.current().divider).strokeWidth(0.5);
             this.buildLanguageOption(LANGUAGE_OPTION_EN, I18n('enLanguage'));
           }
           .id('login_language_dialog')
           .width('86%')
-          .backgroundColor(GSYColor.cardBackground)
+          .backgroundColor(ThemeManager.current().card)
           .borderRadius(12)
           .alignItems(HorizontalAlign.Start);
         }
@@ -306,6 +306,6 @@ export struct LoginPage {
     .width('100%')
     .height('100%')
     .alignContent(Alignment.Center)
-    .backgroundColor(GSYColor.primary);
+    .backgroundColor(ThemeManager.current().navBackground);
   }
 }

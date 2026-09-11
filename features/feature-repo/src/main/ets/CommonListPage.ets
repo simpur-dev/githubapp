@@ -9,7 +9,7 @@
  * HARD-LAW-1：颜色/字号/间距全部走 [Theme.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/style/Theme.ets)。
  */
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { GSYColor } from 'common';
+import { ThemeManager } from 'common';
 import { NavTitleBridge, NavTitleConfig } from 'common';
 import { SubRepositoryItem, SubUserItem } from 'common';
 import { NavigationService } from 'common';
@@ -168,7 +168,7 @@ export struct CommonListPage {
       .id(this.vm.resolveIdPrefix() + '_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().background);
     }
     .hideTitleBar(true)
     .onBackPressed((): boolean => {

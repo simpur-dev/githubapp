@@ -10,7 +10,7 @@
  * R9 V2：@ComponentV2 + @Param/@Event（TimeText / HTMLView 保持 common 既有组件）。
  */
 
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYFontSize, GSYShadow, GSYSpacing, ThemeManager } from 'common';
 import { TimeText } from 'common';
 import { HTMLView } from 'common';
 
@@ -31,7 +31,7 @@ export struct ReleaseItem {
           .id(this.rowId.length > 0 ? this.rowId + '_title' : 'release_item_title')
           .fontSize(GSYFontSize.small)
           .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.mainText)
+          .fontColor(ThemeManager.current().text)
           .layoutWeight(1)
           .margin({ left: GSYSpacing.halfEdge })
           .maxLines(1)
@@ -56,7 +56,7 @@ export struct ReleaseItem {
         Text(this.actionTargetHtml)
           .id(this.rowId.length > 0 ? this.rowId + '_body' : 'release_item_body')
           .fontSize(GSYFontSize.small)
-          .fontColor(GSYColor.subText)
+          .fontColor(ThemeManager.current().textSecondary)
           .width('100%')
           .margin({ top: GSYSpacing.halfEdge });
       }
@@ -71,10 +71,10 @@ export struct ReleaseItem {
       bottom: GSYSpacing.halfEdge,
     })
     .borderRadius(4)
-    .backgroundColor(GSYColor.cardBackground)
+    .backgroundColor(ThemeManager.current().card)
     .shadow({
       radius: 4,
-      color: GSYColor.cardShadow,
+      color: GSYShadow.cardShadowAlpha,
       offsetX: 1,
       offsetY: 1,
     })

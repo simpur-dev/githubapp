@@ -20,7 +20,7 @@ import { Logger } from 'common';
 import { BOOT_ISSUE_KEY, BootChannel } from 'common';
 import { RouteParamStore } from 'common';
 import { RouteName } from 'common';
-import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
+import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow, ThemeManager } from 'common';
 import {
   IssueDetailModel,
   IssueCommentModel,
@@ -166,8 +166,8 @@ struct IssueMarkdownEditSheet {
       .id(actionId)
       .type(ButtonType.Normal)
       .fontSize(GSYFontSize.min)
-      .fontColor(GSYColor.darkText)
-      .backgroundColor(GSYColor.surfaceGray)
+      .fontColor(ThemeManager.current().text)
+      .backgroundColor(ThemeManager.current().surfaceSubtle)
       .borderRadius(6)
       .height(32)
       .padding({ left: 10, right: 10 })
@@ -183,7 +183,7 @@ struct IssueMarkdownEditSheet {
           .id(this.titleTextId())
           .fontSize(GSYFontSize.middleWhite)
           .fontWeight(FontWeight.Bold)
-          .fontColor(GSYColor.darkText)
+          .fontColor(ThemeManager.current().text)
           .width('100%')
           .textAlign(TextAlign.Start)
           .margin({ bottom: GSYSpacing.normalEdge });
@@ -194,7 +194,7 @@ struct IssueMarkdownEditSheet {
           .maxLength(255)
           .height(44)
           .fontSize(GSYFontSize.small)
-          .backgroundColor(GSYColor.surfaceGray)
+          .backgroundColor(ThemeManager.current().surfaceSubtle)
           .borderRadius(6)
           .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
           .onChange((value: string): void => {
@@ -206,7 +206,7 @@ struct IssueMarkdownEditSheet {
         .maxLength(8192)
         .height(200)
         .fontSize(GSYFontSize.small)
-        .backgroundColor(GSYColor.surfaceGray)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .borderRadius(6)
         .padding(GSYSpacing.normalEdge)
         .margin({ top: this.showTitleField ? GSYSpacing.normalEdge : 0 })
@@ -240,11 +240,11 @@ struct IssueMarkdownEditSheet {
           .id(this.cancelButtonId())
           .layoutWeight(1)
           .backgroundColor(GSYColor.transparent)
-          .fontColor(GSYColor.mediumText)
+          .fontColor(ThemeManager.current().textSecondary)
           .onClick((): void => {
             this.onCancel();
           });
-        Divider().vertical(true).height(20).color(GSYColor.pillDivider);
+        Divider().vertical(true).height(20).color(ThemeManager.current().divider);
         Button(this.okText)
           .id(this.okButtonId())
           .layoutWeight(1)
@@ -265,7 +265,7 @@ struct IssueMarkdownEditSheet {
     .width('100%')
     .padding(GSYSpacing.normalEdge)
     .borderRadius(8)
-    .backgroundColor(GSYColor.white);
+    .backgroundColor(ThemeManager.current().card);
   }
 }
 
@@ -678,13 +678,13 @@ export struct IssueDetailPage {
                 Text('#' + (this.vm.issue as IssueDetailModel).number.toString())
                   .id('issue_detail_number')
                   .fontSize(GSYFontSize.small)
-                  .fontColor(GSYColor.mediumText)
+                  .fontColor(ThemeManager.current().textSecondary)
                   .margin({ left: HEADER_NUMBER_GAP });
 
                 Text(I18n('issueComment') + '(' + (this.vm.issue as IssueDetailModel).comments.toString() + ')')
                   .id('issue_detail_comment_count')
                   .fontSize(GSYFontSize.small)
-                  .fontColor(GSYColor.mediumText)
+                  .fontColor(ThemeManager.current().textSecondary)
                   .margin({ left: HEADER_NUMBER_GAP });
               }
               .alignItems(VerticalAlign.Center);
@@ -693,7 +693,7 @@ export struct IssueDetailPage {
                 .id('issue_detail_user_login')
                 .fontSize(GSYFontSize.small)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(GSYColor.mainText)
+                .fontColor(ThemeManager.current().text)
                 .margin({ top: COMMENT_NAME_TIME_GAP });
             }
             .alignItems(HorizontalAlign.Start)
@@ -703,7 +703,7 @@ export struct IssueDetailPage {
             Text(TimeUtil.resolveTime((this.vm.issue as IssueDetailModel).created_at))
               .id('issue_detail_created_time')
               .fontSize(GSYFontSize.min)
-              .fontColor(GSYColor.mediumText);
+              .fontColor(ThemeManager.current().textSecondary);
           }
           .width('100%')
           .alignItems(VerticalAlign.Center);
@@ -712,7 +712,7 @@ export struct IssueDetailPage {
             .id('issue_detail_title')
             .fontSize(GSYFontSize.normal)
             .fontWeight(FontWeight.Bold)
-            .fontColor(GSYColor.mainText)
+            .fontColor(ThemeManager.current().text)
             .width('100%')
             .maxLines(3)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -721,7 +721,7 @@ export struct IssueDetailPage {
           MarkdownText({
             markdown: this.renderIssueBody((this.vm.issue as IssueDetailModel).body),
             rootId: 'issue_detail_body_html',
-            textColor: GSYColor.mainText,
+            textColor: ThemeManager.current().text,
             textFontSize: GSYFontSize.small,
           })
             .margin({ top: HEADER_BODY_GAP });
@@ -741,7 +741,7 @@ export struct IssueDetailPage {
           bottom: GSYSpacing.normalEdge,
         })
         .borderRadius(8)
-        .backgroundColor(GSYColor.cardBackground)
+        .backgroundColor(ThemeManager.current().card)
         .shadow({
           radius: GSYShadow.radius,
           color: GSYShadow.cardShadowAlpha,
@@ -753,7 +753,7 @@ export struct IssueDetailPage {
         Text(this.vm.errorMessage.length > 0 ? this.vm.errorMessage : I18n('loading'))
           .id('issue_detail_loading_text')
           .fontSize(GSYFontSize.small)
-          .fontColor(GSYColor.subText)
+          .fontColor(ThemeManager.current().textSecondary)
           .padding({
             left: GSYSpacing.normalEdge,
             right: GSYSpacing.normalEdge,
@@ -765,13 +765,13 @@ export struct IssueDetailPage {
       Divider()
         .id('issue_detail_header_divider')
         .strokeWidth(1)
-        .color(GSYColor.lightDivider)
+        .color(ThemeManager.current().divider)
         .margin({ top: HEADER_DIVIDER_GAP, bottom: HEADER_LABEL_GAP });
 
       Text(I18n('issueComment') + ' (' + this.vm.comments.length.toString() + ')')
         .id('issue_detail_comments_label')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().textSecondary)
         .margin({
           left: GSYSpacing.normalEdge,
           top: HEADER_LABEL_GAP,
@@ -802,7 +802,7 @@ export struct IssueDetailPage {
           Text(TimeUtil.resolveTime(item.created_at))
             .id('issue_comment_time_' + index.toString())
             .fontSize(GSYFontSize.min)
-            .fontColor(GSYColor.subText)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ top: COMMENT_NAME_TIME_GAP });
         }
         .alignItems(HorizontalAlign.Start)
@@ -815,7 +815,7 @@ export struct IssueDetailPage {
       MarkdownText({
         markdown: this.renderIssueBody(item.body),
         rootId: 'issue_comment_body_' + index.toString(),
-        textColor: GSYColor.mainText,
+        textColor: ThemeManager.current().text,
         textFontSize: GSYFontSize.small,
       })
         .margin({ top: COMMENT_BODY_GAP });
@@ -835,7 +835,7 @@ export struct IssueDetailPage {
       bottom: GSYSpacing.halfEdge,
     })
     .borderRadius(COMMENT_CARD_RADIUS)
-    .backgroundColor(GSYColor.cardBackground)
+    .backgroundColor(ThemeManager.current().card)
     .shadow({
       radius: GSYShadow.radius,
       color: GSYShadow.cardShadowAlpha,
@@ -863,7 +863,7 @@ export struct IssueDetailPage {
       Text(I18n('listEmpty'))
         .id('issue_detail_empty_text')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
     }
     .id('issue_detail_empty_root')
     .width('100%')
@@ -906,14 +906,14 @@ export struct IssueDetailPage {
         .id('issue_detail_root')
         .width('100%')
         .height('100%')
-        .backgroundColor(GSYColor.mainBackground)
+        .backgroundColor(ThemeManager.current().background)
         // bindSheet 单节点只能挂一个弹层，回复弹层挂页面根，编辑 issue / 编辑评论
         // 弹层分别挂两个 0 高锚点（DrawerMenu 同款）。
         .bindSheet(this.vm.replySheetOpen, this.replySheetBuilder(), {
           height: REPLY_SHEET_HEIGHT,
           dragBar: false,
           showClose: false,
-          backgroundColor: GSYColor.white,
+          backgroundColor: ThemeManager.current().card,
         });
 
         Row()
@@ -923,7 +923,7 @@ export struct IssueDetailPage {
             height: EDIT_ISSUE_SHEET_HEIGHT,
             dragBar: false,
             showClose: false,
-            backgroundColor: GSYColor.white,
+            backgroundColor: ThemeManager.current().card,
           });
 
         Row()
@@ -933,7 +933,7 @@ export struct IssueDetailPage {
             height: EDIT_COMMENT_SHEET_HEIGHT,
             dragBar: false,
             showClose: false,
-            backgroundColor: GSYColor.white,
+            backgroundColor: ThemeManager.current().card,
           });
       }
       .width('100%')

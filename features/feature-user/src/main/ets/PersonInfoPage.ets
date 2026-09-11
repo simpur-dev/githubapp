@@ -31,7 +31,7 @@ import {
   FA_COMMENT,
 } from 'common';
 import { I18n } from 'common';
-import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow } from 'common';
+import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow, ThemeManager } from 'common';
 import {
   PersonInfoViewModel,
   PERSON_INFO_FIELD_NAME,
@@ -80,7 +80,7 @@ struct PersonInfoEditSheet {
         .id('person_info_edit_dialog_title')
         .fontSize(GSYFontSize.middleWhite)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.darkText)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .textAlign(TextAlign.Start)
         .margin({ bottom: GSYSpacing.normalEdge });
@@ -90,9 +90,9 @@ struct PersonInfoEditSheet {
         .maxLength(200)
         .height(44)
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.primary)
-        .placeholderColor(GSYColor.subText)
-        .backgroundColor(GSYColor.surfaceGray)
+        .fontColor(ThemeManager.current().text)
+        .placeholderColor(ThemeManager.current().textSecondary)
+        .backgroundColor(ThemeManager.current().surfaceSubtle)
         .borderRadius(6)
         .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge })
         .onChange((value: string): void => {
@@ -104,11 +104,11 @@ struct PersonInfoEditSheet {
           .id('person_info_edit_dialog_cancel')
           .layoutWeight(1)
           .backgroundColor(Color.Transparent)
-          .fontColor(GSYColor.mediumText)
+          .fontColor(ThemeManager.current().textSecondary)
           .onClick((): void => {
             this.onCancel();
           });
-        Divider().vertical(true).height(20).color(GSYColor.pillDivider);
+        Divider().vertical(true).height(20).color(ThemeManager.current().divider);
         Button(this.okText)
           .id('person_info_edit_dialog_confirm')
           .layoutWeight(1)
@@ -129,7 +129,7 @@ struct PersonInfoEditSheet {
     .padding(2 * GSYSpacing.normalEdge)
     .borderRadius(8)
     .width('90%')
-    .backgroundColor(Color.White);
+    .backgroundColor(ThemeManager.current().card);
   }
 }
 
@@ -193,7 +193,7 @@ export struct PersonInfoPage {
       IconFont({
         char: icon,
         glyphSize: GSYIconSize.minIcon,
-        glyphColor: GSYColor.primary,
+        glyphColor: ThemeManager.current().text,
       })
         .id(rowId + '_icon')
         .width(28);
@@ -201,13 +201,13 @@ export struct PersonInfoPage {
       Text(label)
         .id(rowId + '_label')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.mainText)
+        .fontColor(ThemeManager.current().text)
         .margin({ left: GSYSpacing.normalEdge });
 
       Text(value)
         .id(rowId + '_value')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.mainText)
+        .fontColor(ThemeManager.current().text)
         .layoutWeight(1)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -222,11 +222,11 @@ export struct PersonInfoPage {
       top: GSYSpacing.composeCardPaddingVertical,
       bottom: GSYSpacing.composeCardPaddingVertical,
     })
-    .backgroundColor(GSYColor.cardBackground)
+    .backgroundColor(ThemeManager.current().card)
     .borderRadius(8)
     .border({
       width: 1,
-      color: GSYColor.borderSubtle,
+      color: ThemeManager.current().divider,
     })
     .shadow({
       radius: 6,
@@ -264,7 +264,7 @@ export struct PersonInfoPage {
       Text(I18n('loadMoreEnd'))
         .id('person_info_no_more')
         .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.mainText)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .height(50)
         .textAlign(TextAlign.Center)
@@ -313,12 +313,12 @@ export struct PersonInfoPage {
     .id('person_info_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.mainBackground)
+    .backgroundColor(ThemeManager.current().background)
     .bindSheet(this.editSheetOpen, this.editSheetBuilder(), {
       height: 260,
       dragBar: false,
       showClose: false,
-      backgroundColor: GSYColor.white,
+      backgroundColor: ThemeManager.current().card,
     });
   }
 }

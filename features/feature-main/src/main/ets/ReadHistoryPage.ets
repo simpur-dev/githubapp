@@ -3,7 +3,7 @@ import { NavTitleBridge, NavTitleConfig } from 'common';
 import { PullLoadMoreList } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
-import { GSYColor } from 'common';
+import { ThemeManager } from 'common';
 import { RepositoryItem } from 'common';
 import { ReadHistoryItem, READ_HISTORY_TYPE_REPO, READ_HISTORY_TYPE_USER } from 'common';
 import { ReadHistoryViewModel } from './viewmodel/ReadHistoryViewModel';
@@ -225,7 +225,7 @@ export struct ReadHistoryPage {
       .id('read_history_root')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().background);
     }
     .onReady((ctx: NavDestinationContext): void => {
       const stack: NavPathStack | undefined = ctx.pathStack;

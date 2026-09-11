@@ -13,7 +13,8 @@ import {
   TrendRepo,
   fullNameOf,
 } from 'common';
-import { GSYColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from 'common';
+import { GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from 'common';
+import { ThemeManager } from 'common';
 import { UserImage } from 'common';
 import { HTMLView } from 'common';
 import { CommonIconButton } from 'common';
@@ -63,7 +64,7 @@ export struct TrendTabPage {
             .id('trend_row_full_' + index.toString())
             .width('100%')
             .fontSize(GSYFontSize.normal)
-            .fontColor(GSYColor.primary)
+            .fontColor(ThemeManager.current().text)
             .fontWeight(FontWeight.Medium)
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
@@ -72,7 +73,7 @@ export struct TrendTabPage {
             Text(item.language)
               .id('trend_row_lang_' + index.toString())
               .fontSize(GSYFontSize.small)
-              .fontColor(GSYColor.subText)
+              .fontColor(ThemeManager.current().textSecondary)
               .margin({ top: 2 });
           }
         }
@@ -86,7 +87,7 @@ export struct TrendTabPage {
         HTMLView({
           value: item.description,
           fontSize: GSYFontSize.middleWhite,
-          fontColor: GSYColor.mainText,
+          fontColor: ThemeManager.current().text,
           maxLines: 2,
           viewId: 'trend_row_desc_' + index.toString(),
         })
@@ -98,10 +99,10 @@ export struct TrendTabPage {
         Row() {
           CommonIconButton({
             icon: FA_STAR_O,
-            iconColor: GSYColor.subText,
+            iconColor: ThemeManager.current().textSecondary,
             iconSize: GSYIconSize.minIcon,
             text: item.stars.toString(),
-            textColor: GSYColor.subText,
+            textColor: ThemeManager.current().textSecondary,
             textFontSize: GSYFontSize.small,
           });
         }
@@ -110,10 +111,10 @@ export struct TrendTabPage {
         Row() {
           CommonIconButton({
             icon: FA_CODE_FORK,
-            iconColor: GSYColor.subText,
+            iconColor: ThemeManager.current().textSecondary,
             iconSize: GSYIconSize.minIcon,
             text: item.forks.toString(),
-            textColor: GSYColor.subText,
+            textColor: ThemeManager.current().textSecondary,
             textFontSize: GSYFontSize.small,
           });
         }
@@ -135,9 +136,9 @@ export struct TrendTabPage {
     .borderRadius(4)
     .border({
       width: 1,
-      color: GSYColor.borderSubtle,
+      color: ThemeManager.current().divider,
     })
-    .backgroundColor(GSYColor.cardBackground)
+    .backgroundColor(ThemeManager.current().card)
     .shadow({
       radius: GSYShadow.radius,
       color: GSYShadow.cardShadowAlpha,
@@ -156,7 +157,7 @@ export struct TrendTabPage {
       Text(I18n('listEmpty'))
         .id('trend_empty_text')
         .fontSize(GSYFontSize.middleWhite)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
     }
     .id('trend_empty_root')
     .width('100%')
@@ -188,6 +189,6 @@ export struct TrendTabPage {
     .id('tab_page_root_trend')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.mainBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

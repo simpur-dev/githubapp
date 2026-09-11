@@ -28,6 +28,7 @@
  */
 
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from 'common';
+import { ThemeManager } from 'common';
 import { I18n } from 'common';
 import { IconFont, FA_BELL, FA_GROUP, FA_LOCATION, FA_LINK, FA_QUESTION } from 'common';
 
@@ -355,7 +356,7 @@ export struct UserHeadItem {
       .id('user_head_counter_row')
       .width('100%')
       .padding({ top: GSYSpacing.normalEdge, bottom: GSYSpacing.normalEdge })
-      .backgroundColor(GSYColor.primary);
+      .backgroundColor(ThemeManager.current().navBackground);
 
       Row() {
         Text(I18n('personDynamic'))
@@ -367,11 +368,11 @@ export struct UserHeadItem {
       .id('user_head_dynamic_title_bar')
       .width('100%')
       .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: GSYSpacing.halfEdge, bottom: GSYSpacing.normalEdge })
-      .backgroundColor(GSYColor.primary);
+      .backgroundColor(ThemeManager.current().navBackground);
     }
     .id('user_head_root')
     .width('100%')
-    .backgroundColor(GSYColor.primary)
+    .backgroundColor(ThemeManager.current().navBackground)
     .borderRadius(0);
   }
 }

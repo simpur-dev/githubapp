@@ -1,4 +1,5 @@
-import { GSYColor, GSYFontSize } from '../style/Theme';
+import { GSYFontSize } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 
 @ComponentV2
 export struct HTMLView {
@@ -55,7 +56,7 @@ export struct HTMLView {
     if (this.textColor && (this.textColor as string).length > 0) {
       return this.textColor;
     }
-    return GSYColor.subText;
+    return ThemeManager.current().textSecondary;
   }
 
   private resolveMaxLines(): number {

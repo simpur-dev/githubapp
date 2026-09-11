@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, systemInsets } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, NavTitleBridge, NavTitleConfig, ThemeManager, systemInsets } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -92,9 +92,9 @@ export struct HomePage {
   ];
 
   aboutToAppear(): void {
-    // 主页头部是深色：状态栏跟随为深底白图标。
+    // 主页头部是深色：状态栏跟随为深底白图标（读当前 palette，深色模式启动时同样为深底）。
     NavTitleBridge.get().registerTitle(RouteName.Home, {
-      statusBarBg: LIGHT_PALETTE.navBackground,
+      statusBarBg: ThemeManager.current().navBackground,
       statusBarLightIcon: true,
     } as NavTitleConfig);
     this.applyBootTab();
@@ -462,7 +462,7 @@ export struct HomePage {
 
   /**
    * RN 端 TabIcon 内部同时绘制图标 + title（参考 [TabIcon.js#L52-L55](https://github.com/CarGuo/GSYGithubApp/blob/master/app/components/widget/TabIcon.js#L52-L55)）。
-   * 选中态 / 未选中态颜色由 TabIcon 根据 GSYColor.tabSelected / tabUnSelect 切换。
+   * 选中态 / 未选中态颜色由 TabIcon 按 palette 的主文字 / 次文字色切换。
    * 注意：selected 必须以响应式入参（V2 @Param）传入，currentIndex 切换才会触发子组件 rebuild。
    */
   @Builder
@@ -503,7 +503,7 @@ export struct HomePage {
       .id('home_drawer_content')
       .width(304)
       .height('100%')
-      .backgroundColor(GSYColor.white);
+      .backgroundColor(ThemeManager.current().card);
 
       Column() {
         AppBar({
@@ -574,7 +574,7 @@ export struct HomePage {
       .id('home_main_content')
       .width('100%')
       .height('100%')
-      .backgroundColor(GSYColor.tabBackground);
+      .backgroundColor(ThemeManager.current().tabBackground);
   }
   .id('home_root')
   .width('100%')

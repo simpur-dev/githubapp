@@ -16,6 +16,12 @@ export interface ThemePalette {
   danger: string;
   accent: string;
   navBackground: string;
+  /** 主页 Tab 内容区背景。 */
+  tabBackground: string;
+  /** 输入框/芯片等次级表面。 */
+  surfaceSubtle: string;
+  /** 品牌/深色表面上的文字（深浅色下都接近白）。 */
+  onBrandText: string;
 }
 
 export const LIGHT_PALETTE: ThemePalette = {
@@ -29,6 +35,9 @@ export const LIGHT_PALETTE: ThemePalette = {
   danger: GSYColor.dangerRed,
   accent: GSYColor.linkBlue,
   navBackground: GSYColor.primary,
+  tabBackground: GSYColor.tabBackground,
+  surfaceSubtle: GSYColor.surfaceSubtle,
+  onBrandText: GSYColor.white,
 };
 
 export const DARK_PALETTE: ThemePalette = {
@@ -42,6 +51,9 @@ export const DARK_PALETTE: ThemePalette = {
   danger: GSYDarkColor.darkDanger,
   accent: GSYDarkColor.darkAccent,
   navBackground: GSYDarkColor.darkPagePrimary,
+  tabBackground: GSYDarkColor.darkPagePrimary,
+  surfaceSubtle: GSYDarkColor.darkCard,
+  onBrandText: GSYDarkColor.darkPaletteText,
 };
 
 export interface SystemColorProvider {
@@ -99,6 +111,17 @@ export class ThemeManagerImpl {
 
   getMode(): ThemeMode {
     return this.mode;
+  }
+
+  /** 当前是否深色：light→false / dark→true / system→systemProvider.isDark()。 */
+  isDark(): boolean {
+    if (this.mode === 'dark') {
+      return true;
+    }
+    if (this.mode === 'light') {
+      return false;
+    }
+    return this.systemProvider !== null ? this.systemProvider.isDark() : false;
   }
 
   setSystemProvider(provider: SystemColorProvider): void {

@@ -5,7 +5,8 @@
  * Issue/Push 的详情文本不在列表卡片中展开，点击仍由 EventActionDispatcher 处理。
  */
 
-import { GSYColor, GSYFontSize, GSYSpacing, GSYShadow } from '../style/Theme';
+import { GSYFontSize, GSYSpacing, GSYShadow } from '../style/Theme';
+import { ThemeManager } from '../theme/ThemeManager';
 import { TimeUtil } from '../../base/utils/TimeUtil';
 import { UserImage } from './UserImage';
 
@@ -39,14 +40,14 @@ export struct EventItem {
             .id(this.rowId.length > 0 ? this.rowId + '_user' : 'event_item_user')
             .fontSize(GSYFontSize.small)
             .fontWeight(FontWeight.Medium)
-            .fontColor(GSYColor.mainText)
+            .fontColor(ThemeManager.current().text)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
 
           Text(this.actionTarget)
             .id(this.rowId.length > 0 ? this.rowId + '_target' : 'event_item_target')
             .fontSize(GSYFontSize.middleWhite)
-            .fontColor(GSYColor.subText)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ top: 4 })
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
@@ -54,7 +55,7 @@ export struct EventItem {
           Text(TimeUtil.resolveTime(this.actionTime))
             .id(this.rowId.length > 0 ? this.rowId + '_time' : 'event_item_time')
             .fontSize(GSYFontSize.small)
-            .fontColor(GSYColor.subText)
+            .fontColor(ThemeManager.current().textSecondary)
             .margin({ top: 4 });
         }
         .layoutWeight(1)
@@ -72,10 +73,10 @@ export struct EventItem {
       bottom: 12,
     })
     .borderRadius(8)
-    .backgroundColor(GSYColor.cardBackground)
+    .backgroundColor(ThemeManager.current().card)
     .border({
       width: 1,
-      color: GSYColor.borderSubtle,
+      color: ThemeManager.current().divider,
     })
     .shadow({
       radius: 6,

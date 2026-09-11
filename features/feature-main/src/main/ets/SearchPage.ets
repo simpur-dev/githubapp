@@ -13,7 +13,8 @@ import { RecommendRepo } from 'common';
 import { SearchTab, SEARCH_TAB_REPO, SEARCH_TAB_USER, SearchUserItem } from 'common';
 import { IconFont, FA_SEARCH, FA_TIMES } from 'common';
 import { NavTitleBridge, NavTitleConfig } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYFontSize, GSYSpacing } from 'common';
+import { ThemeManager } from 'common';
 import { RepositoryItem } from 'common';
 import { UserItem, UserItemData } from 'common';
 import { SearchViewModel, SearchPageDeps } from './viewmodel/SearchViewModel';
@@ -126,7 +127,7 @@ export struct SearchPage {
       Text(I18n('listEmpty'))
         .id('search_empty_text')
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.subText);
+        .fontColor(ThemeManager.current().textSecondary);
     }
     .id('search_empty_root')
     .width('100%')
@@ -141,7 +142,7 @@ export struct SearchPage {
         .id('search_history_title')
         .fontSize(GSYFontSize.normal)
         .fontWeight(FontWeight.Bold)
-        .fontColor(GSYColor.mainText)
+        .fontColor(ThemeManager.current().text)
         .width('100%')
         .margin({ bottom: GSYSpacing.halfEdge });
       Repeat<string>(this.vm.historyItems)
@@ -150,11 +151,11 @@ export struct SearchPage {
             Text(obj.item)
               .id('search_history_text_' + obj.index.toString())
               .fontSize(GSYFontSize.small)
-              .fontColor(GSYColor.mainText)
+              .fontColor(ThemeManager.current().text)
               .width('100%')
               .padding({ top: GSYSpacing.halfEdge, bottom: GSYSpacing.halfEdge });
             Divider()
-              .color(GSYColor.line)
+              .color(ThemeManager.current().divider)
               .strokeWidth(0.5);
           }
           .id('search_history_row_' + obj.index.toString())
@@ -184,9 +185,9 @@ export struct SearchPage {
         .height(SEARCH_TYPE_BUTTON_HEIGHT)
         .fontSize(GSYFontSize.small)
         .fontColor(this.vm.hasTypedQuery() && this.vm.currentTab === SEARCH_TAB_REPO
-          ? GSYColor.textWhite : GSYColor.subText)
+          ? ThemeManager.current().onBrandText : ThemeManager.current().textSecondary)
         .backgroundColor(this.vm.hasTypedQuery() && this.vm.currentTab === SEARCH_TAB_REPO
-          ? GSYColor.primary : GSYColor.surfacePill)
+          ? ThemeManager.current().navBackground : ThemeManager.current().surfaceSubtle)
         .enabled(this.vm.hasTypedQuery())
         .onClick((): void => {
           this.vm.switchTab(SEARCH_TAB_REPO);
@@ -201,9 +202,9 @@ export struct SearchPage {
         .height(SEARCH_TYPE_BUTTON_HEIGHT)
         .fontSize(GSYFontSize.small)
         .fontColor(this.vm.hasTypedQuery() && this.vm.currentTab === SEARCH_TAB_USER
-          ? GSYColor.textWhite : GSYColor.subText)
+          ? ThemeManager.current().onBrandText : ThemeManager.current().textSecondary)
         .backgroundColor(this.vm.hasTypedQuery() && this.vm.currentTab === SEARCH_TAB_USER
-          ? GSYColor.primary : GSYColor.surfacePill)
+          ? ThemeManager.current().navBackground : ThemeManager.current().surfaceSubtle)
         .enabled(this.vm.hasTypedQuery())
         .onClick((): void => {
           this.vm.switchTab(SEARCH_TAB_USER);
@@ -226,11 +227,11 @@ export struct SearchPage {
         .layoutWeight(1)
         .height(SEARCH_INPUT_HEIGHT)
         .fontSize(GSYFontSize.small)
-        .fontColor(GSYColor.primary)
-        .placeholderColor(GSYColor.subText)
+        .fontColor(ThemeManager.current().text)
+        .placeholderColor(ThemeManager.current().textSecondary)
         .placeholderFont({ size: GSYFontSize.small })
-        .caretColor(GSYColor.primary)
-        .backgroundColor(GSYColor.white)
+        .caretColor(ThemeManager.current().text)
+        .backgroundColor(ThemeManager.current().card)
         .borderRadius(3)
         .padding({
           left: GSYSpacing.halfEdge,
@@ -258,7 +259,7 @@ export struct SearchPage {
         IconFont({
           char: this.vm.hasTypedQuery() ? FA_TIMES : FA_SEARCH,
           glyphSize: SEARCH_ICON_SIZE,
-          glyphColor: GSYColor.mainText,
+          glyphColor: ThemeManager.current().text,
         })
           .id(this.vm.hasTypedQuery() ? 'search_clear_icon' : 'search_submit_icon');
       }
@@ -283,10 +284,10 @@ export struct SearchPage {
       right: SEARCH_PAGE_PADDING,
       top: GSYSpacing.normalEdge,
     })
-    .backgroundColor(GSYColor.white)
+    .backgroundColor(ThemeManager.current().card)
     .border({
       width: GSYSpacing.dividerThickness,
-      color: GSYColor.divider,
+      color: ThemeManager.current().divider,
     })
     .borderRadius(SEGMENT_BAR_RADIUS)
     .alignItems(VerticalAlign.Center);
@@ -354,7 +355,7 @@ export struct SearchPage {
     .id('search_main_column')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.mainBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 
   build(): void {
@@ -364,6 +365,6 @@ export struct SearchPage {
     .id('search_page_root')
     .width('100%')
     .height('100%')
-    .backgroundColor(GSYColor.mainBackground);
+    .backgroundColor(ThemeManager.current().background);
   }
 }

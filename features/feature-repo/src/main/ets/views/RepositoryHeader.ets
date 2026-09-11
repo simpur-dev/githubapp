@@ -15,7 +15,7 @@
  * 所有 token 走 [Theme.ets](https://github.com/CarGuo/GSYGithubAppOH/blob/main/entry/src/main/ets/style/Theme.ets)。
  */
 
-import { GSYColor, GSYFontSize, GSYSpacing, GSYShadow } from 'common';
+import { GSYColor, GSYFontSize, GSYSpacing, GSYShadow, ThemeManager } from 'common';
 import { I18n, TimeUtil } from 'common';
 import {
   IconFont,
@@ -425,9 +425,11 @@ export struct RepositoryHeader {
       .id('repo_header_content')
       .width('100%')
       .padding(GSYSpacing.normalEdge)
+      // 无头图时走品牌深色底（palette 驱动）；有头图时保留半透明压暗遮罩。
+      // miWhite/white 文字是深色表面上的白字，两种模式下都保持可读，不随主题切换。
       .backgroundColor(this.ownerPic().length > 0
         ? GSYColor.repositoryHeaderScrim
-        : GSYColor.primary)
+        : ThemeManager.current().navBackground)
       .alignItems(HorizontalAlign.Start);
     }
     .id('repo_header_root')
