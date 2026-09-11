@@ -1,3 +1,4 @@
+import { CommonBottomBar, CommonBottomBarItem } from 'common';
 import { I18n } from 'common';
 import router from '@ohos.router';
 import pasteboard from '@ohos.pasteboard';
@@ -22,7 +23,6 @@ import { ActivityTab } from './repo/ActivityTab';
 import { FilesTab, isImageOrArchiveFile } from './repo/FilesTab';
 import { ExternalUrlUtil } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing, ThemeManager } from 'common';
-import { CommonBottomBar, CommonBottomBarItem, systemInsets } from 'common';
 import {
   FA_STAR,
   FA_STAR_O,
@@ -854,7 +854,7 @@ export struct RepositoryDetailPage {
             materialFloatingStyle: true,
             trailingItemId: 'branch',
             rootMarginHorizontal: GSYSpacing.hdsFloatingBarSideMargin,
-            rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin + systemInsets.bottom,
+            rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin,
             rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
             rootHeight: GSYSpacing.bottomBarDefault,
             trailingMenuShow: this.branchMenuVisible,

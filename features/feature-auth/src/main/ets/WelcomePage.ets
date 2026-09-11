@@ -1,7 +1,7 @@
 import common from '@ohos.app.ability.common';
 import font from '@ohos.font';
 import hilog from '@ohos.hilog';
-import { Preferences, PREF_NAME } from 'common';
+import { Preferences, PREF_NAME, GSYColor, NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { WelcomeViewModel } from './viewmodel/WelcomeViewModel';
 
 const WELCOME_ICON_SIZE: number = 120;
@@ -24,6 +24,11 @@ export struct WelcomePage {
   @Local vm: WelcomeViewModel = new WelcomeViewModel();
 
   aboutToAppear(): void {
+    // 欢迎页白底：状态栏浅底深图标（颜色跟随页面）。
+    NavTitleBridge.get().registerTitle(RouteName.Welcome, {
+      statusBarBg: GSYColor.mainBackground,
+      statusBarLightIcon: false,
+    } as NavTitleConfig);
     this.registerIconFonts();
     let ctx: common.UIAbilityContext | null = null;
     try {

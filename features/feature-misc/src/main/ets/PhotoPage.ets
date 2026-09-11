@@ -23,12 +23,18 @@ import { GSYColor, GSYFontSize, GSYIconSize } from 'common';
 import { CommonToast } from 'common';
 import { Logger } from 'common';
 import { PhotoViewModel } from './viewmodel/PhotoViewModel';
+import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 
 @ComponentV2
 export struct PhotoPage {
   @Local vm: PhotoViewModel = new PhotoViewModel();
 
   aboutToAppear(): void {
+    // 看图页深底：状态栏深底白图标。
+    NavTitleBridge.get().registerTitle(RouteName.Photo, {
+      statusBarBg: GSYColor.primary,
+      statusBarLightIcon: true,
+    } as NavTitleConfig);
     this.vm.init();
   }
 

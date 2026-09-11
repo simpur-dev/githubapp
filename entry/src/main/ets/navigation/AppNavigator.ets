@@ -23,7 +23,7 @@ const TITLE_BAR_MATERIAL: ImmersiveMaterial = new ImmersiveMaterial({ style: Imm
  * 注：每个页面 struct 必须 export，且不再使用 @Entry。
  */
 import { LoadingModal } from 'common';
-import { NavigationService, LIGHT_PALETTE } from 'common';
+import { NavigationService, LIGHT_PALETTE, GSYDarkColor } from 'common';
 import { RouteName } from 'common';
 import { NavTitleView, NavMenusView, NavTitleBridge, GSYColor, ThemeManager } from 'common';
 
@@ -186,11 +186,20 @@ export struct AppNavigator {
     NavMenusView({ routeName: RouteName.WebPage });
   }
 
+  private loginWebTitleOptions(): NavigationTitleOptions {
+    // OAuth 网页在深色模式下为 GitHub 深色皮肤，标题栏底色跟随（浅色模式白底）。
+    const bg: string = ThemeManager.isDark() ? GSYDarkColor.darkPagePrimary : GSYColor.white;
+    return {
+      backgroundColor: bg,
+      scrollEffectOptions: { scrollEffectType: ScrollEffectType.GRADUAL_BLUR },
+    };
+  }
+
   private titleBarOptions(): NavigationTitleOptions {
     // 深浅色跟随：标题栏底色取当前 palette（与页面底一致，状态栏区域颜色完全跟随界面）。
+    // 注：scrollEffectOptions 需要 bindToScrollable 绑定滚动器才正确工作，暂未启用。
     return {
       backgroundColor: NavTitleBridge.get().statusBarBg,
-      scrollEffectOptions: { scrollEffectType: ScrollEffectType.GRADUAL_BLUR },
     };
   }
 
@@ -200,7 +209,7 @@ export struct AppNavigator {
       NavDestination() {
         LoginWebPage();
       }
-        .title(this.loginWebTitle, this.titleBarOptions())
+        .title(this.loginWebTitle, this.loginWebTitleOptions())
         .onShown(() => NavTitleBridge.get().onDestinationShown(name))
         .systemBarStyle({ statusBarContentColor: ThemeManager.current().text });
     } else if (name === RouteName.Search) {
@@ -336,6 +345,7 @@ export struct AppNavigator {
           LoginPage();
         }
           .hideTitleBar(true)
+          .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.TOP])
           .systemBarStyle({ statusBarContentColor: GSYColor.white });
       } else if (name === RouteName.Home) {
         NavDestination() {

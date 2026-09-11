@@ -9,7 +9,6 @@
  */
 import { ThemePalette, LIGHT_PALETTE, ThemeManager } from '../theme/ThemeManager';
 import { EventBus, EVENT_THEME_CHANGED } from '../../base/utils/EventBus';
-import { systemInsets } from '../../base/utils/SafeAreaInsets';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from '../style/Theme';
 import { AppSymbolSpec, appSymbolSpecFor } from './AppSymbol';
 
@@ -194,14 +193,6 @@ export struct AppBar {
 
   build(): void {
     Column() {
-      // 全屏沉浸：深色头部延伸到状态栏后面，内容随垫高避开。
-      if (this.immersive && systemInsets.top > 0) {
-        Row()
-          .id('appbar_status_spacer')
-          .width('100%')
-          .height(systemInsets.top)
-          .backgroundColor(this.resolveBackground());
-      }
       Row() {
         if (this.titleStart) {
           Row() {

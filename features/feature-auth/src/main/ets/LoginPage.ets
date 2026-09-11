@@ -1,8 +1,7 @@
 import font from '@ohos.font';
 import hilog from '@ohos.hilog';
 import { OAuthLocalConfigLoader, OAuthRuntimeConfig } from 'common';
-import { I18n } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing, ThemeManager } from 'common';
+import { I18n, GSYColor, GSYFontSize, GSYSpacing, ThemeManager, NavTitleBridge, NavTitleConfig, RouteName } from 'common';
 import { FA_KEY } from 'common';
 import { LANGUAGE_OPTION_ZH, LANGUAGE_OPTION_EN, LANGUAGE_OPTION_SYSTEM } from 'common';
 import { HarmonyLogoMark } from './views/HarmonyLogoMark';
@@ -28,6 +27,11 @@ export struct LoginPage {
   @Local vm: LoginViewModel = new LoginViewModel();
 
   aboutToAppear(): void {
+    // 登录页深色品牌底：状态栏深底白图标（颜色跟随页面）。
+    NavTitleBridge.get().registerTitle(RouteName.Login, {
+      statusBarBg: GSYColor.primary,
+      statusBarLightIcon: true,
+    } as NavTitleConfig);
     this.registerIconFonts();
     this.vm.init();
   }

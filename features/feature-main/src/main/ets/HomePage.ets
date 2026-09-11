@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, ThemeManager, systemInsets } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, ThemeManager } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -100,7 +100,7 @@ export struct HomePage {
     } as NavTitleConfig);
     // 深浅色切换：状态栏声明跟随当前 palette（深底白图标 / 浅底深图标）。
     this.unsubscribeTheme = EventBus.on(EVENT_THEME_CHANGED, (_payload: ESObject): void => {
-      NavTitleBridge.get().setStatusBar(ThemeManager.current().navBackground, this.isDarkTheme());
+      NavTitleBridge.get().setStatusBar(ThemeManager.current().navBackground, true);
     });
     this.applyBootTab();
     this.scheduleBootRepo();
@@ -563,7 +563,7 @@ export struct HomePage {
         .barBackgroundColor(GSYColor.transparent)
         .barFloatingStyle({
           barSideMargin: GSYSpacing.hdsFloatingTabSideMargin,
-          barBottomMargin: systemInsets.bottom + GSYSpacing.hdsFloatingTabBottomMargin,
+          barBottomMargin: GSYSpacing.hdsFloatingTabBottomMargin,
           gradientMask: {
             maskColor: GSYColor.hdsFloatingTabMask,
             maskHeight: GSYSpacing.hdsFloatingTabMaskHeight,

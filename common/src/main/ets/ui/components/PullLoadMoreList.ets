@@ -9,7 +9,6 @@
  *   - footer（Loading more… / No more data 文案行）与空态样式沿用原 token；
  *   - 调用方 .id() 机制不变（组件本身不带 id，由调用方挂在实例上）。
  */
-import { systemInsets } from '../../base/utils/SafeAreaInsets';
 import { GSYFontSize } from '../style/Theme';
 import { ThemeManager } from '../theme/ThemeManager';
 import { EmptyState } from './EmptyState';
@@ -38,7 +37,7 @@ export struct PullLoadMoreList {
   /** 是否响应下拉刷新手势（历史上无调用方覆盖，默认 true）。 */
   @Param enableRefresh: boolean = true;
   /** 列表尾部追加占位高度（旧 API 保留，历史上无调用方使用）。 */
-  @Param tailPadding: number = systemInsets.bottom; // 全屏沉浸：末行可滚动出手势条区
+  @Param tailPadding: number = 0;
   /** 调用方可注入自己的 Scroller（如搜索页刷新后 scrollToIndex(0)）；不传时组件内部自建。 */
   @Param listScroller: Scroller | null = null;
   /** 是否渲染 footer 文案行（不支持分页的页面如趋势页传 false，保持旧版无 footer 视觉）。 */

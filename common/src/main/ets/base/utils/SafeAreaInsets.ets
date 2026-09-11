@@ -5,7 +5,6 @@
  * 原生 NavDestination 标题栏/返回键自带安全区避让（API 11+ 默认 expandSafeArea）。
  */
 import window from '@ohos.window';
-import display from '@ohos.display';
 import hilog from '@ohos.hilog';
 import { GSYColor } from '../../ui/style/Theme';
 
@@ -13,16 +12,6 @@ const TAG: string = 'SafeAreaInsets';
 
 let mainWindow: window.Window | null = null;
 
-/**
- * 手势条/状态栏避让高度（vp，全屏沉浸窗口下供底部交互组件避让用）。
- */
-@ObservedV2
-export class SystemInsets {
-  @Trace top: number = 0;
-  @Trace bottom: number = 0;
-}
-
-export const systemInsets: SystemInsets = new SystemInsets();
 
 /**
  * 由 EntryAbility.onWindowStageCreate 调用一次：缓存主窗口 + 设置初始状态栏样式。
