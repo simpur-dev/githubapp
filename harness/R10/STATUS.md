@@ -60,3 +60,21 @@
 - UserHeadItem 📍/🏢 emoji（SDK symbol 白名单外）
 - codelinter 4 warn（3 条 datashare 跨文件误报 + 1 条 bad-deep-clone 本 SDK 无 structuredClone，均已登记）
 - 真机回归（KI-R9-001，用户环境无真机约束）
+
+## 深色可见性修复轮（2026-09-12 深夜，cdd2016，用户实测反馈驱动）
+
+用户反馈"深色模式很多界面看不到东西"后逐页目视排查（截图人工审读，不再只靠取色），定位并修复：
+1. **应用级颜色模式不同步**（根因）：ThemeManager 深色只改 palette，原生标题文字/返回箭头/菜单图标/系统弹窗跟随系统浅色 → 深底深字。修复：onCreate 启动 + EVENT_THEME_CHANGED 时 applicationContext.setColorMode(DARK/LIGHT) 官方 API 同步。
+2. 标题/副标题/菜单图标显式 palette.text 色（深色下亮白）。
+3. onDestinationShown 默认状态栏图标深浅主题感知。
+4. bootTab 不生效：HdsTabs 未构建完 changeIndex 被吞 → 延迟 600ms。
+5. LoadingModal 卡死遮罩：20s 自愈看门狗。
+6. 设置页顶部大空白：通用 align 默认 Center 把短内容垂直居中 → Scroll 显式 align(Top)。
+7. 定稿非全屏窗口（全屏下自定义标题栏 builder 不渲染——实验+截图证实）。
+
+验证教训记录：模拟器会自动锁屏，锁屏期间的 dump/截图全部无效（曾误判"标题栏消失"/"导航失败"）；
+每轮验证前必须 power-shell wakeup + 上滑解锁。hdc shell sed -i 无法改应用偏好文件（目录只读），
+主题切换验证须走应用内设置 UI。多段 boot 参数含竖线必须整体加引号，否则被设备 shell 当管道截断。
+
+最终状态：深色逐页目视通过（主页/仓库/Issue/通知/用户/设置/我的/搜索/代码/Web/CommonList）；
+boot 全通道（repo/issue/code/user/tab/notifyIssue/commonList/web）导航验证通过；双构建全绿。
