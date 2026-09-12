@@ -13,8 +13,8 @@ import { SubUserItem } from 'common';
 import { DynamicEvent } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
-import { RouteParamStore } from 'common';
-import { BOOT_USER_KEY, BootChannel } from 'common';
+import { RouteParamReader } from 'common';
+import { BOOT_USER_KEY } from 'common';
 import { IconTextItem } from 'common';
 import { EventItem } from 'common';
 import { IconFont, FA_CHECK, FA_GROUP, FA_MAP_MARKER, FA_USER_PLUS } from 'common';
@@ -69,7 +69,7 @@ export struct UserDetailPage {
    * 覆盖所有走 NavigationService.push(UserDetail, param) 的入口（CommonList / SearchPage / DrawerHeader / etc）。
    */
   private tryAdoptRouteParam(): void {
-    const raw: Object | null = RouteParamStore.consume(RouteName.UserDetail);
+    const raw: Object | null = RouteParamReader.consumeStoreParam(RouteName.UserDetail);
     if (raw === null) {
       return;
     }
@@ -86,13 +86,13 @@ export struct UserDetailPage {
    * 与 [CodeDetailPage.tryAdoptBootCode] / [PushDetailPage.tryAdoptBootPush] 同款做法。
    */
   private tryAdoptBootUser(): void {
-    const value: string = BootChannel.get(BOOT_USER_KEY);
+    const value: string = RouteParamReader.readBootString(BOOT_USER_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return;
     }
     this.vm.setLogin(raw);
-    BootChannel.set(BOOT_USER_KEY, '');
+    RouteParamReader.clearBootString(BOOT_USER_KEY);
     Logger.i('user/boot', `UserDetailPage.tryAdoptBootUser adopted login=${raw} t=${Date.now()}`);
   }
 
@@ -107,17 +107,10 @@ export struct UserDetailPage {
   private resolveLoginFromStack(stack: NavPathStack): string {
     // 关键：NavDestinationContext.pathStack 在 onReady 早期阶段，
     // getAllPathName / getParamByIndex 可能尚未挂载（"undefined is not callable"），
-    // 必须 try/catch 包裹，与 RepositoryDetailPage.resolveFullNameFromStack 保持一致。
-    try {
-      const all: string[] = stack.getAllPathName();
-      if (all === undefined || all === null || all.length === 0) {
-        return FALLBACK_LOGIN;
-      }
-      const param: Object | undefined = stack.getParamByIndex(all.length - 1) as Object | undefined;
-      return this.resolveLoginFromParam(param === undefined ? null : param);
-    } catch (_e) {
-      return FALLBACK_LOGIN;
-    }
+    // 必须 try/catch 包裹，与 RepositoryDetailPage.resolveFullNameFromStack 保持一致
+    // （R10 收敛后 try/catch 统一在 RouteParamReader.readStackTopParam 内）。
+    const raw: Object | null = RouteParamReader.readStackTopParam(stack);
+    return this.resolveLoginFromParam(raw);
   }
 
   private openRepository(item: UserRepoItem): void {
@@ -605,13 +598,9 @@ export struct UserDetailPage {
       }
       // 优先从 ctx.pathInfo 拿参数（最稳，不依赖 stack 接口可用性）
       let resolved: string = FALLBACK_LOGIN;
-      try {
-        const info: NavPathInfo | undefined = ctx.pathInfo;
-        if (info !== undefined && info !== null) {
-          resolved = this.resolveLoginFromParam(info.param as Object | null | undefined);
-        }
-      } catch (_e) {
-        resolved = FALLBACK_LOGIN;
+      const ctxParam: Object | null = RouteParamReader.readContextParam(ctx);
+      if (ctxParam !== null) {
+        resolved = this.resolveLoginFromParam(ctxParam);
       }
       // 兜底：再尝试通过 stack
       if (resolved.length === 0 && stack !== undefined && stack !== null) {
@@ -619,7 +608,7 @@ export struct UserDetailPage {
       }
       // 终兜底：BOOT_USER_KEY 旁路（KI-045 同款，dispatcher 在 push 前注入 BootChannel）
       if (resolved.length === 0) {
-        const boot: string = BootChannel.get(BOOT_USER_KEY);
+        const boot: string = RouteParamReader.readBootString(BOOT_USER_KEY);
         const bootLogin: string = (boot || '').trim();
         if (bootLogin.length > 0) {
           resolved = bootLogin;

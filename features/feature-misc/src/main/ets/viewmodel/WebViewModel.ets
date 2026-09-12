@@ -1,7 +1,7 @@
 import hilog from '@ohos.hilog';
-import { RouteParamStore } from 'common';
+import { RouteParamReader } from 'common';
 import { RouteName } from 'common';
-import { BOOT_WEB_KEY, BootChannel } from 'common';
+import { BOOT_WEB_KEY } from 'common';
 import { CommonToast } from 'common';
 import { I18n } from 'common';
 import { Logger } from 'common';
@@ -30,7 +30,7 @@ export class WebViewModel {
   /** NavDestination onReady 转发：取参优先级与原页面一致。 */
   initFromNavContext(ctx: NavDestinationContext): void {
     // 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）
-    const routeRaw: Object | null = RouteParamStore.consume(RouteName.WebPage);
+    const routeRaw: Object | null = RouteParamReader.consumeStoreParam(RouteName.WebPage);
     if (routeRaw !== null) {
       const routeParam: WebPageRouteParam = routeRaw as WebPageRouteParam;
       if (routeParam.uri !== undefined && routeParam.uri !== null && routeParam.uri.length > 0) {
@@ -40,16 +40,12 @@ export class WebViewModel {
       }
     }
     let initial: string = '';
-    try {
-      const info: NavPathInfo | undefined = ctx.pathInfo;
-      if (info !== undefined && info !== null && info.param !== undefined && info.param !== null) {
-        const route: WebPageRouteParam = info.param as WebPageRouteParam;
-        if (route.uri !== undefined && route.uri !== null && route.uri.length > 0) {
-          initial = route.uri;
-        }
+    const ctxParam: Object | null = RouteParamReader.readContextParam(ctx);
+    if (ctxParam !== null) {
+      const route: WebPageRouteParam = ctxParam as WebPageRouteParam;
+      if (route.uri !== undefined && route.uri !== null && route.uri.length > 0) {
+        initial = route.uri;
       }
-    } catch (_e) {
-      initial = '';
     }
     this.adoptUri(initial);
   }
@@ -58,7 +54,7 @@ export class WebViewModel {
     let candidate: string = initial;
     if (candidate.length === 0) {
       // BOOT 兜底是测试通道（阶段2C 统一处理），语义原样保留。
-      const fallback: string = BootChannel.get(BOOT_WEB_KEY);
+      const fallback: string = RouteParamReader.readBootString(BOOT_WEB_KEY);
       if (fallback.length > 0) {
         candidate = fallback;
         Logger.i('boot/ts', `WebPage adopt BOOT_WEB_KEY fallback uri=${candidate}`);

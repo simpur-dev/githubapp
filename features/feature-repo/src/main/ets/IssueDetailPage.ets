@@ -18,8 +18,8 @@ import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { MarkdownText } from 'common';
 import { PullLoadMoreList } from 'common';
 import { Logger } from 'common';
-import { BOOT_ISSUE_KEY, BootChannel } from 'common';
-import { RouteParamStore } from 'common';
+import { BOOT_ISSUE_KEY } from 'common';
+import { RouteParamReader } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing, GSYShadow, ThemeManager } from 'common';
 import {
@@ -304,19 +304,8 @@ export struct IssueDetailPage {
   }
 
   private resolveParamFromStack(stack: NavPathStack): IssueDetailRouteParam | null {
-    try {
-      const all: string[] = stack.getAllPathName();
-      if (all === undefined || all === null || all.length === 0) {
-        return null;
-      }
-      const param: Object | undefined = stack.getParamByIndex(all.length - 1) as Object | undefined;
-      if (param === undefined || param === null) {
-        return null;
-      }
-      return param as IssueDetailRouteParam;
-    } catch (_e) {
-      return null;
-    }
+    const raw: Object | null = RouteParamReader.readStackTopParam(stack);
+    return raw !== null ? raw as IssueDetailRouteParam : null;
   }
 
   private async loadAll(): Promise<void> {
@@ -951,7 +940,7 @@ export struct IssueDetailPage {
       let fullName: string = FALLBACK_FULL_NAME;
       let issueNumber: number = FALLBACK_NUMBER;
       // 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）
-      const routeRaw: Object | null = RouteParamStore.consume(RouteName.IssueDetail);
+      const routeRaw: Object | null = RouteParamReader.consumeStoreParam(RouteName.IssueDetail);
       if (routeRaw !== null) {
         const routeParam: IssueDetailRouteParam = routeRaw as IssueDetailRouteParam;
         let adopted: boolean = false;
@@ -971,13 +960,9 @@ export struct IssueDetailPage {
         }
       }
       let param: IssueDetailRouteParam | null = null;
-      try {
-        const info: NavPathInfo | undefined = ctx.pathInfo;
-        if (info !== undefined && info !== null && info.param !== undefined && info.param !== null) {
-          param = info.param as IssueDetailRouteParam;
-        }
-      } catch (_e) {
-        param = null;
+      const ctxParam: Object | null = RouteParamReader.readContextParam(ctx);
+      if (ctxParam !== null) {
+        param = ctxParam as IssueDetailRouteParam;
       }
       if (param === null && stack !== undefined && stack !== null) {
         param = this.resolveParamFromStack(stack);
@@ -992,8 +977,7 @@ export struct IssueDetailPage {
       }
       // KI-045 同款：BOOT_ISSUE_KEY 旁路优先级最高（NavDestination 复用时
       // 上一次的 fullName/number 还在状态里，需要 BOOT 强制覆盖）。
-      const boot: string = BootChannel.get(BOOT_ISSUE_KEY);
-      const raw: string = boot.trim();
+      const raw: string = RouteParamReader.readBootString(BOOT_ISSUE_KEY).trim();
       if (raw.length > 0) {
         const sep: number = raw.indexOf('|');
         if (sep > 0 && sep < raw.length - 1) {

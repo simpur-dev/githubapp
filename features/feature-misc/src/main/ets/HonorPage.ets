@@ -1,26 +1,30 @@
 import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
-import { I18n } from 'common';
+import { I18n, TranslationMap } from 'common';
 import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { ThemeManager } from 'common';
 import { ContributionDay, emptyContributionDay } from 'common';
 import { ContributionHeatmap } from 'common';
 
+/**
+ * HonorEntry —— 荣耀榜条目（desc 只存 I18n key，渲染时取词，
+ * 中文/英文文案见 I18n.ets 的 honorDesc1..5）。
+ */
 export class HonorEntry {
   name: string;
-  desc: string;
+  descKey: keyof TranslationMap;
 
-  constructor(name: string, desc: string) {
+  constructor(name: string, descKey: keyof TranslationMap) {
     this.name = name;
-    this.desc = desc;
+    this.descKey = descKey;
   }
 }
 
 export const HONOR_LIST: HonorEntry[] = [
-  new HonorEntry('CarGuo', 'GSYGithubApp 项目作者'),
-  new HonorEntry('OpenHarmony', 'OpenHarmony / ArkTS 框架'),
-  new HonorEntry('GitHub REST API', 'github.com/api/v3'),
-  new HonorEntry('hypium', 'OpenHarmony 单元测试 / UI 测试框架'),
-  new HonorEntry('Contributors', 'GSYGithubApp 全体贡献者'),
+  new HonorEntry('CarGuo', 'honorDesc1'),
+  new HonorEntry('OpenHarmony', 'honorDesc2'),
+  new HonorEntry('GitHub REST API', 'honorDesc3'),
+  new HonorEntry('hypium', 'honorDesc4'),
+  new HonorEntry('Contributors', 'honorDesc5'),
 ];
 
 const SAMPLE_LEVEL_CYCLE: number[] = [0, 0, 1, 2, 1, 0, 3, 4, 2, 0, 1, 1, 2, 3];
@@ -81,7 +85,7 @@ export struct HonorPage {
           .fontSize(GSYFontSize.middleNormal)
           .fontWeight(FontWeight.Bold)
           .fontColor(ThemeManager.current().text);
-        Text(item.desc)
+        Text(I18n(item.descKey))
           .id('honor_desc_' + index.toString())
           .fontSize(GSYFontSize.min)
           .fontColor(ThemeManager.current().textSecondary)

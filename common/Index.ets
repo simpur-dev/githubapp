@@ -15,6 +15,7 @@ export { BootChannel } from './src/main/ets/base/launch/BootChannel';
 export { BOOT_CODE_KEY, BOOT_COMMON_LIST_KEY, BOOT_ISSUE_KEY, BOOT_LOGIN_KEY, BOOT_NOTIFY_ISSUE_KEY, BOOT_PHOTO_KEY, BOOT_PUSH_KEY, BOOT_REPO_KEY, BOOT_TAB_KEY, BOOT_USER_KEY, BOOT_WEB_KEY, BOOT_WELCOME_HOLD_KEY } from './src/main/ets/base/launch/BootKeys';
 export { LOGGER_DOMAIN, LOGGER_HILOG_TAG, LOGGER_RING_CAPACITY, LogEntry, LogLevel, Logger } from './src/main/ets/base/logger/Logger';
 export { NavRouteSnapshot, NavigationService, RouterLike } from './src/main/ets/base/navigation/NavigationService';
+export { RouteParamReader } from './src/main/ets/base/navigation/RouteParamReader';
 export { RouteParamStore } from './src/main/ets/base/navigation/RouteParamStore';
 export { ROUTE_NAMES, RouteName, isKnownRoute } from './src/main/ets/base/navigation/Routes';
 export { Address, HOST_API, HOST_WEB, TRENDING_API_HOST, TRENDING_GTREND_HOST, TRENDING_HUCHEN_HOST } from './src/main/ets/base/net/Address';

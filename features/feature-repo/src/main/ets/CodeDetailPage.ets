@@ -16,10 +16,10 @@ import pasteboard from '@ohos.pasteboard';
 import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
-import { BOOT_CODE_KEY, BootChannel } from 'common';
+import { BOOT_CODE_KEY } from 'common';
 import { I18n } from 'common';
 import { NavigationService } from 'common';
-import { RouteParamStore } from 'common';
+import { RouteParamReader } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize, ThemeManager } from 'common';
 import { Logger } from 'common';
@@ -74,7 +74,7 @@ export struct CodeDetailPage {
    * 命中即写入 VM 并返回 true，跳过后续 BOOT_CODE_KEY 兜底。
    */
   private tryAdoptRouteStore(): boolean {
-    const routeRaw: Object | null = RouteParamStore.consume(RouteName.CodeDetail);
+    const routeRaw: Object | null = RouteParamReader.consumeStoreParam(RouteName.CodeDetail);
     if (routeRaw === null) {
       return false;
     }
@@ -114,7 +114,7 @@ export struct CodeDetailPage {
    * 从 BootChannel BOOT_CODE_KEY 直读 fullName|branch|path 兜底，读到后立即清空避免污染下次进入。
    */
   private tryAdoptBootCode(): void {
-    const raw: string = BootChannel.get(BOOT_CODE_KEY).trim();
+    const raw: string = RouteParamReader.readBootString(BOOT_CODE_KEY).trim();
     if (raw.length === 0) {
       return;
     }
@@ -133,24 +133,8 @@ export struct CodeDetailPage {
       return;
     }
     this.vm.setTarget(fullName, branch, '', path);
-    BootChannel.set(BOOT_CODE_KEY, '');
+    RouteParamReader.clearBootString(BOOT_CODE_KEY);
     Logger.i('CodeDetail', `aboutToAppear adoptBootCode fullName=${fullName} branch=${branch} path=${path}`);
-  }
-
-  private resolveParamFromStack(stack: NavPathStack): CodeDetailRouteParam | null {
-    try {
-      const all: string[] = stack.getAllPathName();
-      if (all === undefined || all === null || all.length === 0) {
-        return null;
-      }
-      const param: Object | undefined = stack.getParamByIndex(all.length - 1) as Object | undefined;
-      if (param === undefined || param === null) {
-        return null;
-      }
-      return param as CodeDetailRouteParam;
-    } catch (_e) {
-      return null;
-    }
   }
 
   private loadAll(): void {
@@ -509,16 +493,15 @@ export struct CodeDetailPage {
       let sha: string = this.vm.sha;
       let path: string = this.vm.path;
       let param: CodeDetailRouteParam | null = null;
-      try {
-        const info: NavPathInfo | undefined = ctx.pathInfo;
-        if (info !== undefined && info !== null && info.param !== undefined && info.param !== null) {
-          param = info.param as CodeDetailRouteParam;
-        }
-      } catch (_e) {
-        param = null;
+      const ctxParam: Object | null = RouteParamReader.readContextParam(ctx);
+      if (ctxParam !== null) {
+        param = ctxParam as CodeDetailRouteParam;
       }
       if (param === null && stack !== undefined && stack !== null) {
-        param = this.resolveParamFromStack(stack);
+        const stackParam: Object | null = RouteParamReader.readStackTopParam(stack);
+        if (stackParam !== null) {
+          param = stackParam as CodeDetailRouteParam;
+        }
       }
       if (param !== null) {
         if (param.fullName !== undefined && param.fullName !== null && param.fullName.length > 0) {

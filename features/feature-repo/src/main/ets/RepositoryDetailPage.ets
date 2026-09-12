@@ -5,8 +5,8 @@ import pasteboard from '@ohos.pasteboard';
 
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
-import { RouteParamStore } from 'common';
-import { BOOT_REPO_KEY, BootChannel } from 'common';
+import { RouteParamReader } from 'common';
+import { BOOT_REPO_KEY } from 'common';
 import { NavTitleAction, NavTitleBridge, NavTitleConfig } from 'common';
 import { CommonToast } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
@@ -256,7 +256,7 @@ export struct RepositoryDetailPage {
 
   private applyRouterParams(): void {
     // 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）
-    const routeRaw: Object | null = RouteParamStore.consume(RouteName.RepositoryDetail);
+    const routeRaw: Object | null = RouteParamReader.consumeStoreParam(RouteName.RepositoryDetail);
     if (routeRaw !== null) {
       const resolvedFromRoute: string = this.resolveFullNameFromObject(routeRaw);
       if (resolvedFromRoute.length > 0) {
@@ -275,7 +275,7 @@ export struct RepositoryDetailPage {
     } catch (_e) {
     }
     if (this.vm.fullName.length === 0) {
-      const bootRepo: string = BootChannel.get(BOOT_REPO_KEY);
+      const bootRepo: string = RouteParamReader.readBootString(BOOT_REPO_KEY);
       if (bootRepo.length > 0) {
         this.vm.setFullName(bootRepo);
       }
@@ -283,16 +283,8 @@ export struct RepositoryDetailPage {
   }
 
   private resolveFullNameFromStack(stack: NavPathStack): string {
-    try {
-      const all: string[] = stack.getAllPathName();
-      if (all === undefined || all === null || all.length === 0) {
-        return FALLBACK_FULL_NAME;
-      }
-      const param: Object | undefined = stack.getParamByIndex(all.length - 1) as Object | undefined;
-      return this.resolveFullNameFromObject(param === undefined ? null : param);
-    } catch (_e) {
-      return FALLBACK_FULL_NAME;
-    }
+    const raw: Object | null = RouteParamReader.readStackTopParam(stack);
+    return this.resolveFullNameFromObject(raw);
   }
 
   private async loadAll(): Promise<void> {
@@ -728,115 +720,161 @@ export struct RepositoryDetailPage {
     return items;
   }
 
+  @Builder
+  private buildActivityTab(): void {
+    TabContent() {
+      ActivityTab({
+        activity: this.vm.activity,
+        commits: this.vm.commits,
+        detail: this.vm.detail,
+        refreshing: this.vm.activityRefreshing,
+        loadingMore: this.vm.activityLoadingMore,
+        noMore: this.vm.activityNoMore,
+        ownerName: this.vm.ownerName(),
+        repositoryName: this.vm.repositoryName(),
+        refresh: (): void => {
+          this.vm.refreshCurrentActivityTab();
+        },
+        loadMore: (): void => {
+          this.vm.loadMoreCurrentActivityTab();
+        },
+        onSelectChange: (sel: number): void => {
+          this.vm.handleActivitySelectChange(sel);
+        },
+        onTapStar: (): void => {
+          this.openRepositoryCommonList('stargazers', COMMON_LIST_SHOW_TYPE_USER, 'stargazers');
+        },
+        onTapWatch: (): void => {
+          this.openRepositoryCommonList('watchers', COMMON_LIST_SHOW_TYPE_USER, 'watchers');
+        },
+        onTapFork: (): void => {
+          this.openRepositoryCommonList('forks', COMMON_LIST_SHOW_TYPE_REPOSITORY, 'forks');
+        },
+        onTapIssue: (): void => {
+          this.handleTabTap(2);
+        },
+        onTapForkSource: (): void => {
+        },
+        onTapOwner: (): void => {
+        },
+        onTapTopic: (topic: string): void => {
+          this.openTopicList(topic);
+        },
+      })
+        .id('repo_detail_tab_content_info');
+    }
+    .tabBar(this.buildTabBar(this.tabs[0]));
+  }
+
+  @Builder
+  private buildReadmeTab(): void {
+    TabContent() {
+      ReadmeTab({
+        fullName: this.vm.fullName,
+        branch: this.vm.currentBranchName(),
+        readmeHtml: this.vm.readmeHtml,
+        readmeMarkdown: this.vm.readmeMarkdown,
+        readmeLoading: this.vm.readmeLoading,
+        readmeError: this.vm.readmeError,
+      })
+        .id('repo_detail_tab_content_readme');
+    }
+    .tabBar(this.buildTabBar(this.tabs[1]));
+  }
+
+  @Builder
+  private buildIssueTab(): void {
+    TabContent() {
+      IssueTab({
+        vm: this.vm.issueTab,
+        showCreateFab: false,
+        onIssueClick: (_item: RepositoryIssueItem): void => {
+        },
+        onCreateIssue: (): void => {
+          this.openCreateIssueSheet();
+        },
+      })
+        .id('repo_detail_tab_content_issue');
+    }
+    .tabBar(this.buildTabBar(this.tabs[2]));
+  }
+
+  @Builder
+  private buildFilesTab(): void {
+    TabContent() {
+      FilesTab({
+        files: this.vm.files,
+        currentPath: this.vm.currentFilePath,
+        refreshing: this.vm.filesRefreshing,
+        loadingMore: this.vm.filesLoadingMore,
+        noMore: this.vm.filesNoMore,
+        refresh: (): void => {
+          this.refreshFiles(this.vm.currentFilePath);
+        },
+        onFileClick: (item: RepositoryFileItem): void => {
+          this.openFile(item);
+        },
+        onBack: (): void => {
+          this.backFiles();
+        },
+      })
+        .id('repo_detail_tab_content_file');
+    }
+    .tabBar(this.buildTabBar(this.tabs[3]));
+  }
+
+  @Builder
+  private buildTabs(): void {
+    Tabs({
+      barPosition: BarPosition.Start,
+      index: this.currentIndex,
+      controller: this.tabsController,
+    }) {
+      this.buildActivityTab();
+      this.buildReadmeTab();
+      this.buildIssueTab();
+      this.buildFilesTab();
+    }
+    .id('repo_detail_tabs')
+    .barHeight(TAB_BAR_HEIGHT)
+    .barMode(BarMode.Fixed)
+    .scrollable(true)
+    .width('100%')
+    .height('100%')
+    .onChange((index: number): void => {
+      this.currentIndex = index;
+    });
+  }
+
+  @Builder
+  private buildBottomBar(): void {
+    if (this.vm.fullName.length > 0) {
+      CommonBottomBar({
+        rootId: 'repo_detail_bottom_bar',
+        dataList: this.buildBottomBarItems(),
+        repoActionStyle: true,
+        materialFloatingStyle: true,
+        trailingItemId: 'branch',
+        rootMarginHorizontal: GSYSpacing.hdsFloatingBarSideMargin,
+        rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin,
+        rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
+        rootHeight: GSYSpacing.bottomBarDefault,
+        trailingMenuShow: this.branchMenuVisible,
+        trailingMenuBuilder: (): void => {
+          this.buildBranchMenuContent();
+        },
+        onTrailingMenuDismiss: (): void => {
+          this.branchMenuVisible = false;
+        },
+      });
+    }
+  }
+
   build(): void {
     NavDestination() {
       Column() {
         Stack({ alignContent: Alignment.BottomEnd }) {
-          Tabs({
-            barPosition: BarPosition.Start,
-            index: this.currentIndex,
-            controller: this.tabsController,
-          }) {
-            TabContent() {
-              ActivityTab({
-                activity: this.vm.activity,
-                commits: this.vm.commits,
-                detail: this.vm.detail,
-                refreshing: this.vm.activityRefreshing,
-                loadingMore: this.vm.activityLoadingMore,
-                noMore: this.vm.activityNoMore,
-                ownerName: this.vm.ownerName(),
-                repositoryName: this.vm.repositoryName(),
-                refresh: (): void => {
-                  this.vm.refreshCurrentActivityTab();
-                },
-                loadMore: (): void => {
-                  this.vm.loadMoreCurrentActivityTab();
-                },
-                onSelectChange: (sel: number): void => {
-                  this.vm.handleActivitySelectChange(sel);
-                },
-                onTapStar: (): void => {
-                  this.openRepositoryCommonList('stargazers', COMMON_LIST_SHOW_TYPE_USER, 'stargazers');
-                },
-                onTapWatch: (): void => {
-                  this.openRepositoryCommonList('watchers', COMMON_LIST_SHOW_TYPE_USER, 'watchers');
-                },
-                onTapFork: (): void => {
-                  this.openRepositoryCommonList('forks', COMMON_LIST_SHOW_TYPE_REPOSITORY, 'forks');
-                },
-                onTapIssue: (): void => {
-                  this.handleTabTap(2);
-                },
-                onTapForkSource: (): void => {
-                },
-                onTapOwner: (): void => {
-                },
-                onTapTopic: (topic: string): void => {
-                  this.openTopicList(topic);
-                },
-              })
-                .id('repo_detail_tab_content_info');
-            }
-            .tabBar(this.buildTabBar(this.tabs[0]));
-
-            TabContent() {
-              ReadmeTab({
-                fullName: this.vm.fullName,
-                branch: this.vm.currentBranchName(),
-                readmeHtml: this.vm.readmeHtml,
-                readmeMarkdown: this.vm.readmeMarkdown,
-                readmeLoading: this.vm.readmeLoading,
-                readmeError: this.vm.readmeError,
-              })
-                .id('repo_detail_tab_content_readme');
-            }
-            .tabBar(this.buildTabBar(this.tabs[1]));
-
-            TabContent() {
-              IssueTab({
-                vm: this.vm.issueTab,
-                showCreateFab: false,
-                onIssueClick: (_item: RepositoryIssueItem): void => {
-                },
-                onCreateIssue: (): void => {
-                  this.openCreateIssueSheet();
-                },
-              })
-                .id('repo_detail_tab_content_issue');
-            }
-            .tabBar(this.buildTabBar(this.tabs[2]));
-
-            TabContent() {
-              FilesTab({
-                files: this.vm.files,
-                currentPath: this.vm.currentFilePath,
-                refreshing: this.vm.filesRefreshing,
-                loadingMore: this.vm.filesLoadingMore,
-                noMore: this.vm.filesNoMore,
-                refresh: (): void => {
-                  this.refreshFiles(this.vm.currentFilePath);
-                },
-                onFileClick: (item: RepositoryFileItem): void => {
-                  this.openFile(item);
-                },
-                onBack: (): void => {
-                  this.backFiles();
-                },
-              })
-                .id('repo_detail_tab_content_file');
-            }
-            .tabBar(this.buildTabBar(this.tabs[3]));
-          }
-          .id('repo_detail_tabs')
-          .barHeight(TAB_BAR_HEIGHT)
-          .barMode(BarMode.Fixed)
-          .scrollable(true)
-          .width('100%')
-          .height('100%')
-          .onChange((index: number): void => {
-            this.currentIndex = index;
-          });
+          this.buildTabs();
 
           if (this.vm.fullName.length > 0) {
             this.buildCreateIssueFab();
@@ -846,26 +884,7 @@ export struct RepositoryDetailPage {
         .layoutWeight(1)
         .width('100%');
 
-        if (this.vm.fullName.length > 0) {
-          CommonBottomBar({
-            rootId: 'repo_detail_bottom_bar',
-            dataList: this.buildBottomBarItems(),
-            repoActionStyle: true,
-            materialFloatingStyle: true,
-            trailingItemId: 'branch',
-            rootMarginHorizontal: GSYSpacing.hdsFloatingBarSideMargin,
-            rootMarginBottom: GSYSpacing.hdsFloatingBarBottomMargin,
-            rootBorderRadius: GSYSpacing.hdsFloatingBarRadius,
-            rootHeight: GSYSpacing.bottomBarDefault,
-            trailingMenuShow: this.branchMenuVisible,
-            trailingMenuBuilder: (): void => {
-              this.buildBranchMenuContent();
-            },
-            onTrailingMenuDismiss: (): void => {
-              this.branchMenuVisible = false;
-            },
-          });
-        }
+        this.buildBottomBar();
 
       }
       .id('repo_detail_root')
@@ -903,10 +922,9 @@ export struct RepositoryDetailPage {
         }
       }
       if (this.vm.fullName.length === 0 || this.vm.fullName === FALLBACK_FULL_NAME) {
-        const info: NavPathInfo | undefined = ctx.pathInfo;
-        if (info !== undefined && info !== null) {
-          const raw: Object | undefined = info.param as Object | undefined;
-          const fromParam: string = this.resolveFullNameFromObject(raw === undefined ? null : raw);
+        const ctxParam: Object | null = RouteParamReader.readContextParam(ctx);
+        if (ctxParam !== null) {
+          const fromParam: string = this.resolveFullNameFromObject(ctxParam);
           if (fromParam.length > 0) {
             resolved = fromParam;
             this.vm.setFullName(fromParam);
@@ -915,7 +933,7 @@ export struct RepositoryDetailPage {
       }
       // KI-045 同款：BOOT_REPO_KEY 旁路优先级最高（dispatcher 路径上 stack/pathInfo
       // 都拿不到 param，必须靠 BOOT 旁路覆盖上一次残留的 fullName）。
-      const bootRepo: string = BootChannel.get(BOOT_REPO_KEY);
+      const bootRepo: string = RouteParamReader.readBootString(BOOT_REPO_KEY);
       const bootRepoTrim: string = bootRepo.trim();
       if (bootRepoTrim.length > 0) {
         resolved = bootRepoTrim;

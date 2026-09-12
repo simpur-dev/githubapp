@@ -11,7 +11,8 @@ import { LoadingModal } from 'common';
 import { I18n } from 'common';
 import { Logger } from 'common';
 import { NavigationService, RouteName } from 'common';
-import { BOOT_NOTIFY_ISSUE_KEY, BootChannel } from 'common';
+import { RouteParamReader } from 'common';
+import { BOOT_NOTIFY_ISSUE_KEY } from 'common';
 import {
   NotifyFilter,
   NotifyThread,
@@ -243,21 +244,21 @@ export class NotifyViewModel {
   }
 
   private applyBootNotifyIssue(): boolean {
-    const value: string = BootChannel.get(BOOT_NOTIFY_ISSUE_KEY);
+    const value: string = RouteParamReader.readBootString(BOOT_NOTIFY_ISSUE_KEY);
     const raw: string = (value || '').trim();
     if (raw.length === 0) {
       return false;
     }
     const sep: number = raw.indexOf('|');
     if (sep <= 0 || sep >= raw.length - 1) {
-      BootChannel.set(BOOT_NOTIFY_ISSUE_KEY, '');
+      RouteParamReader.clearBootString(BOOT_NOTIFY_ISSUE_KEY);
       return false;
     }
     const fullName: string = raw.substring(0, sep);
     const numberStr: string = raw.substring(sep + 1);
     const issueNumber: number = Number.parseInt(numberStr, 10);
     if (fullName.length === 0 || Number.isNaN(issueNumber) || issueNumber <= 0) {
-      BootChannel.set(BOOT_NOTIFY_ISSUE_KEY, '');
+      RouteParamReader.clearBootString(BOOT_NOTIFY_ISSUE_KEY);
       return false;
     }
     const slash: number = fullName.indexOf('/');
@@ -289,7 +290,7 @@ export class NotifyViewModel {
     this.page = 1;
     this.hasMore = false;
     this.error = '';
-    BootChannel.set(BOOT_NOTIFY_ISSUE_KEY, '');
+    RouteParamReader.clearBootString(BOOT_NOTIFY_ISSUE_KEY);
     Logger.i('notify/boot', `applied bootNotifyIssue fullName=${fullName} number=${issueNumber}`);
     return true;
   }

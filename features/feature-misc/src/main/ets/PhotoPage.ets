@@ -11,7 +11,7 @@
  * OH 端 v1（M-stub）：
  *   - 全屏 Stack + Image objectFit:Contain
  *   - 点击 → NavigationService.pop
- *   - 长按 → CommonToast「保存到相册（M-stub）」
+ *   - 长按 → CommonToast「长按保存到相册」（i18n photoSaveTip，M-stub 历史占位已去掉）
  *   - 入口参数：{ uri: string }（与 RN 字段对齐）
  *   - boot 通道：want.parameters.bootPhoto=<url>
  *
@@ -20,7 +20,7 @@
  * 测试 id（photo_*）一字不动。
  */
 import { GSYColor, GSYFontSize, GSYIconSize } from 'common';
-import { CommonToast } from 'common';
+import { CommonToast, I18n } from 'common';
 import { Logger } from 'common';
 import { PhotoViewModel } from './viewmodel/PhotoViewModel';
 import { NavTitleBridge, NavTitleConfig, RouteName } from 'common';
@@ -63,7 +63,7 @@ export struct PhotoPage {
       }
 
       if (this.vm.failed) {
-        Text('图片加载失败')
+        Text(I18n('photoLoadFailed'))
           .id('photo_failed')
           .fontColor(GSYColor.white)
           .fontSize(GSYFontSize.middleNormal);
@@ -80,7 +80,7 @@ export struct PhotoPage {
       LongPressGesture({ repeat: false })
         .onAction((): void => {
           Logger.i('boot/ts', `PhotoPage.longPress t=${Date.now()}`);
-          CommonToast.showShort('保存到相册（M-stub）');
+          CommonToast.showShort(I18n('photoSaveTip'));
         })
     );
   }

@@ -1,4 +1,5 @@
 import { NavTitleBridge, NavTitleConfig } from 'common';
+import { I18n } from 'common';
 import { NavigationService } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize } from 'common';
@@ -92,7 +93,7 @@ export struct SettingPage {
           .padding({ left: 16, right: 16, bottom: 12 })
           .alignItems(VerticalAlign.Center);
 
-          Text('Theme')
+          Text(I18n('themeTitle'))
             .id('setting_theme_title')
             .fontSize(GSYFontSize.middleNormal)
             .fontWeight(FontWeight.Bold)

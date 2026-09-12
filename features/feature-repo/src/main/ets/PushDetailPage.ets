@@ -13,9 +13,9 @@ import { I18n } from 'common';
 import { Logger } from 'common';
 import { CommonModal, CommonOptionItem } from 'common';
 import { CommonToast } from 'common';
-import { BOOT_PUSH_KEY, BootChannel } from 'common';
+import { BOOT_PUSH_KEY } from 'common';
 import { NavigationService } from 'common';
-import { RouteParamStore } from 'common';
+import { RouteParamReader } from 'common';
 import { RouteName } from 'common';
 import { GSYColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing, ThemeManager } from 'common';
 import { IconFont } from 'common';
@@ -52,19 +52,8 @@ export struct PushDetailPage {
   }
 
   private resolveParamFromStack(stack: NavPathStack): PushDetailRouteParam | null {
-    try {
-      const all: string[] = stack.getAllPathName();
-      if (all === undefined || all === null || all.length === 0) {
-        return null;
-      }
-      const param: Object | undefined = stack.getParamByIndex(all.length - 1) as Object | undefined;
-      if (param === undefined || param === null) {
-        return null;
-      }
-      return param as PushDetailRouteParam;
-    } catch (_e) {
-      return null;
-    }
+    const raw: Object | null = RouteParamReader.readStackTopParam(stack);
+    return raw !== null ? raw as PushDetailRouteParam : null;
   }
 
   private loadAll(): void {
@@ -395,7 +384,7 @@ export struct PushDetailPage {
       let fullName: string = '';
       let sha: string = FALLBACK_SHA;
       // 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）
-      const routeRaw: Object | null = RouteParamStore.consume(RouteName.PushDetail);
+      const routeRaw: Object | null = RouteParamReader.consumeStoreParam(RouteName.PushDetail);
       if (routeRaw !== null) {
         const routeParam: PushDetailRouteParam = routeRaw as PushDetailRouteParam;
         let adopted: boolean = false;
@@ -432,14 +421,10 @@ export struct PushDetailPage {
           stackSize = -2;
         }
       }
-      try {
-        const info: NavPathInfo | undefined = ctx.pathInfo;
-        if (info !== undefined && info !== null && info.param !== undefined && info.param !== null) {
-          param = info.param as PushDetailRouteParam;
-          src = 'pathInfo';
-        }
-      } catch (_e) {
-        param = null;
+      const ctxParam: Object | null = RouteParamReader.readContextParam(ctx);
+      if (ctxParam !== null) {
+        param = ctxParam as PushDetailRouteParam;
+        src = 'pathInfo';
       }
       if (param === null && stack !== undefined && stack !== null) {
         param = this.resolveParamFromStack(stack);
@@ -460,8 +445,7 @@ export struct PushDetailPage {
       }
       // KI-045 同款：BOOT_PUSH_KEY 旁路兜底；优先级最高（NavDestination 复用时
       // 上一次的 fullName/sha 还在状态里，需要 BOOT 强制覆盖）。
-      const boot: string = BootChannel.get(BOOT_PUSH_KEY);
-      const raw: string = boot.trim();
+      const raw: string = RouteParamReader.readBootString(BOOT_PUSH_KEY).trim();
       if (raw.length > 0) {
         const sep: number = raw.indexOf('|');
         if (sep > 0 && sep < raw.length - 1) {

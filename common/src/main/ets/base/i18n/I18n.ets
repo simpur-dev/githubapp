@@ -240,6 +240,15 @@ export interface TranslationMap {
   customScriptHint2: string;
   customScriptItem3: string;
   customScriptHint3: string;
+  themeTitle: string;
+  licenseTitle: string;
+  photoLoadFailed: string;
+  photoSaveTip: string;
+  honorDesc1: string;
+  honorDesc2: string;
+  honorDesc3: string;
+  honorDesc4: string;
+  honorDesc5: string;
 }
 
 const enTranslations: TranslationMap = {
@@ -480,6 +489,15 @@ const enTranslations: TranslationMap = {
   customScriptHint2: 'Placeholder: future support for custom render pipeline',
   customScriptItem3: 'Custom Shortcut',
   customScriptHint3: 'Placeholder: future support for shortcut binding',
+  themeTitle: 'Theme',
+  licenseTitle: 'License',
+  photoLoadFailed: 'Failed to load image',
+  photoSaveTip: 'Long press to save',
+  honorDesc1: 'Author of GSYGithubApp',
+  honorDesc2: 'OpenHarmony / ArkTS framework',
+  honorDesc3: 'github.com/api/v3',
+  honorDesc4: 'OpenHarmony unit test / UI test framework',
+  honorDesc5: 'All contributors of GSYGithubApp',
 };
 
 const zhTranslations: TranslationMap = {
@@ -720,6 +738,15 @@ const zhTranslations: TranslationMap = {
   customScriptHint2: '占位：未来支持自定义渲染管线',
   customScriptItem3: '自定义快捷指令',
   customScriptHint3: '占位：未来支持快捷指令绑定',
+  themeTitle: '主题',
+  licenseTitle: '开源协议',
+  photoLoadFailed: '图片加载失败',
+  photoSaveTip: '长按保存到相册',
+  honorDesc1: 'GSYGithubApp 项目作者',
+  honorDesc2: 'OpenHarmony / ArkTS 框架',
+  honorDesc3: 'github.com/api/v3',
+  honorDesc4: 'OpenHarmony 单元测试 / UI 测试框架',
+  honorDesc5: 'GSYGithubApp 全体贡献者',
 };
 
 export const translations: Record<LocaleKey, TranslationMap> = {

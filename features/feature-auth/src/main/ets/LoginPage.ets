@@ -117,125 +117,202 @@ export struct LoginPage {
     }
   }
 
+  @Builder
+  private buildTokenField(): void {
+    Row() {
+      Text(FA_KEY)
+        .id('login_token_leading_icon')
+        .fontFamily('FontAwesome')
+        .fontSize(GSYFontSize.middleWhite)
+        .fontColor(ThemeManager.current().textSecondary)
+        .textAlign(TextAlign.Center)
+        .width(40);
+
+      TextInput({ text: this.vm.token, placeholder: I18n('LoginTokenHint') })
+        .id('login_token_input')
+        .type(InputType.Password)
+        .layoutWeight(1)
+        .height(48)
+        .fontSize(GSYFontSize.small)
+        .backgroundColor(GSYColor.transparent)
+        .onChange((value: string): void => {
+          this.vm.token = value;
+        });
+    }
+      .id('login_token_field')
+      .width('100%')
+      .height(52)
+      .backgroundColor(ThemeManager.current().surfaceSubtle)
+      .borderRadius(8)
+      .alignItems(VerticalAlign.Center);
+  }
+
+  @Builder
+  private buildAuthButtonsRow(): void {
+    Row() {
+      Button(I18n('LoginButton'))
+        .id('login_submit_btn')
+        .type(ButtonType.Normal)
+        .width('48%')
+        .height(50)
+        .fontSize(GSYFontSize.middleWhite)
+        .fontColor(GSYColor.textWhite)
+        .backgroundColor(ThemeManager.current().navBackground)
+        .borderRadius(8)
+        .enabled(!this.vm.loading && this.vm.token.trim().length > 0)
+        .onClick((): void => {
+          this.vm.runTokenLogin(this.vm.token);
+        });
+
+      Button(I18n('OAuthLogin'))
+        .id('login_oauth_btn')
+        .type(ButtonType.Normal)
+        .width('48%')
+        .height(50)
+        .fontSize(GSYFontSize.middleWhite)
+        .fontColor(GSYColor.textWhite)
+        .backgroundColor(ThemeManager.current().navBackground)
+        .borderRadius(8)
+        .enabled(!this.vm.loading)
+        .onClick((): void => {
+          this.openOAuthWeb();
+        });
+    }
+    .id('login_buttons_row')
+    .width('100%')
+    .justifyContent(FlexAlign.SpaceBetween)
+    .alignItems(VerticalAlign.Center);
+  }
+
+  @Builder
+  private buildLoginForm(): void {
+    Column() {
+      Text(I18n('LoginTitle'))
+        .id('login_title')
+        .fontSize(GSYFontSize.big)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(ThemeManager.current().text)
+        .textAlign(TextAlign.Center);
+
+      Text(I18n('LoginSubtitle'))
+        .id('login_subtitle')
+        .fontSize(GSYFontSize.middleWhite)
+        .fontColor(ThemeManager.current().textSecondary)
+        .textAlign(TextAlign.Center)
+        .margin({ top: 8, bottom: 32 });
+
+      Text(I18n('LoginTokenLabel'))
+        .id('login_token_label')
+        .fontSize(GSYFontSize.small)
+        .fontColor(ThemeManager.current().text)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+        .margin({ bottom: GSYSpacing.halfEdge });
+
+      this.buildTokenField();
+
+      Text(I18n('LoginTokenHelper'))
+        .id('login_token_helper')
+        .fontSize(GSYFontSize.min)
+        .fontColor(ThemeManager.current().textSecondary)
+        .textAlign(TextAlign.Center)
+        .width('100%')
+        .margin({ top: 8, bottom: 24 });
+
+      this.buildAuthButtonsRow();
+
+      Text(I18n('language'))
+        .id('login_language_btn')
+        .fontSize(GSYFontSize.middleWhite)
+        .fontColor(ThemeManager.current().text)
+        .textAlign(TextAlign.Center)
+        .width('100%')
+        .padding({ top: 16, bottom: 8 })
+        .onClick((): void => {
+          this.vm.showLanguageDialog = true;
+        });
+
+      if (this.vm.errorMessage.length > 0) {
+        Text(this.vm.errorMessage)
+          .id('login_error_text')
+          .fontSize(GSYFontSize.min)
+          .fontColor(ThemeManager.current().text)
+          .margin({ top: GSYSpacing.halfEdge });
+      }
+    }
+    .id('login_form')
+    .width('100%')
+    .alignItems(HorizontalAlign.Center);
+  }
+
+  @Builder
+  private buildLanguageOverlay(): void {
+    if (this.vm.showLanguageDialog) {
+      Column() {
+        Column() {
+          Text(I18n('language'))
+            .id('login_language_title')
+            .fontSize(GSYFontSize.middleWhite)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(ThemeManager.current().text)
+            .width('100%')
+            .textAlign(TextAlign.Start)
+            .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 16, bottom: 12 });
+
+          this.buildLanguageOption(LANGUAGE_OPTION_SYSTEM, I18n('systemLanguage'));
+          Divider().color(ThemeManager.current().divider).strokeWidth(0.5);
+          this.buildLanguageOption(LANGUAGE_OPTION_ZH, I18n('zhLanguage'));
+          Divider().color(ThemeManager.current().divider).strokeWidth(0.5);
+          this.buildLanguageOption(LANGUAGE_OPTION_EN, I18n('enLanguage'));
+        }
+        .id('login_language_dialog')
+        .width('86%')
+        .backgroundColor(ThemeManager.current().card)
+        .borderRadius(12)
+        .alignItems(HorizontalAlign.Start);
+      }
+      .id('login_language_overlay')
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .backgroundColor(GSYColor.loadingMaskBg);
+    }
+  }
+
+  @Builder
+  private buildLoadingOverlay(): void {
+    if (this.vm.loading) {
+      Column() {
+        Column() {
+          LoadingProgress()
+            .id('login_loading_progress')
+            .width(36)
+            .height(36)
+            .color(GSYColor.white);
+        }
+        .width(72)
+        .height(72)
+        .borderRadius(8)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .backgroundColor(GSYColor.loadingMaskBg);
+      }
+      .id('login_loading_overlay')
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .backgroundColor(GSYColor.loadingLightMaskBg);
+    }
+  }
+
   build(): void {
     Stack() {
       Column() {
         this.buildAnimatedLogo();
 
-        Column() {
-          Text(I18n('LoginTitle'))
-            .id('login_title')
-            .fontSize(GSYFontSize.big)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(ThemeManager.current().text)
-            .textAlign(TextAlign.Center);
-
-          Text(I18n('LoginSubtitle'))
-            .id('login_subtitle')
-            .fontSize(GSYFontSize.middleWhite)
-            .fontColor(ThemeManager.current().textSecondary)
-            .textAlign(TextAlign.Center)
-            .margin({ top: 8, bottom: 32 });
-
-          Text(I18n('LoginTokenLabel'))
-            .id('login_token_label')
-            .fontSize(GSYFontSize.small)
-            .fontColor(ThemeManager.current().text)
-            .width('100%')
-            .textAlign(TextAlign.Start)
-            .margin({ bottom: GSYSpacing.halfEdge });
-
-          Row() {
-            Text(FA_KEY)
-              .id('login_token_leading_icon')
-              .fontFamily('FontAwesome')
-              .fontSize(GSYFontSize.middleWhite)
-              .fontColor(ThemeManager.current().textSecondary)
-              .textAlign(TextAlign.Center)
-              .width(40);
-
-            TextInput({ text: this.vm.token, placeholder: I18n('LoginTokenHint') })
-              .id('login_token_input')
-              .type(InputType.Password)
-              .layoutWeight(1)
-              .height(48)
-              .fontSize(GSYFontSize.small)
-              .backgroundColor(GSYColor.transparent)
-              .onChange((value: string): void => {
-                this.vm.token = value;
-              });
-          }
-            .id('login_token_field')
-            .width('100%')
-            .height(52)
-            .backgroundColor(ThemeManager.current().surfaceSubtle)
-            .borderRadius(8)
-            .alignItems(VerticalAlign.Center);
-
-          Text(I18n('LoginTokenHelper'))
-            .id('login_token_helper')
-            .fontSize(GSYFontSize.min)
-            .fontColor(ThemeManager.current().textSecondary)
-            .textAlign(TextAlign.Center)
-            .width('100%')
-            .margin({ top: 8, bottom: 24 });
-
-          Row() {
-            Button(I18n('LoginButton'))
-              .id('login_submit_btn')
-              .type(ButtonType.Normal)
-              .width('48%')
-              .height(50)
-              .fontSize(GSYFontSize.middleWhite)
-              .fontColor(GSYColor.textWhite)
-              .backgroundColor(ThemeManager.current().navBackground)
-              .borderRadius(8)
-              .enabled(!this.vm.loading && this.vm.token.trim().length > 0)
-              .onClick((): void => {
-                this.vm.runTokenLogin(this.vm.token);
-              });
-
-            Button(I18n('OAuthLogin'))
-              .id('login_oauth_btn')
-              .type(ButtonType.Normal)
-              .width('48%')
-              .height(50)
-              .fontSize(GSYFontSize.middleWhite)
-              .fontColor(GSYColor.textWhite)
-              .backgroundColor(ThemeManager.current().navBackground)
-              .borderRadius(8)
-              .enabled(!this.vm.loading)
-              .onClick((): void => {
-                this.openOAuthWeb();
-              });
-          }
-          .id('login_buttons_row')
-          .width('100%')
-          .justifyContent(FlexAlign.SpaceBetween)
-          .alignItems(VerticalAlign.Center);
-
-          Text(I18n('language'))
-            .id('login_language_btn')
-            .fontSize(GSYFontSize.middleWhite)
-            .fontColor(ThemeManager.current().text)
-            .textAlign(TextAlign.Center)
-            .width('100%')
-            .padding({ top: 16, bottom: 8 })
-            .onClick((): void => {
-              this.vm.showLanguageDialog = true;
-            });
-
-          if (this.vm.errorMessage.length > 0) {
-            Text(this.vm.errorMessage)
-              .id('login_error_text')
-              .fontSize(GSYFontSize.min)
-              .fontColor(ThemeManager.current().text)
-              .margin({ top: GSYSpacing.halfEdge });
-          }
-        }
-        .id('login_form')
-        .width('100%')
-        .alignItems(HorizontalAlign.Center);
+        this.buildLoginForm();
       }
       .id('login_root')
       .width('86%')
@@ -250,61 +327,9 @@ export struct LoginPage {
       .borderRadius(8)
       .alignItems(HorizontalAlign.Center);
 
-      if (this.vm.showLanguageDialog) {
-        Column() {
-          Column() {
-            Text(I18n('language'))
-              .id('login_language_title')
-              .fontSize(GSYFontSize.middleWhite)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(ThemeManager.current().text)
-              .width('100%')
-              .textAlign(TextAlign.Start)
-              .padding({ left: GSYSpacing.normalEdge, right: GSYSpacing.normalEdge, top: 16, bottom: 12 });
+      this.buildLanguageOverlay();
 
-            this.buildLanguageOption(LANGUAGE_OPTION_SYSTEM, I18n('systemLanguage'));
-            Divider().color(ThemeManager.current().divider).strokeWidth(0.5);
-            this.buildLanguageOption(LANGUAGE_OPTION_ZH, I18n('zhLanguage'));
-            Divider().color(ThemeManager.current().divider).strokeWidth(0.5);
-            this.buildLanguageOption(LANGUAGE_OPTION_EN, I18n('enLanguage'));
-          }
-          .id('login_language_dialog')
-          .width('86%')
-          .backgroundColor(ThemeManager.current().card)
-          .borderRadius(12)
-          .alignItems(HorizontalAlign.Start);
-        }
-        .id('login_language_overlay')
-        .width('100%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(GSYColor.loadingMaskBg);
-      }
-
-      if (this.vm.loading) {
-        Column() {
-          Column() {
-            LoadingProgress()
-              .id('login_loading_progress')
-              .width(36)
-              .height(36)
-              .color(GSYColor.white);
-          }
-          .width(72)
-          .height(72)
-          .borderRadius(8)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .backgroundColor(GSYColor.loadingMaskBg);
-        }
-        .id('login_loading_overlay')
-        .width('100%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(GSYColor.loadingLightMaskBg);
-      }
+      this.buildLoadingOverlay();
     }
     .id('login_stack_root')
     .width('100%')

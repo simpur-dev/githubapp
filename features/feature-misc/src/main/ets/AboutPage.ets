@@ -37,7 +37,7 @@ export struct AboutPage {
     new AboutInfoRow('about_version', I18n('version'), APP_VERSION),
     new AboutInfoRow('about_author', I18n('author'), APP_AUTHOR),
     new AboutInfoRow('about_project_url', I18n('projectUrl'), APP_PROJECT_URL),
-    new AboutInfoRow('about_license', 'License', APP_LICENSE),
+    new AboutInfoRow('about_license', I18n('licenseTitle'), APP_LICENSE),
   ];
 
   private goHonor(): void {
@@ -119,7 +119,7 @@ export struct AboutPage {
               this.goHonor();
             });
 
-          Button('Custom')
+          Button(I18n('custom'))
             .id('about_custom_btn')
             .type(ButtonType.Capsule)
             .width('90%')

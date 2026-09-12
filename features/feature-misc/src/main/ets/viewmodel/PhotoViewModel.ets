@@ -7,9 +7,9 @@
  * PhotoPage 只做图片展示、手势与 toast。
  */
 import { NavigationService } from 'common';
-import { RouteParamStore } from 'common';
+import { RouteParamReader } from 'common';
 import { RouteName } from 'common';
-import { BOOT_PHOTO_KEY, BootChannel } from 'common';
+import { BOOT_PHOTO_KEY } from 'common';
 import { Logger } from 'common';
 
 interface PhotoPageRouteParam {
@@ -65,7 +65,7 @@ export class PhotoViewModel {
 
   private applyRouterParams(): void {
     // 优先级 1：RouteParamStore（NavigationService.push 同步写入，覆盖所有 push 入口）
-    const routeRaw: Object | null = RouteParamStore.consume(RouteName.Photo);
+    const routeRaw: Object | null = RouteParamReader.consumeStoreParam(RouteName.Photo);
     if (routeRaw !== null) {
       const resolvedFromRoute: string = this.resolveUriFromObject(routeRaw);
       if (resolvedFromRoute.length > 0) {
@@ -76,23 +76,16 @@ export class PhotoViewModel {
     }
     const stack: NavPathStack | null = NavigationService.getStack();
     if (stack !== null) {
-      try {
-        const names: string[] = stack.getAllPathName();
-        if (names.length > 0) {
-          const idx: number = names.length - 1;
-          const raw: Object | undefined = stack.getParamByIndex(idx) as Object | undefined;
-          const resolved: string = this.resolveUriFromObject(raw === undefined ? null : raw);
-          if (resolved.length > 0) {
-            this.uri = resolved;
-            return;
-          }
-        }
-      } catch (_e) {
+      const raw: Object | null = RouteParamReader.readStackTopParam(stack);
+      const resolved: string = this.resolveUriFromObject(raw);
+      if (resolved.length > 0) {
+        this.uri = resolved;
+        return;
       }
     }
     if (this.uri.length === 0) {
       // BOOT 兜底是测试通道（阶段2C 统一处理），语义原样保留。
-      const bootPhoto: string = BootChannel.get(BOOT_PHOTO_KEY);
+      const bootPhoto: string = RouteParamReader.readBootString(BOOT_PHOTO_KEY);
       if (bootPhoto.length > 0) {
         this.uri = bootPhoto;
       }
