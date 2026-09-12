@@ -44,3 +44,19 @@
 - RouteParamReader 三层取参收敛（涉及与 UI 美化批次的文件冲突，移入 backlog）
 - ReadmeTab WebView 深色切主题需重进页面刷新
 - UserHeadItem 📍/🏢 emoji 保留（SDK symbol 白名单外）
+
+## 计划收尾补完（2026-09-12，675e805）
+
+对照批准计划审计后发现 3 项残留并已补完：
+1. **RouteParamReader**：新增 common/base/navigation/RouteParamReader.ets（consumeStoreParam/readContextParam/readStackTopParam/readBootString/consumeBootString/clearBootString/splitFields 按层拆开的统一入口）；8 个页面接入（RepoDetail/IssueDetail/PushDetail/CodeDetail/UserDetail/WebViewModel/PhotoViewModel/NotifyViewModel），净减约 200 行样板。关键语义保留：清 key 时序三派（CodeDetail 不合法不清 / UserDetail 读到即清 / 其余等 1500ms 延迟清）与各页字段拆分逐字未动。偏离：splitFields 作为统一原语提供但现页未调用（硬套会改变 'a||c' 等边界输入的既有解析语义）；NotifyViewModel 纯 Boot 注入式仅换统一读写入口。
+2. **I18n 写死文案清零**：新增 9 key 双 locale 同步（themeTitle/licenseTitle/photoLoadFailed/photoSaveTip/honorDesc1..5），Setting 'Theme'/About 'License'/'Custom'（复用既有 custom key）/Photo 两处/Honor 描述全部替换；Honor 描述改 key 渲染随语言切换；scenario-tour.sh 无这些文案的文本断言（已核实），替换安全。
+3. **超长 build 拆分**：RepositoryDetailPage build→6 个 @Builder、LoginPage build→5 个 @Builder，纯搬运零语义变化，.id 集合比对一致。
+
+补完后验证：双构建全绿；codelinter 0 error/4 warn（误报已登记）；模拟器冒烟 bootRepo/bootCode 取参直达（code_detail_root+原生 markdown 渲染）+ 状态栏跟随 + 无新崩溃。备注：验证中途登录态被清除（github_pat 过期触发应用自身 LoginExpired 流程，偏好仅剩 theme/search.history），经 bootToken 测试通道重注入后完成 bootCode 验证——属预期应用行为非回归。
+
+## 最终遗留（backlog，均为计划内明确豁免/登记项）
+- 路由系统路由表/懒加载（计划原文"评估后列入 backlog"，KI-R9-004）
+- ReadmeTab WebView 深色切主题需重进页面刷新
+- UserHeadItem 📍/🏢 emoji（SDK symbol 白名单外）
+- codelinter 4 warn（3 条 datashare 跨文件误报 + 1 条 bad-deep-clone 本 SDK 无 structuredClone，均已登记）
+- 真机回归（KI-R9-001，用户环境无真机约束）
