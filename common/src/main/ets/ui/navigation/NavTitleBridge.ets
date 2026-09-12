@@ -126,7 +126,7 @@ export class NavTitleBridge {
     if (cfg !== null && cfg !== undefined && cfg.statusBarBg !== undefined) {
       this.setStatusBar(cfg.statusBarBg, cfg.statusBarLightIcon === true);
     } else {
-      this.setStatusBar(ThemeManager.current().background, false);
+      this.setStatusBar(ThemeManager.current().background, ThemeManager.isDark());
     }
   }
 
@@ -222,11 +222,13 @@ export struct NavTitleView {
       Text(this.resolveTitle())
         .id(this.titleId())
         .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis });
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .fontColor(ThemeManager.current().text);
       if (this.hasSubtitle()) {
         Text(this.resolveSubtitle())
           .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis });
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .fontColor(ThemeManager.current().textSecondary);
       }
     }
     .id(this.rootId())
@@ -275,7 +277,8 @@ export struct NavMenusView {
   actionIcon(action: NavTitleAction): void {
     if (this.actionGlyphSpec(action) !== undefined) {
       SymbolGlyph((this.actionGlyphSpec(action) as AppSymbolSpec).resource)
-        .fontSize((this.actionGlyphSpec(action) as AppSymbolSpec).fontSize);
+        .fontSize((this.actionGlyphSpec(action) as AppSymbolSpec).fontSize)
+        .fontColor([ThemeManager.current().text]);
     } else if (action.icon !== undefined) {
       Image(action.icon)
         .width(ACTION_ICON_SIZE)

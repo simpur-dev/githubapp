@@ -43,7 +43,10 @@ class LoadingHolder {
   uiContext: UIContext | null = null;
   content: ComponentContent<LoadingDialogContentParams> | null = null;
   visible: boolean = false;
+  watchdogId: number = -1;
 }
+
+const LOADING_WATCHDOG_MS: number = 20000;
 
 export class LoadingModal {
   private static holder: LoadingHolder = new LoadingHolder();
@@ -64,12 +67,20 @@ export class LoadingModal {
       new ComponentContent(ctx, wrapBuilder(loadingDialogContent), params);
     LoadingModal.holder.content = content;
     LoadingModal.holder.visible = true;
+    // 自愈看门狗：异常路径漏掉 hide 时兜底强制关闭，避免遮罩永久挡住界面。
+    LoadingModal.clearWatchdog();
+    LoadingModal.holder.watchdogId = setTimeout((): void => {
+      if (LoadingModal.holder.visible) {
+        LoadingModal.hide();
+      }
+    }, LOADING_WATCHDOG_MS);
     ctx.getPromptAction().openCustomDialog(content, {
       alignment: DialogAlignment.Center,
       isModal: true,
       autoCancel: cancelable,
       onDidDisappear: (): void => {
         // autoCancel 点外部关闭与 closeCustomDialog 都会走到这里，统一清句柄。
+        LoadingModal.clearWatchdog();
         LoadingModal.holder.visible = false;
         LoadingModal.holder.content = null;
       },
@@ -83,7 +94,15 @@ export class LoadingModal {
       });
   }
 
+  private static clearWatchdog(): void {
+    if (LoadingModal.holder.watchdogId >= 0) {
+      clearTimeout(LoadingModal.holder.watchdogId);
+      LoadingModal.holder.watchdogId = -1;
+    }
+  }
+
   static hide(): void {
+    LoadingModal.clearWatchdog();
     const ctx: UIContext | null = LoadingModal.holder.uiContext;
     if (ctx !== null && LoadingModal.holder.content !== null) {
       try {

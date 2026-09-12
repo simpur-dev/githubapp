@@ -9,7 +9,8 @@ import { Preferences, KEY_USER_TOKEN, PREF_NAME } from 'common';
 import { RdbStore } from 'common';
 import { HttpManager } from 'common';
 import { GlobalAuthStore } from 'common';
-import { initSystemBars, applySystemBars, GSYColor, NavTitleBridge, ThemeManager } from 'common';
+import { initSystemBars, applySystemBars, GSYColor, NavTitleBridge, ThemeManager, EventBus, EVENT_THEME_CHANGED } from 'common';
+import ConfigurationConstant from '@ohos.app.ability.ConfigurationConstant';
 import { Logger } from 'common';
 import { changeLocale, LocaleKey } from 'common';
 import { KEY_SEARCH_HISTORY, BOOT_TAB_KEY, BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_NOTIFY_ISSUE_KEY, BOOT_COMMON_LIST_KEY, BootChannel } from 'common';
@@ -74,9 +75,14 @@ export default class EntryAbility extends UIAbility {
     // 偏好存储先行初始化，主题恢复（ThemeManager.init 读 KEY_THEME）才不会静默回退。
     Preferences.init(this.context, PREF_NAME)
       .then((): Promise<void> => ThemeManager.init())
+      .then((): void => this.syncAppColorMode())
       .catch((e: Error): void => {
         hilog.error(0x0000, TAG, 'prefs/theme init fail %{public}s', e.message);
       });
+    // 运行时切主题：应用级颜色模式同步（原生标题栏文字/返回键/菜单/系统弹窗跟随深浅色）。
+    EventBus.on(EVENT_THEME_CHANGED, (_payload: ESObject): void => {
+      this.syncAppColorMode();
+    });
     this.handleOAuthDeepLink(want);
     // bootLocale 必须最先注入（消费端按注入顺序读取，语义保留）。
     this.handleBootLocaleInjection(want);
@@ -99,6 +105,13 @@ export default class EntryAbility extends UIAbility {
     RdbStore.init(this.context).catch((e: Error): void => {
       hilog.error(0x0000, TAG, 'rdb init fail %{public}s', e.message);
     });
+  }
+
+  private syncAppColorMode(): void {
+    const dark: boolean = ThemeManager.isDark();
+    this.context.getApplicationContext().setColorMode(
+      dark ? ConfigurationConstant.ColorMode.COLOR_MODE_DARK : ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT);
+    hilog.info(0x0000, TAG, 'app colorMode synced dark=%{public}s', String(dark));
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {

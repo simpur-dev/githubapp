@@ -156,7 +156,8 @@ export struct SettingPage {
       }
       .id('setting_scroll')
       .layoutWeight(1)
-      .width('100%');
+      .width('100%')
+      .align(Alignment.Top); // 内容短于视口时靠顶排布（通用 align 默认 Center 会把内容垂直居中）
     }
     .id('setting_root')
     .width('100%')

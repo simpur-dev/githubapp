@@ -174,9 +174,13 @@ export struct HomePage {
     if (target < 0) {
       return;
     }
-    this.currentIndex = target;
-    this.tabsController.changeIndex(target);
-    BootChannel.set(BOOT_TAB_KEY, '');
+    // HdsTabs 在 aboutToAppear 时还未完成构建，立即 changeIndex 会被吞掉；
+    // 与其他 scheduleBoot* 一致延迟到导航就绪后执行。
+    setTimeout((): void => {
+      this.currentIndex = target;
+      this.tabsController.changeIndex(target);
+      BootChannel.set(BOOT_TAB_KEY, '');
+    }, 600);
   }
 
   /**
