@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, ThemeManager, ThemePalette } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, EVENT_BOOT_REDELIVERED, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, ThemeManager, ThemePalette } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -86,6 +86,7 @@ export struct HomePage {
   private lastTapAt: Map<number, number> = new Map<number, number>();
   private unsubscribeLoginExpired: (() => void) | null = null;
   private unsubscribeTheme: (() => void) | null = null;
+  private unsubscribeBootRedelivered: (() => void) | null = null;
   private unsubscribeNetwork: (() => void) | null = null;
   private offlineToastShown: boolean = false;
   private tabs: HomeTabItem[] = [
@@ -106,16 +107,12 @@ export struct HomePage {
       this.palette = ThemeManager.current();
       NavTitleBridge.get().setStatusBar(ThemeManager.current().navBackground, true);
     });
-    this.applyBootTab();
-    this.scheduleBootRepo();
-    this.scheduleBootPush();
-    this.scheduleBootIssue();
-    this.scheduleBootCode();
-    this.scheduleBootUser();
-    this.scheduleBootPhoto();
-    this.scheduleBootWeb();
-    this.scheduleBootCommonList();
-    this.scheduleBootNotifyIssue();
+    this.consumeBootChannels();
+    // R11 B1：热启动深链（aa start/外部链接）经 onNewWant 注入后广播重投事件；
+    // HomePage 存活期间重新消费 BootChannel，应用运行中收到的链接不再无反应。
+    this.unsubscribeBootRedelivered = EventBus.on(EVENT_BOOT_REDELIVERED, (_p: ESObject): void => {
+      this.consumeBootChannels();
+    });
     this.unsubscribeLoginExpired = LoginExpiredBus.subscribe((): void => {
       CommonToast.showShort(I18n('loginExpired'));
       NavigationService.replace(RouteName.Login);
@@ -137,12 +134,29 @@ export struct HomePage {
     return ThemeManager.isDark();
   }
 
+  /** 消费全部 boot 通道（冷启 aboutToAppear 与热启动重投事件共用；consume 语义天然幂等）。 */
+  private consumeBootChannels(): void {
+    this.applyBootTab();
+    this.scheduleBootRepo();
+    this.scheduleBootPush();
+    this.scheduleBootIssue();
+    this.scheduleBootCode();
+    this.scheduleBootUser();
+    this.scheduleBootPhoto();
+    this.scheduleBootWeb();
+    this.scheduleBootCommonList();
+    this.scheduleBootNotifyIssue();
+  }
+
   aboutToDisappear(): void {
     if (this.unsubscribeLoginExpired !== null) {
       this.unsubscribeLoginExpired();
-    this.unsubscribeTheme?.();
       this.unsubscribeLoginExpired = null;
     }
+    this.unsubscribeTheme?.();
+    this.unsubscribeTheme = null;
+    this.unsubscribeBootRedelivered?.();
+    this.unsubscribeBootRedelivered = null;
     if (this.unsubscribeNetwork !== null) {
       this.unsubscribeNetwork();
       this.unsubscribeNetwork = null;

@@ -12,11 +12,20 @@
 import { GSYFontSize } from '../style/Theme';
 import { ThemeManager } from '../theme/ThemeManager';
 import { EmptyState } from './EmptyState';
+import { I18n, TranslationMap } from '../../base/i18n/I18n';
 
-/** 错误态标题（空态/页脚英文文案 I18n 收口另有批次，此处默认英文）。 */
+/** 错误态标题（渲染期兜底 I18n，页面也可显式覆盖）。 */
 const DEFAULT_ERROR_TITLE: string = 'Something went wrong';
 /** 重试按钮文案。 */
 const DEFAULT_RETRY_TEXT: string = 'Retry';
+
+/** 空态/页脚文案兜底：参数未传时取当前语言文案。 */
+function resolveListText(passed: string, i18nKey: keyof TranslationMap): string {
+  if (passed.length > 0) {
+    return passed;
+  }
+  return I18n(i18nKey);
+}
 
 @ComponentV2
 export struct PullLoadMoreList {
@@ -29,11 +38,12 @@ export struct PullLoadMoreList {
   @Param loadingMore: boolean = false;
   /** 空态强制开关；不传时按 dataSource 为空自动显示（与旧版行为一致）。 */
   @Param showEmpty: boolean = false;
-  @Param emptyText: string = 'No content yet, tap to retry';
-  @Param loadingMoreText: string = 'Loading more…';
-  @Param loadEndText: string = 'No more data';
+  /** R11 A7：文案参数不传时渲染期兜底 I18n（原先英文默认值导致未传页显示英文）。 */
+  @Param emptyText: string = '';
+  @Param loadingMoreText: string = '';
+  @Param loadEndText: string = '';
   /** 兼容旧 API 保留（旧版也未在 UI 中使用该文案）。 */
-  @Param refreshingText: string = 'Refreshing…';
+  @Param refreshingText: string = '';
   /** 是否响应下拉刷新手势（历史上无调用方覆盖，默认 true）。 */
   @Param enableRefresh: boolean = true;
   /** 列表尾部追加占位高度（旧 API 保留，历史上无调用方使用）。 */
@@ -92,7 +102,7 @@ export struct PullLoadMoreList {
   @Builder
   defaultEmptyState(): void {
     // R10 阶段3：默认空态统一走 EmptyState（无重试按钮形态）。
-    EmptyState({ title: this.emptyText });
+    EmptyState({ title: resolveListText(this.emptyText, 'listEmpty') });
   }
 
   @Builder
@@ -118,7 +128,7 @@ export struct PullLoadMoreList {
             .width(24)
             .height(24)
             .color(ThemeManager.current().text);
-          Text(this.loadingMoreText)
+          Text(resolveListText(this.loadingMoreText, 'loadMoreing'))
             .id('pull_load_more_text')
             .fontSize(GSYFontSize.small)
             .fontColor(ThemeManager.current().textSecondary)
@@ -129,7 +139,7 @@ export struct PullLoadMoreList {
         .justifyContent(FlexAlign.Center);
       } else if (this.noMore) {
         Row() {
-          Text(this.loadEndText)
+          Text(resolveListText(this.loadEndText, 'loadMoreEnd'))
             .id('pull_load_more_end_text')
             .fontSize(GSYFontSize.small)
             .fontColor(ThemeManager.current().textSecondary);
@@ -139,7 +149,7 @@ export struct PullLoadMoreList {
         .justifyContent(FlexAlign.Center);
       } else {
         Row() {
-          Text(this.loadingMoreText)
+          Text(resolveListText(this.loadingMoreText, 'loadMoreing'))
             .id('pull_load_more_text')
             .fontSize(GSYFontSize.small)
             .fontColor(ThemeManager.current().textSecondary);

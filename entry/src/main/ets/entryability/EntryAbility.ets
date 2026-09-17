@@ -3,7 +3,7 @@ import hilog from '@ohos.hilog';
 import window from '@ohos.window';
 import Want from '@ohos.app.ability.Want';
 import AbilityConstant from '@ohos.app.ability.AbilityConstant';
-import { AuthDeepLinkBus } from 'common';
+import { AuthDeepLinkBus, EVENT_BOOT_REDELIVERED } from 'common';
 import { Url, DeepLinkInfo } from 'common';
 import { Preferences, KEY_USER_TOKEN, PREF_NAME } from 'common';
 import { RdbStore } from 'common';
@@ -99,6 +99,9 @@ export default class EntryAbility extends UIAbility {
     this.handleBootLocaleInjection(want);
     this.applyBootInjections(want);
     this.handleBootSearchHistoryInjection(want);
+    // R11 B1：热启动时 boot 参数已写入 BootChannel，但页面只在构建时消费一次；
+    // 广播重投事件，让存活的 HomePage 重新消费深链（外部链接打开不再无反应）。
+    EventBus.emit(EVENT_BOOT_REDELIVERED, null);
   }
 
   private initRdbStore(): void {

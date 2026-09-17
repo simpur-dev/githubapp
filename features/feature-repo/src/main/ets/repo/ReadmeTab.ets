@@ -216,6 +216,14 @@ export struct ReadmeTab {
     return false;
   }
 
+  /** R11 A10：markdown 链接复用 WebView 同款路由（github 用户/仓库原生跳转，外链开网页）。 */
+  private openMarkdownLink(href: string): void {
+    if (href.length === 0) {
+      return;
+    }
+    this.interceptUrl(href);
+  }
+
   private openUrlInBrowser(url: string): void {
     if (url.length === 0) {
       return;
@@ -288,6 +296,10 @@ export struct ReadmeTab {
       if (this.readmeMarkdown.length > 0) {
         MarkdownRenderer({
           markdown: this.readmeMarkdown,
+          // R11 A10：markdown 链接点击接线（此前默认空实现，链接点了没反应）
+          onLinkClick: (href: string): void => {
+            this.openMarkdownLink(href);
+          },
         })
           .id('readme_markdown_renderer')
           .width('100%')

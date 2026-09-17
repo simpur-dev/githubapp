@@ -173,6 +173,11 @@ export class CommonListViewModel {
 
   resolveSubListMode(): SubListMode {
     const type: string = this.normalizedDataType();
+    // R11 B2：user_repos（含 repositories 别名）的数据装载固定写 this.repos，
+    // 渲染分支必须同为 REPO；否则 showType=user 时会出现"数据到了但列表空"的错位。
+    if (type === COMMON_LIST_DATA_TYPE_USER_REPOS) {
+      return SubListMode.REPO;
+    }
     if (type === COMMON_LIST_DATA_TYPE_STARGAZERS || type === COMMON_LIST_DATA_TYPE_WATCHERS
       || type === COMMON_LIST_DATA_TYPE_USER_ORGS) {
       return SubListMode.USER;

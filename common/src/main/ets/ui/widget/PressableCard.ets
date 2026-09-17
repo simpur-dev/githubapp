@@ -41,7 +41,10 @@ export struct PressableCard {
   }
 
   build(): void {
-    Stack({ alignContent: Alignment.Center }) {
+    // R11 A1 修复：蒙层 height('100%') 会让 Stack 在"短列表"（内容不足一屏）里被
+    // 拉伸到 ListItem 的最大约束，Center 对齐会把卡片垂直居中悬在空白中间；
+    // Top 对齐让内容始终贴顶（蒙层仍是 100% 尺寸，覆盖不受影响）。
+    Stack({ alignContent: Alignment.Top }) {
       this.content();
 
       // 按压蒙层：常驻节点 + 透明度过渡，避免条件渲染导致动画丢失。

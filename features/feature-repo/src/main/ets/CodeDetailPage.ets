@@ -26,6 +26,10 @@ import { Logger } from 'common';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import { CodeViewModel } from './viewmodel/CodeViewModel';
 
+interface CodeDetailWebRouteParam {
+  uri: string;
+}
+
 interface CodeDetailUserRouteParam {
   login: string;
 }
@@ -345,6 +349,19 @@ export struct CodeDetailPage {
     return false;
   }
 
+  /** R11 A10：markdown 链接统一进应用内网页。 */
+  private openMarkdownLink(href: string): void {
+    if (href.length === 0) {
+      return;
+    }
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      const webParam: CodeDetailWebRouteParam = { uri: href };
+      NavigationService.push(RouteName.WebPage, webParam as Object);
+      return;
+    }
+    this.openUrlInBrowser(href);
+  }
+
   private openUrlInBrowser(url: string): void {
     if (url.length === 0) {
       return;
@@ -432,6 +449,10 @@ export struct CodeDetailPage {
         } else if (this.isMarkdownPath(this.vm.path)) {
           MarkdownRenderer({
             markdown: this.vm.content,
+            // R11 A10：markdown 链接点击接线（此前默认空实现，链接点了没反应）
+            onLinkClick: (href: string): void => {
+              this.openMarkdownLink(href);
+            },
           })
             .id('code_detail_markdown')
             .width('100%')

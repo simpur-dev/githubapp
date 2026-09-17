@@ -5,6 +5,8 @@ export const EVENT_USER_LOGGED_IN: string = 'event.userLoggedIn';
 export const EVENT_USER_LOGGED_OUT: string = 'event.userLoggedOut';
 export const EVENT_THEME_CHANGED: string = 'event.themeChanged';
 export const EVENT_TAB_DOUBLE_TAP: string = 'event.tabDoubleTap';
+/** R11 B1：热启动 onNewWant 重新注入 boot 参数后广播，由 HomePage 重新消费深链。 */
+export const EVENT_BOOT_REDELIVERED: string = 'event.bootRedelivered';
 /** 登录态单例（AuthStore）任一状态字段变化后发出，payload 为发生变化的 AuthStore 实例。 */
 export const EVENT_AUTH_STATE_CHANGED: string = 'event.authStateChanged';
 

@@ -69,6 +69,12 @@ export function buildRows(events: MdEvent[]): MarkdownRow[] {
     const e: MdEvent = events[i];
 
     if (e.t === 'block') {
+      // R11 A10：MD4C 在 li 内还会发 p 事件；若直接 flush，li 行只剩孤零零的
+      // 圆点、内容被拆成独立段落（README 列表"圆点和内容分离"的根因）。
+      // li 内的 p 不换行，内容继续归并进当前 li 行。
+      if (e.name === 'p' && curKind === 'li') {
+        continue;
+      }
       flush();
       curKind = e.name;
       if (e.name === 'li') {
@@ -149,7 +155,8 @@ export struct MarkdownRenderer {
         .each((obj: RepeatItem<MdInline>): void => {
           Span(obj.item.text)
             .fontSize(GSYFontSize.middleWhite)
-            .fontColor(ThemeManager.current().text)
+            // R11 A10：链接片段用主题强调色，与正文区分
+            .fontColor(obj.item.link ? ThemeManager.current().accent : ThemeManager.current().text)
             .fontWeight(obj.item.bold ? FontWeight.Bold : FontWeight.Normal)
             .fontStyle(obj.item.italic ? FontStyle.Italic : FontStyle.Normal)
             .fontFamily(obj.item.code ? MD_CODE_FONT : undefined)

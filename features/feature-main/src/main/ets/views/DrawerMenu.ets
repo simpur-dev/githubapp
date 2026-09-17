@@ -32,7 +32,7 @@ import {
   FA_REFRESH,
   FA_SIGN_OUT,
 } from 'common';
-import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
+import { GSYColor, GSYFontSize, GSYIconSize, GSYSpacing } from 'common';
 import { ThemeManager } from 'common';
 
 export class DrawerMenuItem {
@@ -578,6 +578,29 @@ export struct DrawerMenu {
     });
   }
 
+  /** 抽屉菜单系统符号（仅用工程已确认存在的 sys.symbol 资源）。 */
+  private menuIcon(key: string): Resource {
+    if (key === DRAWER_MENU_KEY_HISTORY) {
+      return $r('sys.symbol.clock');
+    }
+    if (key === DRAWER_MENU_KEY_FEEDBACK) {
+      return $r('sys.symbol.ellipsis_bubble');
+    }
+    if (key === DRAWER_MENU_KEY_PERSONAL_INFO) {
+      return $r('sys.symbol.person');
+    }
+    if (key === DRAWER_MENU_KEY_LANGUAGE) {
+      return $r('sys.symbol.translate');
+    }
+    if (key === DRAWER_MENU_KEY_CHECK_UPDATE) {
+      return $r('sys.symbol.arrow_clockwise');
+    }
+    if (key === DRAWER_MENU_KEY_ABOUT) {
+      return $r('sys.symbol.info_circle');
+    }
+    return $r('sys.symbol.person');
+  }
+
   @Builder
   buildMenuRow(item: DrawerMenuItem): void {
     if (item.key === DRAWER_MENU_KEY_LOGOUT) {
@@ -598,18 +621,29 @@ export struct DrawerMenu {
         this.handleItem(item);
       });
     } else {
-      Text(item.title)
-        .id('drawer_menu_label_' + item.key)
-        .fontSize(GSYFontSize.normal)
-        .fontColor(ThemeManager.current().text)
-        .width('100%')
-        .height(64)
-        .padding({ left: 32, right: 24 })
-        .textAlign(TextAlign.Start)
-        .onClick((): void => {
-          this.handleItem(item);
-        })
-        .id('drawer_menu_item_' + item.key);
+      // R11 A9 修复：菜单行图标此前在 V2 重写时丢失（FA 字体图标仅存字段未渲染），
+      // 改用系统符号 SymbolGlyph，id 契约（drawer_menu_label_/drawer_menu_item_）不变。
+      Row() {
+        SymbolGlyph(this.menuIcon(item.key))
+          .fontSize(GSYIconSize.tab)
+          .fontColor([ThemeManager.current().textSecondary])
+          .margin({ right: GSYSpacing.padding12 });
+
+        Text(item.title)
+          .id('drawer_menu_label_' + item.key)
+          .fontSize(GSYFontSize.normal)
+          .fontColor(ThemeManager.current().text)
+          .textAlign(TextAlign.Start)
+          .layoutWeight(1);
+      }
+      .id('drawer_menu_item_' + item.key)
+      .width('100%')
+      .height(64)
+      .padding({ left: 32, right: 24 })
+      .alignItems(VerticalAlign.Center)
+      .onClick((): void => {
+        this.handleItem(item);
+      });
     }
   }
 
