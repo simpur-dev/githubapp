@@ -3,7 +3,7 @@
  * View 只做组装（@ComponentV2），列表状态在 [DynamicTabViewModel]。
  */
 import { I18n } from 'common';
-import { PullLoadMoreList } from 'common';
+import { GSYSpacing, PullLoadMoreList } from 'common';
 import { DynamicEvent } from 'common';
 import { EventItem } from 'common';
 import { EventActionUtil } from 'common';
@@ -67,6 +67,8 @@ export struct DynamicTabPage {
   build(): void {
     Column() {
       PullLoadMoreList({
+      // R11 A3：尾部避让浮动页签（barOverlap 悬浮于内容上，末行不再被遮挡/裁切）
+      tailPadding: GSYSpacing.tabBarHeight + GSYSpacing.hdsFloatingTabBottomMargin * 2,
         dataSource: this.vm.items,
         refreshing: this.vm.refreshing,
         loadingMore: this.vm.loadingMore,

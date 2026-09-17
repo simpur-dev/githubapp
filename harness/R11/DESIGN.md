@@ -98,3 +98,34 @@ API 26 能力在 Mate 80 Pro (6.1.x) 模拟器上可用，低版本设备需谨�
 - bundleName / 深链参数名 / 测试控件 id 契约 / Theme.ets 现有 token 值（ThemeManagerTest 锁定）不变。
 - 非全屏官方窗口模型不变（全屏会破坏 .title/.menus 渲染，R10 已实证）。
 - 每阶段独立提交；改动过模拟器实测后才算完成。
+
+
+## 4. 执行结果记录（R11 实施后补记）
+
+### 已修复并实测（提交 631c0e8 / 741ae29 / 后续阶段4提交）
+
+| 项 | 修复方式 | 验证 |
+|---|---|---|
+| A1 | PressableCard Stack Center→Top（蒙层 100% 高使 Stack 拉伸，Center 导致短列表卡片垂直悬空） | 通知/我的/动态单条数据贴顶 |
+| A2 | darkFloatingTabMask/Light 新 token + ThemePalette.tabMaskColor/tabGlowColor + HomePage 接主题 | 深色下浮动页签深色胶囊，白带消失 |
+| A3 | 三个主页 Tab 的 PullLoadMoreList 加 tailPadding（tabBarHeight+底距×2） | 趋势页滚到底末卡完整显示在页签上方 |
+| A7 | PullLoadMoreList 空/页脚文案渲染期 I18n 兜底 | 通用列表空态显示中文 |
+| A8 | 四处 Web 组件 darkMode(Auto)+forceDarkAccess | 深色下网页整体变暗可读 |
+| A9 | 抽屉菜单行补 SymbolGlyph（clock/ellipsis_bubble/person/translate/arrow_clockwise/info_circle/gearshape） | 图标全部渲染 |
+| A10 | buildRows 里 li 内嵌 p 不再拆行；链接 Span 用 accent 色；两个宿主接通 onLinkClick | 构建+装机确认（逐项视觉回归见 STATUS） |
+| B1 | onNewWant 广播 EVENT_BOOT_REDELIVERED，HomePage.consumeBootChannels 重投消费 | 热启动带 bootRepo 参数成功打开仓库详情 |
+| B2 | resolveSubListMode 对 user_repos 强制 REPO 分支 | 与装载数组一致 |
+| B4/C2 | 抽屉补独立"设置"项（删除历史别名 DRAWER_MENU_KEY_SETTING=LANGUAGE）；语言入口保持独立 | 抽屉可见"设置"并直达设置页 |
+
+### 复核后改判
+
+- **B3（仓库事件列表空白）**：非 Bug。事件请求正常发出且渲染正常（早前扫描等待 9s 不足 + 恰逢短列表）；等待 14s+ 后事件卡片正常显示。
+- **A4/A5（首页 AppBar、用户头部浅色下保持深色）**：品牌设计取向（GitHub 官方客户端同为深色头部），GSY 调色板 navBackground 两种模式均深色，保留；代码已全走 token 无写死色。
+- **A6（列表区灰底 vs 白卡）**：页面背景 token 设计如此（#F5F7FA + 白卡），非 Bug。
+- **C1（通用列表页标题重复）**：scenario-tour 断言 common_list_*_header/title id 存在，页内标题保留作为分区头，接受现状。
+
+### 评估后跳过/延后
+
+- **HdsSnackBar 替换 toast**：跳过。CommonToast 的调用方多在 ViewModel/非组件上下文，HdsSnackBar 构造需要 UIContext；系统 toast 本身跟随系统深浅色，收益低回归面大。
+- **HdsListItem 左滑（通知已读/历史删除）**：延后至 R12（涉及行结构重构与 id 契约回归，属功能增强非缺陷）。
+- **标题栏滚动模糊 scrollEffectOptions**：延后（非全屏模型下需逐页实测材质叠加效果，避免 R10 全屏实验式反复）。

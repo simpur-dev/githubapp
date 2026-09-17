@@ -181,6 +181,8 @@ export struct MyTabPage {
           });
       }
       PullLoadMoreList({
+      // R11 A3：尾部避让浮动页签（barOverlap 悬浮于内容上，末行不再被遮挡/裁切）
+      tailPadding: GSYSpacing.tabBarHeight + GSYSpacing.hdsFloatingTabBottomMargin * 2,
         dataSource: this.vm.events,
         refreshing: this.vm.refreshing,
         loadingMore: this.vm.loadingMore,

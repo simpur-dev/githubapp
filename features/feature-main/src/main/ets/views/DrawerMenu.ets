@@ -77,11 +77,12 @@ export const DRAWER_MENU_KEY_HISTORY: string = 'history';
 export const DRAWER_MENU_KEY_FEEDBACK: string = 'feedback';
 export const DRAWER_MENU_KEY_PERSONAL_INFO: string = 'personal_info';
 export const DRAWER_MENU_KEY_LANGUAGE: string = 'language';
+export const DRAWER_MENU_KEY_SETTING: string = 'setting';
 export const DRAWER_MENU_KEY_CHECK_UPDATE: string = 'check_update';
 export const DRAWER_MENU_KEY_ABOUT: string = 'about';
 export const DRAWER_MENU_KEY_LOGOUT: string = 'logout';
 export const DRAWER_MENU_KEY_PROFILE: string = DRAWER_MENU_KEY_PERSONAL_INFO;
-export const DRAWER_MENU_KEY_SETTING: string = DRAWER_MENU_KEY_LANGUAGE;
+// 历史别名 DRAWER_MENU_KEY_SETTING=DRAWER_MENU_KEY_LANGUAGE 已删除：R11 起 'setting' 是独立"设置"入口
 const DRAWER_CLOSE_ACTION_DELAY_MS: number = 1800;
 
 class DrawerLanguageOption {
@@ -237,6 +238,8 @@ export function buildDrawerMenuItems(): DrawerMenuItem[] {
     new DrawerMenuItem(DRAWER_MENU_KEY_HISTORY, I18n('drawerHistory'), FA_HISTORY),
     new DrawerMenuItem(DRAWER_MENU_KEY_FEEDBACK, I18n('drawerFeedback'), FA_COMMENT),
     new DrawerMenuItem(DRAWER_MENU_KEY_PERSONAL_INFO, I18n('drawerPersonalInfo'), FA_USER),
+    // R11 B4：补抽屉"设置"入口（此前唯一入口是"我的"页点头像，过于隐蔽）
+    new DrawerMenuItem(DRAWER_MENU_KEY_SETTING, I18n('drawerSetting'), FA_COG),
     new DrawerMenuItem(DRAWER_MENU_KEY_LANGUAGE, I18n('drawerLanguage'), FA_COG),
     new DrawerMenuItem(DRAWER_MENU_KEY_CHECK_UPDATE, I18n('drawerCheckUpdate'), FA_REFRESH),
     new DrawerMenuItem(DRAWER_MENU_KEY_ABOUT, I18n('drawerAbout'), FA_INFO_CIRCLE),
@@ -290,6 +293,10 @@ export struct DrawerMenu {
     }
     if (item.key === DRAWER_MENU_KEY_PERSONAL_INFO) {
       NavigationService.push(RouteName.PersonInfo);
+      return;
+    }
+    if (item.key === DRAWER_MENU_KEY_SETTING) {
+      NavigationService.push(RouteName.Setting);
       return;
     }
     if (item.key === DRAWER_MENU_KEY_HISTORY) {
@@ -591,6 +598,9 @@ export struct DrawerMenu {
     }
     if (key === DRAWER_MENU_KEY_LANGUAGE) {
       return $r('sys.symbol.translate');
+    }
+    if (key === DRAWER_MENU_KEY_SETTING) {
+      return $r('sys.symbol.gearshape');
     }
     if (key === DRAWER_MENU_KEY_CHECK_UPDATE) {
       return $r('sys.symbol.arrow_clockwise');
