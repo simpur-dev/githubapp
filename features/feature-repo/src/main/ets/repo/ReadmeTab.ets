@@ -300,6 +300,9 @@ export struct ReadmeTab {
         .id('readme_tab_web')
         .width('100%')
         .height('100%')
+        // R11 A8：README 网页深色跟随（R10 遗留"深色需重进"问题的正解）
+        .darkMode(WebDarkMode.Auto)
+        .forceDarkAccess(ThemeManager.isDark())
         .javaScriptAccess(true)
         .fileAccess(true)
         .domStorageAccess(true)

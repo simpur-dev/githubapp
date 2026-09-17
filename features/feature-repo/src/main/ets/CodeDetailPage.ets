@@ -444,12 +444,15 @@ export struct CodeDetailPage {
             .id('code_detail_web')
             .width('100%')
             .layoutWeight(1)
+            // R11 A8：代码文件网页深色跟随
+            .darkMode(WebDarkMode.Auto)
+            .forceDarkAccess(ThemeManager.isDark())
             .javaScriptAccess(true)
             .fileAccess(true)
             .domStorageAccess(true)
             .mixedMode(MixedMode.All)
             .zoomAccess(true)
-            .backgroundColor(GSYColor.white)
+            .backgroundColor(ThemeManager.current().background)
             .onControllerAttached((): void => {
               this.controllerAttached = true;
               Logger.i('CodeDetail', `onControllerAttached htmlLen=${this.vm.htmlContent.length}`);

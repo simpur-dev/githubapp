@@ -11,7 +11,7 @@ import { DividerMode, HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDes
 import { CommonToast } from 'common';
 import { DrawerHeader } from './views/DrawerHeader';
 import { DrawerMenu } from './views/DrawerMenu';
-import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, ThemeManager } from 'common';
+import { EventBus, EVENT_TAB_DOUBLE_TAP, EVENT_THEME_CHANGED, NavTitleBridge, NavTitleConfig, LIGHT_PALETTE, ThemeManager, ThemePalette } from 'common';
 import { I18n } from 'common';
 import { LoginExpiredBus } from 'common';
 import { NetworkMonitor } from 'common';
@@ -80,6 +80,8 @@ const DOUBLE_TAP_INTERVAL_MS: number = 300;
 export struct HomePage {
   @Local currentIndex: number = 0;
   @Local drawerOpen: boolean = false;
+  /** R11：订阅调色板对象（@ObservedV2 @Trace 字段变化会驱动本组件刷新，浮动页签深浅色跟随）。 */
+  @Local palette: ThemePalette = ThemeManager.current();
   private tabsController: HdsTabsController = new HdsTabsController();
   private lastTapAt: Map<number, number> = new Map<number, number>();
   private unsubscribeLoginExpired: (() => void) | null = null;
@@ -98,8 +100,10 @@ export struct HomePage {
       statusBarBg: ThemeManager.current().navBackground,
       statusBarLightIcon: true,
     } as NavTitleConfig);
-    // 深浅色切换：状态栏声明跟随当前 palette（深底白图标 / 浅底深图标）。
+    // 深浅色切换：状态栏声明跟随当前 palette（深底白图标 / 浅底深图标）；
+    // palette 字段引用替换驱动浮动页签遮罩/光效等属性重算。
     this.unsubscribeTheme = EventBus.on(EVENT_THEME_CHANGED, (_payload: ESObject): void => {
+      this.palette = ThemeManager.current();
       NavTitleBridge.get().setStatusBar(ThemeManager.current().navBackground, true);
     });
     this.applyBootTab();
@@ -569,10 +573,10 @@ export struct HomePage {
           barSideMargin: GSYSpacing.hdsFloatingTabSideMargin,
           barBottomMargin: GSYSpacing.hdsFloatingTabBottomMargin,
           gradientMask: {
-            maskColor: GSYColor.hdsFloatingTabMask,
+            maskColor: ThemeManager.current().tabMaskColor,
             maskHeight: GSYSpacing.hdsFloatingTabMaskHeight,
           },
-          lightColor: GSYColor.hdsFloatingTabLight,
+          lightColor: ThemeManager.current().tabGlowColor,
           systemMaterialEffect: {
             materialType: hdsMaterial.MaterialType.ADAPTIVE,
             materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE,

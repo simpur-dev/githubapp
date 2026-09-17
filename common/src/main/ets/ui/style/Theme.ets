@@ -123,6 +123,11 @@ export class GSYDarkColor {
   static readonly darkDivider: string = '#30363D';
   static readonly darkDanger: string = '#F85149';
   static readonly darkAccent: string = '#58A6FF';
+  // R11 阶段1：浮动页签（HdsTabs barFloatingStyle）深色变体。
+  // 浅色版 hdsFloatingTabMask/hdsFloatingTabLight 是白色带（#E6FFFFFF），
+  // 深色模式下整条底部会发白刺眼；深色改用页面主色带透明度 + 微弱白色光效。
+  static readonly darkFloatingTabMask: string = '#B30D1117';
+  static readonly darkFloatingTabLight: string = '#1AFFFFFF';
 }
 
 export class GSYFontSize {

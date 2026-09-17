@@ -2,6 +2,7 @@ import mediaquery from '@ohos.mediaquery';
 import { Preferences, KEY_THEME } from '../../base/dao/db/Preferences';
 import { EventBus, EVENT_THEME_CHANGED } from '../../base/utils/EventBus';
 import { GSYColor, GSYDarkColor } from '../style/Theme';
+import { syncSystemTheme } from './SystemThemeBridge';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -22,6 +23,10 @@ export interface ThemePalette {
   surfaceSubtle: string;
   /** 品牌/深色表面上的文字（深浅色下都接近白）。 */
   onBrandText: string;
+  /** R11：浮动页签底部渐变遮罩（HdsTabs barFloatingStyle gradientMask.maskColor）。 */
+  tabMaskColor: string;
+  /** R11：浮动页签光效色（barFloatingStyle lightColor）。 */
+  tabGlowColor: string;
 }
 
 export const LIGHT_PALETTE: ThemePalette = {
@@ -38,6 +43,8 @@ export const LIGHT_PALETTE: ThemePalette = {
   tabBackground: GSYColor.tabBackground,
   surfaceSubtle: GSYColor.surfaceSubtle,
   onBrandText: GSYColor.white,
+  tabMaskColor: GSYColor.hdsFloatingTabMask,
+  tabGlowColor: GSYColor.hdsFloatingTabLight,
 };
 
 export const DARK_PALETTE: ThemePalette = {
@@ -54,6 +61,8 @@ export const DARK_PALETTE: ThemePalette = {
   tabBackground: GSYDarkColor.darkPagePrimary,
   surfaceSubtle: GSYDarkColor.darkCard,
   onBrandText: GSYDarkColor.darkPaletteText,
+  tabMaskColor: GSYDarkColor.darkFloatingTabMask,
+  tabGlowColor: GSYDarkColor.darkFloatingTabLight,
 };
 
 export interface SystemColorProvider {
@@ -139,6 +148,7 @@ export class ThemeManagerImpl {
 
   applyPalette(): void {
     this.palette = this.resolvePalette();
+    syncSystemTheme(LIGHT_PALETTE, DARK_PALETTE);
     EventBus.emit(EVENT_THEME_CHANGED, this.palette);
   }
 

@@ -74,6 +74,9 @@ export struct WebPage {
             .id('web_page_view')
             .domStorageAccess(true)
             .javaScriptAccess(true)
+            // R11 A8：网页深色跟随（Auto 跟随系统/应用色模式 + 算法加深，避免深色模式整页白底刺眼）
+            .darkMode(WebDarkMode.Auto)
+            .forceDarkAccess(ThemeManager.isDark())
             .mixedMode(MixedMode.All)
             .zoomAccess(true)
             .layoutWeight(1)

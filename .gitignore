@@ -28,3 +28,8 @@ harness/regression/reports/M5/
 harness/regression/reports/M6/home-smoke-*/
 harness/regression/reports/M6/device-smoke-*/hilog_business.log
 harness/regression/reports/welcome-login-*/
+
+# 本地工具缓存（不入库）
+.cache/
+.clang-tidy
+.clangd

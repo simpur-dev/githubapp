@@ -31,6 +31,8 @@ export struct LoginWebPage {
       if (this.vm.currentUrl.length > 0) {
         Web({ src: this.vm.currentUrl, controller: this.controller })
           .id('login_web_view')
+          .darkMode(WebDarkMode.Auto)
+          .forceDarkAccess(ThemeManager.isDark())
           .domStorageAccess(true)
           .javaScriptAccess(true)
           .mixedMode(MixedMode.All)
