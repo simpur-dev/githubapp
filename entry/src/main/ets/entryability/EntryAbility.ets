@@ -9,7 +9,7 @@ import { Preferences, KEY_USER_TOKEN, PREF_NAME } from 'common';
 import { RdbStore } from 'common';
 import { HttpManager } from 'common';
 import { GlobalAuthStore } from 'common';
-import { initSystemBars, applySystemBars, GSYColor, NavTitleBridge, ThemeManager, EventBus, EVENT_THEME_CHANGED } from 'common';
+import { initSystemBars, applySystemBars, GSYColor, NavTitleBridge, ThemeManager, EventBus, EVENT_THEME_CHANGED, WindowSize } from 'common';
 import ConfigurationConstant from '@ohos.app.ability.ConfigurationConstant';
 import { Logger } from 'common';
 import { changeLocale, LocaleKey } from 'common';
@@ -127,6 +127,8 @@ export default class EntryAbility extends UIAbility {
         hilog.error(0x0000, TAG, 'getMainWindow fail %{public}s', JSON.stringify(err));
       } else {
         initSystemBars(win);
+        // R12 多设备适配：窗口尺寸/断点单例（windowSizeChange 驱动，md/lg 时列表内容限宽）
+        WindowSize.attach(win);
       }
     });
     windowStage.loadContent('pages/Index', (err) => {

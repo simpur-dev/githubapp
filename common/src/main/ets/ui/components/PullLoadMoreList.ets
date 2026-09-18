@@ -13,6 +13,7 @@ import { GSYFontSize } from '../style/Theme';
 import { ThemeManager } from '../theme/ThemeManager';
 import { EmptyState } from './EmptyState';
 import { I18n, TranslationMap } from '../../base/i18n/I18n';
+import { WindowSize, CONTENT_MAX_WIDTH_VP } from '../../base/utils/WindowSize';
 
 /** 错误态标题（渲染期兜底 I18n，页面也可显式覆盖）。 */
 const DEFAULT_ERROR_TITLE: string = 'Something went wrong';
@@ -90,6 +91,7 @@ export struct PullLoadMoreList {
   @BuilderParam renderEmpty: () => void = this.defaultEmptyState;
 
   private internalScroller: Scroller = new Scroller();
+
   // 原生 Refresh 指示器状态：受控 refreshing 参数 + 手势状态合并驱动。
   @Local nativeRefreshing: boolean = false;
 
@@ -107,6 +109,12 @@ export struct PullLoadMoreList {
   onRefreshingParamChange(): void {
     // ViewModel 把 refreshing 置回 false 时收起原生指示器。
     this.nativeRefreshing = this.refreshing;
+  }
+
+  /** R12：断点 → 内容限宽（V2 @Computed 随 WindowSize.breakpoint 自动重算）。 */
+  @Computed
+  get computedMaxWidth(): Length {
+    return WindowSize.breakpoint === 'sm' ? '100%' : CONTENT_MAX_WIDTH_VP;
   }
 
   private hasData(): boolean {
@@ -200,6 +208,15 @@ export struct PullLoadMoreList {
               ListItem() {
                 this.renderRow(obj.item, obj.index);
               }
+                // R12：列表项插入走原生 TransitionEffect（淡入+上移进入，
+                // 声明满帧区间；对 loadMore 追加 / 过滤切换生效，纯属性动画）
+                .transition(TransitionEffect.OPACITY
+                  .combine(TransitionEffect.translate({ y: 24 }))
+                  .animation({
+                    duration: 250,
+                    curve: Curve.EaseOut,
+                    expectedFrameRateRange: { min: 60, max: 120, expected: 120 } as ExpectedFrameRateRange,
+                  }))
                 .swipeAction(this.enableRowSwipe
                   ? {
                     end: (): void => {
@@ -235,9 +252,12 @@ export struct PullLoadMoreList {
       }
       .width('100%')
       .height('100%')
+      // R12 多设备：md/lg 断点（窗口 ≥600vp）下内容限宽居中，背景铺满
+      .constraintSize({ maxWidth: this.computedMaxWidth })
       // R12 修复：短列表时 ListItem 交叉/主轴不得拉伸（默认 Stretch 会把唯一一行
       // 拉成整屏高，swipeAction 露出区因此以全高为参考系跑到屏幕中部）
       .alignListItem(ListItemAlign.Start)
+      .alignSelf(ItemAlign.Center)
       .cachedCount(this.cachedCountParam)
       .edgeEffect(EdgeEffect.Spring)
       .onReachEnd((): void => {

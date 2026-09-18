@@ -29,6 +29,7 @@ export { GITHUB_EMOJI_MAP, emojiNames, lookupEmoji } from './src/main/ets/base/u
 export { buildEmojiToken, renderEmoji } from './src/main/ets/base/utils/EmojiText';
 export { EventActionDispatcher, ExternalUrlHandler } from './src/main/ets/base/utils/EventActionDispatcher';
 export { copyPlainText } from './src/main/ets/base/utils/ClipboardUtil';
+export { WindowSize, WindowSizeImpl, WindowBreakpoint, CONTENT_MAX_WIDTH_VP } from './src/main/ets/base/utils/WindowSize';
 export { EventActionResult, EventActionUtil } from './src/main/ets/base/utils/EventActionUtil';
 export { EVENT_AUTH_STATE_CHANGED, EVENT_LANGUAGE_CHANGED, EVENT_TAB_DOUBLE_TAP, EVENT_BOOT_REDELIVERED, EVENT_THEME_CHANGED, EVENT_USER_LOGGED_IN, EVENT_USER_LOGGED_OUT, EventBus, EventListener } from './src/main/ets/base/utils/EventBus';
 export { ExternalUrlUtil } from './src/main/ets/base/utils/ExternalUrlUtil';
