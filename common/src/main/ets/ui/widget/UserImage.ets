@@ -20,6 +20,14 @@ export struct UserImage {
 
   @Event onAvatarTap: () => void = (): void => {};
 
+  /** R12 体验：图片加载完成渐入（替代生硬的占位图瞬间跳变）。 */
+  @Local loaded: boolean = false;
+
+  @Monitor('uri')
+  onUriChange(): void {
+    this.loaded = false;
+  }
+
   private resolveSize(): number {
     if (this.normalIconSize) {
       return GSYIconSize.normal;
@@ -47,6 +55,16 @@ export struct UserImage {
         .borderRadius(this.resolveSize() / 2)
         .objectFit(ImageFit.Cover)
         .backgroundColor(ThemeManager.current().surfaceSubtle)
+        // R12 体验：加载完成 200ms 淡入（原生属性动画，满帧声明），列表滚动观感更顺
+        .opacity(this.loaded ? 1 : 0)
+        .animation({
+          duration: 200,
+          curve: Curve.EaseOut,
+          expectedFrameRateRange: { min: 60, max: 120, expected: 120 } as ExpectedFrameRateRange,
+        })
+        .onComplete((): void => {
+          this.loaded = true;
+        })
         .onClick((): void => {
           this.onAvatarTap();
         });

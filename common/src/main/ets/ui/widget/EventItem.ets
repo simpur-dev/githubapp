@@ -10,6 +10,7 @@ import { ThemeManager } from '../theme/ThemeManager';
 import { TimeUtil } from '../../base/utils/TimeUtil';
 import { UserImage } from './UserImage';
 import { PressableCard } from './PressableCard';
+import { hapticTick } from '../../base/utils/HapticUtil';
 
 /** R12 KI-R12-006：长按菜单项模型（label 系统菜单渲染，onPick 回调调用方业务）。 */
 export interface EventMenuItem {
@@ -89,6 +90,7 @@ export struct EventItem {
     // R12 KI-R12-006：长按快捷菜单（LongPressGesture 捕获 + bindMenu(isShow) 受控弹出）
     .gesture(LongPressGesture({ repeat: false, duration: 500 })
       .onAction((): void => {
+        hapticTick();
         this.showMenu = false;
         setTimeout((): void => {
           this.showMenu = true;

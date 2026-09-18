@@ -12,7 +12,7 @@ import { PullLoadMoreList } from 'common';
 import { GSYColor, GSYFontSize, GSYShadow, GSYSpacing } from 'common';
 import { ThemeManager } from 'common';
 import { EmptyState } from 'common';
-import { SkeletonList } from 'common';
+import { SkeletonList, hapticTick } from 'common';
 import { PressableCard } from 'common';
 import { NotifyThread } from 'common';
 import { NotifyViewModel, NotifyTabItem } from '../viewmodel/NotifyViewModel';
@@ -178,6 +178,7 @@ export struct NotifyContent {
     // content 用 MenuElement[] 数据直给；先复位再延时置位保证受控开关跳变）
     .gesture(LongPressGesture({ repeat: false, duration: 500 })
       .onAction((): void => {
+        hapticTick();
         this.showMenuIndex = -1;
         setTimeout((): void => {
           this.showMenuIndex = index;
@@ -265,6 +266,7 @@ export struct NotifyContent {
     .alignSelf(ItemAlign.Center)
     .margin({ right: 16 })
     .onClick((): void => {
+      hapticTick();
       this.vm.markThreadRead(item as NotifyThread);
     });
   }

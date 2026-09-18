@@ -8,7 +8,9 @@ import { GlobalAuthStore, AuthUserInfo } from 'common';
 import { DefaultLoginUseCase, LoginOutcome } from 'common';
 import { BOOT_LOGIN_KEY, BOOT_WELCOME_HOLD_KEY, BootChannel } from 'common';
 
-const WELCOME_DELAY_MS: number = 1000;
+/** R12 体验优化：品牌页最短展示 400ms（防闪屏），token 判定并行执行就绪即走，
+ * 替代原"固定 1000ms 一刀切"——已登录用户冷启少等约 600ms。 */
+const WELCOME_MIN_DISPLAY_MS: number = 400;
 const TAG: string = 'WelcomePage';
 
 /**
@@ -21,6 +23,8 @@ const TAG: string = 'WelcomePage';
 @ObservedV2
 export class WelcomeViewModel {
   @Trace decided: boolean = false;
+  /** R12：路由准备进行中守卫（异步读 token 与最短展示定时器并发防双跳）。 */
+  private routing: boolean = false;
   private timerId: number = -1;
   private ctx: common.UIAbilityContext | null = null;
 
@@ -39,9 +43,12 @@ export class WelcomeViewModel {
     if (this.timerId !== -1) {
       return;
     }
+    // R12 体验优化：token 判定立即并行开始（读到即路由），
+    // 定时器仅作最短展示兜底（防 Preferences 异常时永不路由）
+    this.routeByToken();
     this.timerId = setTimeout((): void => {
       this.startExitTransition();
-    }, WELCOME_DELAY_MS);
+    }, WELCOME_MIN_DISPLAY_MS);
   }
 
   cancelTimer(): void {
@@ -63,9 +70,10 @@ export class WelcomeViewModel {
   }
 
   async routeByToken(): Promise<void> {
-    if (this.decided) {
+    if (this.decided || this.routing) {
       return;
     }
+    this.routing = true;
     const welcomeHold: string = BootChannel.get(BOOT_WELCOME_HOLD_KEY);
     if (welcomeHold.length > 0) {
       return;

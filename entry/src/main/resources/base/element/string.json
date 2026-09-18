@@ -1,6 +1,10 @@
 {
   "string": [
     {
+      "name": "vibrate_reason",
+      "value": "Haptic feedback for key actions"
+    },
+    {
       "name": "app_name",
       "value": "CarGuo's GitHub"
     },
