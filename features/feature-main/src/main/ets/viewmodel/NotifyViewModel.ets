@@ -227,6 +227,11 @@ export class NotifyViewModel {
 
   async onThreadClick(item: NotifyThread): Promise<void> {
     this.openSubjectDetail(item);
+    await this.markThreadRead(item);
+  }
+
+  /** R12 P3：单条标记已读（左滑手势与点击跳转共用；boot 注入的伪 id 跳过请求）。 */
+  async markThreadRead(item: NotifyThread): Promise<void> {
     if (item.id.indexOf('boot-notify-issue-') === 0) {
       Logger.i('notify/click', `skip markAsRead for boot issue id=${item.id}`);
       return;

@@ -10,16 +10,19 @@
  * 颜色：focused → primaryColor (#24292e)；否则 #a6aaaf
  *
  * iconPath 映射（RN 端 react-native-vector-icons/Feather -> 系统 SymbolGlyph）：
- *   aperture（动态/时间线） -> sys.symbol.clock
- *   activity（趋势）       -> sys.symbol.flame
- *   user（我的）           -> sys.symbol.person
- * 只使用系统符号表中确定存在的资源名；iconKey / tab_icon_* 测试 id 保持不变。
+ *   R12 P1 对齐官方五 Tab 图标（key 字符串与 tab_icon_* 测试 id 保持不变）：
+ *   aperture（首页 Feed）   -> sys.symbol.house
+ *   activity（探索）        -> sys.symbol.compass
+ *   user（个人资料）        -> sys.symbol.person
+ *   code（代码，R12 新增）  -> sys.symbol.code
+ *   notifications（通知）   -> sys.symbol.bell
+ * 只使用系统符号表中确定存在的资源名。
  */
 
 import { GSYFontSize, GSYIconSize } from 'common';
 import { ThemeManager } from 'common';
 
-export type TabIconKey = 'aperture' | 'activity' | 'user';
+export type TabIconKey = 'aperture' | 'activity' | 'user' | 'code' | 'notifications';
 
 @ComponentV2
 export struct TabIcon {
@@ -35,10 +38,16 @@ export struct TabIcon {
 
   private resolveSymbol(): Resource {
     if (this.iconKey === 'aperture') {
-      return $r('sys.symbol.clock');
+      return $r('sys.symbol.house');
     }
     if (this.iconKey === 'activity') {
-      return $r('sys.symbol.flame');
+      return $r('sys.symbol.compass');
+    }
+    if (this.iconKey === 'code') {
+      return $r('sys.symbol.code');
+    }
+    if (this.iconKey === 'notifications') {
+      return $r('sys.symbol.bell');
     }
     return $r('sys.symbol.person');
   }

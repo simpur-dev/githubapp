@@ -11,6 +11,12 @@ export interface TranslationMap {
   tabRecommended: string;
   tabDynamic: string;
   tabMy: string;
+  // R12 P1：官方五 Tab 文案（tabDynamic/tabRecommended/tabMy 的值被 I18nTest 锁定，新增独立键）
+  tabHome: string;
+  tabExplore: string;
+  tabCode: string;
+  tabNotifications: string;
+  tabProfile: string;
   setting: string;
   daysAgo: string;
   monthsAgo: string;
@@ -143,6 +149,8 @@ export interface TranslationMap {
   notifyTitle: string;
   notifyMarkAllRead: string;
   notifyEmpty: string;
+  notifyMarkRead: string;
+  retry: string;
   fileNotSupport: string;
   searchRepos: string;
   searchUser: string;
@@ -260,6 +268,11 @@ const enTranslations: TranslationMap = {
   tabRecommended: 'Trending',
   tabDynamic: 'Feed',
   tabMy: 'My',
+  tabHome: 'Home',
+  tabExplore: 'Explore',
+  tabCode: 'Code',
+  tabNotifications: 'Notifications',
+  tabProfile: 'Profile',
   setting: 'setting',
   daysAgo: '%d days ago',
   monthsAgo: '%d months ago',
@@ -392,6 +405,8 @@ const enTranslations: TranslationMap = {
   notifyTitle: 'Notification',
   notifyMarkAllRead: 'Mark all as read',
   notifyEmpty: 'No notifications',
+  notifyMarkRead: 'Mark read',
+  retry: 'Retry',
   fileNotSupport: 'Not Support',
   searchRepos: 'Search Repository',
   searchUser: 'Search User',
@@ -508,7 +523,12 @@ const zhTranslations: TranslationMap = {
   cancel: '取消',
   tabRecommended: '趋势',
   tabDynamic: '动态',
+  tabHome: '首页',
+  tabExplore: '探索',
   tabMy: '我的',
+  tabCode: '代码',
+  tabNotifications: '通知',
+  tabProfile: '个人资料',
   setting: '设置',
   daysAgo: '%d 天前',
   monthsAgo: '%d 月前',
@@ -641,6 +661,8 @@ const zhTranslations: TranslationMap = {
   notifyTitle: '消息通知',
   notifyMarkAllRead: '全部标记为已读',
   notifyEmpty: '暂无通知',
+  notifyMarkRead: '标记已读',
+  retry: '重试',
   fileNotSupport: '预览文件失败，可能文件类型不支持预览。',
   searchRepos: '搜索仓库',
   searchUser: '搜索用户',

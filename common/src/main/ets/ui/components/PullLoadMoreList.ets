@@ -16,8 +16,21 @@ import { I18n, TranslationMap } from '../../base/i18n/I18n';
 
 /** 错误态标题（渲染期兜底 I18n，页面也可显式覆盖）。 */
 const DEFAULT_ERROR_TITLE: string = 'Something went wrong';
-/** 重试按钮文案。 */
-const DEFAULT_RETRY_TEXT: string = 'Retry';
+/** 重试按钮文案（R12：英文默认值改为渲染期 I18n 兜底）。 */
+const DEFAULT_RETRY_TEXT: string = '';
+
+/** 错误态文案兜底：参数未传时取当前语言文案。 */
+function resolveRetryText(passed: string): string {
+  if (passed.length > 0) {
+    return passed;
+  }
+  return I18n('retry');
+}
+
+/** 错误态标题兜底。 */
+function resolveErrorTitle(): string {
+  return DEFAULT_ERROR_TITLE;
+}
 
 /** 空态/页脚文案兜底：参数未传时取当前语言文案。 */
 function resolveListText(passed: string, i18nKey: keyof TranslationMap): string {
@@ -56,6 +69,14 @@ export struct PullLoadMoreList {
   @Param error: boolean = false;
   /** 错误详情文案（EmptyState 副标题，可选）。 */
   @Param errorText: string = '';
+  /** R12 P3：行左滑开关（与 rowSwipeEnd 配套；默认关，不传完全无侧滑开销）。 */
+  @Param enableRowSwipe: boolean = false;
+  /** R12 P3：左滑露出内容（官方通知交互：左滑标记已读）。 */
+  @BuilderParam rowSwipeEnd: (item: Object, index: number) => void = this.noSwipe;
+
+  @Builder
+  noSwipe(_item: Object, _index: number): void {
+  }
 
   @Event onRefresh: () => void = (): void => {};
   @Event onLoadMore: () => void = (): void => {};
@@ -109,9 +130,9 @@ export struct PullLoadMoreList {
   buildErrorState(): void {
     EmptyState({
       iconText: 'more',
-      title: DEFAULT_ERROR_TITLE,
+      title: resolveErrorTitle(),
       subtitle: this.errorText,
-      retryText: DEFAULT_RETRY_TEXT,
+      retryText: resolveRetryText(DEFAULT_RETRY_TEXT),
       retry: (): void => {
         this.retryError();
       },
@@ -177,6 +198,13 @@ export struct PullLoadMoreList {
               ListItem() {
                 this.renderRow(obj.item, obj.index);
               }
+                .swipeAction(this.enableRowSwipe
+                  ? {
+                    end: (): void => {
+                      this.rowSwipeEnd(obj.item, obj.index);
+                    },
+                  }
+                  : {})
             })
             .key((item: Object, index: number): string => {
               // 与旧 ForEach key 同款：index + 内容摘要，保证 dataSource 整体替换后行内容重建。
@@ -205,6 +233,9 @@ export struct PullLoadMoreList {
       }
       .width('100%')
       .height('100%')
+      // R12 修复：短列表时 ListItem 交叉/主轴不得拉伸（默认 Stretch 会把唯一一行
+      // 拉成整屏高，swipeAction 露出区因此以全高为参考系跑到屏幕中部）
+      .alignListItem(ListItemAlign.Start)
       .cachedCount(5)
       .edgeEffect(EdgeEffect.Spring)
       .onReachEnd((): void => {

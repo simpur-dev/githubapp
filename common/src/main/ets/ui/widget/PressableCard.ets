@@ -40,23 +40,27 @@ export struct PressableCard {
   defaultContent(): void {
   }
 
+  @Builder
+  pressedScrim(): void {
+    // 按压蒙层经 .overlay 挂载：overlay 不参与布局、尺寸跟随被覆盖组件本身，
+    // 蒙层 height('100%') 只等于卡片内容高（R12 修复：原常驻子节点写法把
+    // Stack→Row→ListItem 整条高度链撑成列表全高，短列表下行高虚胀、
+    // swipeAction 露出按钮随之错位）。
+    Column()
+      .width('100%')
+      .height('100%')
+      .borderRadius(this.cornerRadius)
+      .backgroundColor(this.pressScrimColor())
+      .opacity(this.isPressed ? 1 : 0)
+      .animation({ duration: this.pressDuration, curve: Curve.EaseOut })
+      .hitTestBehavior(HitTestMode.None);
+  }
+
   build(): void {
-    // R11 A1 修复：蒙层 height('100%') 会让 Stack 在"短列表"（内容不足一屏）里被
-    // 拉伸到 ListItem 的最大约束，Center 对齐会把卡片垂直居中悬在空白中间；
-    // Top 对齐让内容始终贴顶（蒙层仍是 100% 尺寸，覆盖不受影响）。
     Stack({ alignContent: Alignment.Top }) {
       this.content();
-
-      // 按压蒙层：常驻节点 + 透明度过渡，避免条件渲染导致动画丢失。
-      Column()
-        .width('100%')
-        .height('100%')
-        .borderRadius(this.cornerRadius)
-        .backgroundColor(this.pressScrimColor())
-        .opacity(this.isPressed ? 1 : 0)
-        .animation({ duration: this.pressDuration, curve: Curve.EaseOut })
-        .hitTestBehavior(HitTestMode.None);
     }
+    .overlay(this.pressedScrim(), { align: Alignment.Top })
     .scale({
       x: this.scaleOnPress && this.isPressed ? PRESS_SCALE : 1,
       y: this.scaleOnPress && this.isPressed ? PRESS_SCALE : 1,

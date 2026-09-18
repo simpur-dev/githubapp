@@ -21,7 +21,9 @@ import { GSYColor, GSYFontSize, GSYSpacing } from 'common';
 import { TabIcon, TabIconKey } from './views/TabIcon';
 import { DynamicTabPage } from './tabs/DynamicTabPage';
 import { TrendTabPage } from './tabs/TrendTabPage';
+import { NotificationsTabPage } from './tabs/NotificationsTabPage';
 import { MyTabPage } from './tabs/MyTabPage';
+import { SearchPage } from './SearchPage';
 import { BOOT_TAB_KEY, BOOT_REPO_KEY, BOOT_PUSH_KEY, BOOT_ISSUE_KEY, BOOT_CODE_KEY, BOOT_USER_KEY, BOOT_PHOTO_KEY, BOOT_WEB_KEY, BOOT_COMMON_LIST_KEY, BOOT_NOTIFY_ISSUE_KEY, BootChannel } from 'common';
 import { Logger } from 'common';
 
@@ -89,10 +91,14 @@ export struct HomePage {
   private unsubscribeBootRedelivered: (() => void) | null = null;
   private unsubscribeNetwork: (() => void) | null = null;
   private offlineToastShown: boolean = false;
+  // R12 P1：官方五 Tab 信息架构（首页/探索/代码/通知/个人资料）。
+  // 旧 key（dynamic/trend/my）保持不变以兼容 bootTab 参数与测试 id；code/notifications 为新增。
   private tabs: HomeTabItem[] = [
-    { key: 'dynamic',   title: I18n('tabDynamic'),     icon: 'aperture', index: 0 },
-    { key: 'trend',     title: I18n('tabRecommended'), icon: 'activity', index: 1 },
-    { key: 'my',        title: I18n('tabMy'),          icon: 'user',     index: 2 },
+    { key: 'dynamic',       title: I18n('tabHome'),          icon: 'aperture', index: 0 },
+    { key: 'trend',         title: I18n('tabExplore'),       icon: 'activity', index: 1 },
+    { key: 'code',          title: I18n('tabCode'),          icon: 'code', index: 2 },
+    { key: 'notifications', title: I18n('tabNotifications'), icon: 'notifications', index: 3 },
+    { key: 'my',            title: I18n('tabProfile'),       icon: 'user', index: 4 },
   ];
 
   aboutToAppear(): void {
@@ -187,7 +193,11 @@ export struct HomePage {
     } else if (tab === 'trend') {
       target = 1;
     } else if (tab === 'my') {
+      target = 4;
+    } else if (tab === 'code') {
       target = 2;
+    } else if (tab === 'notifications') {
+      target = 3;
     }
     if (target < 0) {
       return;
@@ -572,10 +582,21 @@ export struct HomePage {
           }
           .tabBar(this.buildTabBar(this.tabs[1]));
 
+          // R12 P1："代码"Tab = 全局搜索一级入口（官方 App 搜索能力的入口化）
+          TabContent() {
+            SearchPage();
+          }
+          .tabBar(this.buildTabBar(this.tabs[2]));
+
+          TabContent() {
+            NotificationsTabPage();
+          }
+          .tabBar(this.buildTabBar(this.tabs[3]));
+
           TabContent() {
             MyTabPage();
           }
-          .tabBar(this.buildTabBar(this.tabs[2]));
+          .tabBar(this.buildTabBar(this.tabs[4]));
         }
         .id('home_tabs')
         .barHeight(GSYSpacing.tabBarHeight)
