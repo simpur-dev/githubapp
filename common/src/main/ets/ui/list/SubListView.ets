@@ -120,6 +120,8 @@ export struct SubListView {
   @Builder
   buildUserList(): void {
     PullLoadMoreList({
+      // R12 P2：头像行较重，加大预缓存
+      cachedCountParam: 8,
       dataSource: this.users,
       refreshing: this.refreshing,
       loadingMore: this.loadingMore,
@@ -139,6 +141,8 @@ export struct SubListView {
   @Builder
   buildRepoList(): void {
     PullLoadMoreList({
+      // R12 P2：仓库卡片行较重，加大预缓存
+      cachedCountParam: 8,
       dataSource: this.repos,
       refreshing: this.refreshing,
       loadingMore: this.loadingMore,

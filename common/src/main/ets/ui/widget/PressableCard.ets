@@ -52,7 +52,11 @@ export struct PressableCard {
       .borderRadius(this.cornerRadius)
       .backgroundColor(this.pressScrimColor())
       .opacity(this.isPressed ? 1 : 0)
-      .animation({ duration: this.pressDuration, curve: Curve.EaseOut })
+      .animation({
+        duration: this.pressDuration,
+        curve: Curve.EaseOut,
+        expectedFrameRateRange: { min: 60, max: 120, expected: 120 } as ExpectedFrameRateRange,
+      })
       .hitTestBehavior(HitTestMode.None);
   }
 
@@ -65,7 +69,11 @@ export struct PressableCard {
       x: this.scaleOnPress && this.isPressed ? PRESS_SCALE : 1,
       y: this.scaleOnPress && this.isPressed ? PRESS_SCALE : 1,
     })
-    .animation({ duration: this.pressDuration, curve: Curve.EaseOut })
+    .animation({
+        duration: this.pressDuration,
+        curve: Curve.EaseOut,
+        expectedFrameRateRange: { min: 60, max: 120, expected: 120 } as ExpectedFrameRateRange,
+      })
     .onTouch((event: TouchEvent): void => {
       if (event.type === TouchType.Down) {
         this.isPressed = true;

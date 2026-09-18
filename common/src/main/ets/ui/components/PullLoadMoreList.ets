@@ -69,6 +69,8 @@ export struct PullLoadMoreList {
   @Param error: boolean = false;
   /** 错误详情文案（EmptyState 副标题，可选）。 */
   @Param errorText: string = '';
+  /** R12 P2：预缓存行数分级（图片重的列表传大值保障快滑无白块；默认纯文本 5）。 */
+  @Param cachedCountParam: number = 5;
   /** R12 P3：行左滑开关（与 rowSwipeEnd 配套；默认关，不传完全无侧滑开销）。 */
   @Param enableRowSwipe: boolean = false;
   /** R12 P3：左滑露出内容（官方通知交互：左滑标记已读）。 */
@@ -236,7 +238,7 @@ export struct PullLoadMoreList {
       // R12 修复：短列表时 ListItem 交叉/主轴不得拉伸（默认 Stretch 会把唯一一行
       // 拉成整屏高，swipeAction 露出区因此以全高为参考系跑到屏幕中部）
       .alignListItem(ListItemAlign.Start)
-      .cachedCount(5)
+      .cachedCount(this.cachedCountParam)
       .edgeEffect(EdgeEffect.Spring)
       .onReachEnd((): void => {
         if (this.refreshing || this.loadingMore || this.noMore || !this.hasData()) {

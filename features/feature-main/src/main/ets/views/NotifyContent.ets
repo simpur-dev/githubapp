@@ -12,6 +12,7 @@ import { PullLoadMoreList } from 'common';
 import { GSYColor, GSYFontSize, GSYShadow, GSYSpacing } from 'common';
 import { ThemeManager } from 'common';
 import { EmptyState } from 'common';
+import { SkeletonList } from 'common';
 import { PressableCard } from 'common';
 import { NotifyThread } from 'common';
 import { NotifyViewModel, NotifyTabItem } from '../viewmodel/NotifyViewModel';
@@ -45,7 +46,11 @@ export struct NotifyContent {
               .fontColor(this.vm.currentTabIndex === obj.index
                 ? ThemeManager.current().onBrandText : ThemeManager.current().textSecondary)
               .fontSize(GSYFontSize.small)
-              .animation({ duration: 150, curve: Curve.EaseInOut })
+              .animation({
+                duration: 150,
+                curve: Curve.EaseInOut,
+                expectedFrameRateRange: { min: 60, max: 120, expected: 120 } as ExpectedFrameRateRange,
+              })
               .onClick((): void => {
                 this.vm.onTabChanged(obj.index);
               });
@@ -162,18 +167,14 @@ export struct NotifyContent {
 
   @Builder
   buildInitialLoading(): void {
+    // R12 P2：首屏骨架屏（呼吸属性动画走系统渲染管线），替代转圈
     Column() {
-      LoadingProgress()
-        .id('notify_initial_loading_indicator')
-        .width(36)
-        .height(36)
-        .color(ThemeManager.current().text);
+      SkeletonList({ rows: 4 })
+        .id('notify_initial_loading_indicator');
     }
     .id('notify_initial_loading')
     .width('100%')
-    .layoutWeight(1)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center);
+    .layoutWeight(1);
   }
 
   @Builder

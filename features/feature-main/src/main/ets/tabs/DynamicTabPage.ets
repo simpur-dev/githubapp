@@ -67,6 +67,8 @@ export struct DynamicTabPage {
   build(): void {
     Column() {
       PullLoadMoreList({
+      // R12 P2：头像/图片行较重，加大预缓存避免快滑白块
+      cachedCountParam: 8,
       // R11 A3：尾部避让浮动页签（barOverlap 悬浮于内容上，末行不再被遮挡/裁切）
       tailPadding: GSYSpacing.tabBarHeight + GSYSpacing.hdsFloatingTabBottomMargin * 2,
         dataSource: this.vm.items,
