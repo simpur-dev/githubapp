@@ -15,6 +15,7 @@ export const KEY_USER_NAME: string = 'userName';
 export const KEY_USER_PASSWORD: string = 'userPassword';
 export const KEY_OAUTH_STATE: string = 'oauthState';
 export const KEY_THEME: string = 'theme';
+export const KEY_NOTIFY_UNREAD: string = 'notifyLastUnread';
 
 export type PrefValue = string | number | boolean;
 

@@ -12,7 +12,7 @@ import { I18n } from 'common';
 import { Logger } from 'common';
 import { NavigationService, RouteName } from 'common';
 import { RouteParamReader } from 'common';
-import { BOOT_NOTIFY_ISSUE_KEY } from 'common';
+import { BOOT_NOTIFY_ISSUE_KEY, Preferences, KEY_NOTIFY_UNREAD, publishUnreadBadgeNotification, requestNotificationPermission } from 'common';
 import {
   NotifyFilter,
   NotifyThread,
@@ -157,10 +157,33 @@ export class NotifyViewModel {
       this.items = res.data;
       this.page = res.page;
       this.hasMore = res.hasMore;
+      // R12：通知推送客户端闭环——真实数据刷新后 diff 未读，新增时发系统通知并同步角标
+      // （boot 注入数据走 applyBootNotifyIssue 分支不经过此处，不会误报）
+      await this.syncUnreadBadge();
     } else {
       this.error = res.msg;
     }
     this.refreshing = false;
+  }
+
+  /** R12：未读数与上次持久化值比对，新增未读则发布系统通知（badgeNumber 走官方 @26 路径）。 */
+  private async syncUnreadBadge(): Promise<void> {
+    let unread: number = 0;
+    for (let i: number = 0; i < this.items.length; i++) {
+      if (this.items[i].unread) {
+        unread++;
+      }
+    }
+    const previous: number = await Preferences.getNumber(KEY_NOTIFY_UNREAD, 0);
+    await Preferences.putNumber(KEY_NOTIFY_UNREAD, unread);
+    if (unread > previous) {
+      const authorized: boolean = await requestNotificationPermission();
+      if (authorized && unread > 0) {
+        await publishUnreadBadgeNotification(
+          unread, 'GitHub',
+          `${unread} 条未读通知`);
+      }
+    }
   }
 
   async loadMore(): Promise<void> {
@@ -195,6 +218,8 @@ export class NotifyViewModel {
   }
 
   async markAllRead(): Promise<void> {
+    // R12：批量已读 → 角标清零（持久化值同步复位）
+    await Preferences.putNumber(KEY_NOTIFY_UNREAD, 0);
     LoadingModal.show(I18n('loading'), false);
     try {
       if (this.isBootOnlyNotificationList()) {
