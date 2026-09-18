@@ -166,23 +166,31 @@ export class NotifyViewModel {
     this.refreshing = false;
   }
 
-  /** R12：未读数与上次持久化值比对，新增未读则发布系统通知（badgeNumber 走官方 @26 路径）。 */
+  /** R12：未读数与上次持久化值比对，新增未读则发布系统通知（badgeNumber 走官方 @26 路径）。
+   * 防御式：角标/通知属边缘增强，任何异常（如 Preferences 未初始化）静默跳过，不影响主流程。 */
   private async syncUnreadBadge(): Promise<void> {
-    let unread: number = 0;
-    for (let i: number = 0; i < this.items.length; i++) {
-      if (this.items[i].unread) {
-        unread++;
+    try {
+      if (!Preferences.isReady()) {
+        return;
       }
-    }
-    const previous: number = await Preferences.getNumber(KEY_NOTIFY_UNREAD, 0);
-    await Preferences.putNumber(KEY_NOTIFY_UNREAD, unread);
-    if (unread > previous) {
-      const authorized: boolean = await requestNotificationPermission();
-      if (authorized && unread > 0) {
-        await publishUnreadBadgeNotification(
-          unread, 'GitHub',
-          `${unread} 条未读通知`);
+      let unread: number = 0;
+      for (let i: number = 0; i < this.items.length; i++) {
+        if (this.items[i].unread) {
+          unread++;
+        }
       }
+      const previous: number = await Preferences.getNumber(KEY_NOTIFY_UNREAD, 0);
+      await Preferences.putNumber(KEY_NOTIFY_UNREAD, unread);
+      if (unread > previous) {
+        const authorized: boolean = await requestNotificationPermission();
+        if (authorized && unread > 0) {
+          await publishUnreadBadgeNotification(
+            unread, 'GitHub',
+            `${unread} 条未读通知`);
+        }
+      }
+    } catch (e) {
+      Logger.e('notify/badge', `syncUnreadBadge skipped: ${(e as Error).message}`);
     }
   }
 
@@ -218,8 +226,10 @@ export class NotifyViewModel {
   }
 
   async markAllRead(): Promise<void> {
-    // R12：批量已读 → 角标清零（持久化值同步复位）
-    await Preferences.putNumber(KEY_NOTIFY_UNREAD, 0);
+    // R12：批量已读 → 角标清零（持久化值同步复位；Preferences 未初始化时跳过）
+    if (Preferences.isReady()) {
+      await Preferences.putNumber(KEY_NOTIFY_UNREAD, 0).catch((_e: Error): void => {});
+    }
     LoadingModal.show(I18n('loading'), false);
     try {
       if (this.isBootOnlyNotificationList()) {

@@ -119,3 +119,4 @@
 | KI-R12-009 | P2 | 长按快捷菜单功能验证（代码已落地） | LongPressGesture+受控 bindMenu 代码路径正确；模拟器 uitest 手势注入无法合成 500ms 长按 | ⏳ Open：真机/人工验证 | 真机批次 |
 | KI-R12-010 | P2 | 断点适配 md/lg 视觉验证 | WindowSize 断点单例（sm<600/md600-840/lg>840vp 官方口径）+ 列表内容 720vp 限宽已落地；模拟器系统方向锁定竖屏（427vp=sm，sm 路径截图无回归），md/lg 宽屏视觉需平板/折叠/真机旋转 | ⏳ Open：真机批次 | 真机批次 |
 | KI-R12-011 | P2 | 通知推送与角标同步（客户端部分） | 应用内轮询 + 本地系统通知 + badgeNumber 角标路径已落地（NotificationUtil + NotifyViewModel.diff 未读）；模拟器无真实通知数据（token 403/深链数据走跳过分支），端到端触发待真实账号通知权限 | ⏳ Open：真机批次端到端验证；退后台实时推送需服务端通道 | 真机批次 |
+| KI-R12-012 | P2 | ohosTest UI 套件在模拟器上 App died（含既有 CommonComponentsTest） | UI 套件历来定位真机 CI（ci-logic-only.sh 注释："真机 hvigor test 仍需 macOS/Win"），模拟器 ohosTest 基础设施缺口：TestAbility 默认页加载后进程死亡（对照实验：CommonComponentsTest 与新增套件同症状，非本轮引入） | ✅ 本轮附带修复 TestAbility 未初始化 Preferences（getPref 抛错路径）；模拟器 UI 测试基础设施缺口登记 | 真机批次（NotifyLongPressUiTest 用例已就绪：aa test -m entry_test -s class NotifyLongPressUiTest） |

@@ -29,6 +29,13 @@
 - **长按菜单验证限制**：模拟器 uitest 无法合成 500ms 长按 → KI-R12-009（真机/人工验证）。
 - **技术结论补充**：SharedElementTransition 不采用依据（05 §3.1）；setBadgeNumber @26 deprecated、角标依赖通知发布通道（05 §3.2）。
 
+## R12+ 补齐轮三（本会话第三批，提交 b49c583+）
+
+- **通知推送客户端闭环**：NotificationUtil（授权 + publish 携带 badgeNumber）+ NotifyViewModel 未读 diff；批量已读清角标。
+- **长按菜单 hypium 用例**：NotifyLongPressUiTest（长按 row0 → 断言双语菜单项 → 点击"标记已读" → 断言状态翻转），真机批次直接可跑。
+- **附带修复**：TestAbility 未初始化 Preferences（测试宿主页 getPref 抛错路径）；syncUnreadBadge/markAllRead 防御式包裹（边缘功能不破坏主流程）。
+- **基础设施结论**：ohosTest UI 套件模拟器 App died 为既有缺口（对照实验证实，KI-R12-012）。
+
 ## 遗留（登记）
 
 - 真机项：120fps 帧率采集（SP_da）、冷启动 TTI ≤1.2s 实测（模拟器欢迎页停留干扰计时）。

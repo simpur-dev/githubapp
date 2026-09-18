@@ -29,6 +29,7 @@ import SearchServiceTest from './SearchServiceTest';
 import SearchUiTest from './SearchUiTest';
 import NotifyServiceTest from './NotifyServiceTest';
 import NotifyUiTest from './NotifyUiTest';
+import NotifyLongPressUiTest from './NotifyLongPressUiTest';
 import SubListServiceTest from './SubListServiceTest';
 import SubListUiTest from './SubListUiTest';
 import SettingUiTest from './SettingUiTest';
@@ -110,6 +111,7 @@ export default function testsuite(): void {
   NotifyServiceTest();
   if (!logicOnly) {
     NotifyUiTest();
+    NotifyLongPressUiTest();
   }
   SubListServiceTest();
   if (!logicOnly) {
