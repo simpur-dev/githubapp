@@ -7,7 +7,7 @@ import { GSYSpacing, PullLoadMoreList } from 'common';
 import { DynamicEvent } from 'common';
 import { EventItem } from 'common';
 import { EventActionUtil } from 'common';
-import { EventActionDispatcher } from 'common';
+import { EventActionDispatcher, EventMenuItem, copyPlainText, CommonToast } from 'common';
 import { ExternalUrlUtil } from 'common';
 import { GSYFontSize } from 'common';
 import { ThemeManager } from 'common';
@@ -47,7 +47,40 @@ export struct DynamicTabPage {
         const login: string = item.actor !== null && item.actor !== undefined ? item.actor.login : '';
         EventActionDispatcher.dispatchUser(login);
       },
+      // R12 KI-R12-006：长按快捷菜单（打开仓库/复制链接/打开用户）
+      menuItems: this.buildRowMenu(item),
     });
+  }
+
+  /** R12 KI-R12-006：长按菜单项（打开仓库/复制链接/打开用户主页）。 */
+  private buildRowMenu(item: DynamicEvent): EventMenuItem[] {
+    const items: EventMenuItem[] = [];
+    const repoName: string = item.repo !== null && item.repo !== undefined ? item.repo.name : '';
+    if (repoName.length > 0) {
+      items.push({
+        label: I18n('menuViewRepo'),
+        onPick: (): void => {
+          EventActionDispatcher.dispatch(item, '');
+        },
+      });
+      items.push({
+        label: I18n('menuCopyLink'),
+        onPick: (): void => {
+          copyPlainText('https://github.com/' + repoName);
+          CommonToast.showShort(I18n('copyDone'));
+        },
+      });
+    }
+    const login: string = item.actor !== null && item.actor !== undefined ? item.actor.login : '';
+    if (login.length > 0) {
+      items.push({
+        label: I18n('menuOpenUser'),
+        onPick: (): void => {
+          EventActionDispatcher.dispatchUser(login);
+        },
+      });
+    }
+    return items;
   }
 
   @Builder

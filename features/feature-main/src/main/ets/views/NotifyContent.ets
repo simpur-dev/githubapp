@@ -20,6 +20,8 @@ import { NotifyViewModel, NotifyTabItem } from '../viewmodel/NotifyViewModel';
 @ComponentV2
 export struct NotifyContent {
   @Param vm: NotifyViewModel = new NotifyViewModel();
+  /** R12 KI-R12-006：受控长按菜单（-1 关闭 / >=0 显示对应行菜单）。 */
+  @Local showMenuIndex: number = -1;
 
   private buildStatusText(item: NotifyThread): string {
     const status: string = item.unread ? I18n('notifyStatusUnread') : I18n('notifyStatusRead');
@@ -70,6 +72,27 @@ export struct NotifyContent {
     .padding({ left: 16, right: 16, top: 8, bottom: 8 })
     .backgroundColor(ThemeManager.current().tabBackground)
     .alignItems(VerticalAlign.Center);
+  }
+
+  private buildRowMenu(item: NotifyThread): MenuElement[] {
+    const items: MenuElement[] = [];
+    if (item.unread) {
+      const markRead: MenuElement = {
+        value: I18n('menuMarkRead'),
+        action: (): void => {
+          this.vm.markThreadRead(item);
+        },
+      };
+      items.push(markRead);
+    }
+    const openDetail: MenuElement = {
+      value: I18n('menuOpenDetail'),
+      action: (): void => {
+        this.vm.onThreadClick(item);
+      },
+    };
+    items.push(openDetail);
+    return items;
   }
 
   @Builder
@@ -150,6 +173,17 @@ export struct NotifyContent {
     .id('notify_row_' + index.toString())
     .width('100%')
     .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+    // R12 KI-R12-006：长按快捷菜单（标记已读 / 打开详情），与左滑/点击三通道并存
+    // R12 KI-R12-006：长按快捷菜单（LongPressGesture 捕获 + bindMenu(isShow) 受控弹出，
+    // content 用 MenuElement[] 数据直给；先复位再延时置位保证受控开关跳变）
+    .gesture(LongPressGesture({ repeat: false, duration: 500 })
+      .onAction((): void => {
+        this.showMenuIndex = -1;
+        setTimeout((): void => {
+          this.showMenuIndex = index;
+        }, 60);
+      }))
+    .bindMenu(this.showMenuIndex === index, this.buildRowMenu(item))
     .onClick((): void => {
       this.vm.onThreadClick(item);
     });

@@ -293,6 +293,42 @@ export struct SearchPage {
     .alignItems(VerticalAlign.Center);
   }
 
+  /** R12：联想词块（历史前缀匹配结果；点击行直接以该词提交搜索）。 */
+  @Builder
+  buildSuggestions(): void {
+    Column() {
+      Repeat<string>(this.vm.suggestions)
+        .each((obj: RepeatItem<string>): void => {
+          Row() {
+            SymbolGlyph($r('sys.symbol.magnifyingglass'))
+              .fontSize(18)
+              .fontColor([ThemeManager.current().textSecondary]);
+            Text(obj.item)
+              .fontSize(GSYFontSize.middleWhite)
+              .fontColor(ThemeManager.current().text)
+              .margin({ left: 12 })
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis });
+          }
+          .id('search_suggestion_' + obj.index.toString())
+          .width('100%')
+          .height(44)
+          .padding({ left: 16, right: 16 })
+          .onClick((): void => {
+            this.suggestionPicked(obj.item);
+          });
+        })
+        .key((item: string): string => 'suggestion_' + item);
+    }
+    .id('search_suggestions')
+    .width('100%')
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  private async suggestionPicked(text: string): Promise<void> {
+    await this.submitFromUi(text);
+  }
+
   @Builder
   buildContent(): void {
     Column() {
@@ -304,6 +340,9 @@ export struct SearchPage {
         } else {
           this.buildTypeButtons();
         }
+      } else if (this.vm.suggestions.length > 0 && this.vm.isEmptyQuery()) {
+        // R12：输入联想（历史前缀匹配，点击直接提交搜索）
+        this.buildSuggestions();
       } else {
         this.buildTypeButtons();
 

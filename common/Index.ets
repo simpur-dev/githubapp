@@ -20,6 +20,7 @@ export { RouteParamStore } from './src/main/ets/base/navigation/RouteParamStore'
 export { ROUTE_NAMES, RouteName, isKnownRoute } from './src/main/ets/base/navigation/Routes';
 export { Address, HOST_API, HOST_WEB, TRENDING_API_HOST, TRENDING_GTREND_HOST, TRENDING_HUCHEN_HOST } from './src/main/ets/base/net/Address';
 export { CONTENT_TYPE_FORM, CONTENT_TYPE_JSON, DEFAULT_TIMEOUT_MS, DEFAULT_USER_AGENT, HttpManager, HttpMethod, HttpProvider, LoginExpiredBus, RawResponse, TokenStorage } from './src/main/ets/base/net/HttpManager';
+export { GraphQLClient, GraphQLResult, GraphQLError, sharedGraphQLClient, QUERY_VIEWER } from './src/main/ets/base/net/GraphQLClient';
 export { CREATED, FORBIDDEN, GONE, NETWORK_ERROR, NETWORK_JSON_EXCEPTION, NETWORK_TIMEOUT, NOT_FOUND, NO_CONTENT, NetworkCode, SUCCESS, UNAUTHORIZED } from './src/main/ets/base/net/NetworkCode';
 export { NetworkChangeListener, NetworkMonitor, NetworkProvider } from './src/main/ets/base/net/NetworkMonitor';
 export { HttpHeaders, HttpResult } from './src/main/ets/base/net/Result';
@@ -27,6 +28,7 @@ export { LANGUAGE_OPTION_EN, LANGUAGE_OPTION_SYSTEM, LANGUAGE_OPTION_ZH, Prefere
 export { GITHUB_EMOJI_MAP, emojiNames, lookupEmoji } from './src/main/ets/base/utils/EmojiMap';
 export { buildEmojiToken, renderEmoji } from './src/main/ets/base/utils/EmojiText';
 export { EventActionDispatcher, ExternalUrlHandler } from './src/main/ets/base/utils/EventActionDispatcher';
+export { copyPlainText } from './src/main/ets/base/utils/ClipboardUtil';
 export { EventActionResult, EventActionUtil } from './src/main/ets/base/utils/EventActionUtil';
 export { EVENT_AUTH_STATE_CHANGED, EVENT_LANGUAGE_CHANGED, EVENT_TAB_DOUBLE_TAP, EVENT_BOOT_REDELIVERED, EVENT_THEME_CHANGED, EVENT_USER_LOGGED_IN, EVENT_USER_LOGGED_OUT, EventBus, EventListener } from './src/main/ets/base/utils/EventBus';
 export { ExternalUrlUtil } from './src/main/ets/base/utils/ExternalUrlUtil';
@@ -85,7 +87,7 @@ export { initSystemBars, applySystemBars } from './src/main/ets/base/utils/SafeA
 export { GSYColor, GSYDarkColor, GSYFontSize, GSYIconSize, GSYShadow, GSYSpacing } from './src/main/ets/ui/style/Theme';
 export { DARK_PALETTE, LIGHT_PALETTE, SystemColorProvider, ThemeManager, ThemeManagerImpl, ThemeMode, ThemePalette } from './src/main/ets/ui/theme/ThemeManager';
 export { ContributionHeatmap } from './src/main/ets/ui/widget/ContributionHeatmap';
-export { EventItem } from './src/main/ets/ui/widget/EventItem';
+export { EventItem, EventMenuItem } from './src/main/ets/ui/widget/EventItem';
 export { IconTextItem } from './src/main/ets/ui/widget/IconTextItem';
 export { PressableCard } from './src/main/ets/ui/widget/PressableCard';
 export { RepositoryItem } from './src/main/ets/ui/widget/RepositoryItem';

@@ -151,6 +151,12 @@ export interface TranslationMap {
   notifyEmpty: string;
   notifyMarkRead: string;
   retry: string;
+  menuViewRepo: string;
+  menuOpenUser: string;
+  menuCopyLink: string;
+  menuMarkRead: string;
+  copyDone: string;
+  menuOpenDetail: string;
   fileNotSupport: string;
   searchRepos: string;
   searchUser: string;
@@ -407,6 +413,12 @@ const enTranslations: TranslationMap = {
   notifyEmpty: 'No notifications',
   notifyMarkRead: 'Mark read',
   retry: 'Retry',
+  menuViewRepo: 'View repository',
+  menuOpenUser: 'Open user profile',
+  menuCopyLink: 'Copy repository link',
+  menuMarkRead: 'Mark as read',
+  copyDone: 'Link copied',
+  menuOpenDetail: 'Open detail',
   fileNotSupport: 'Not Support',
   searchRepos: 'Search Repository',
   searchUser: 'Search User',
@@ -663,6 +675,12 @@ const zhTranslations: TranslationMap = {
   notifyEmpty: '暂无通知',
   notifyMarkRead: '标记已读',
   retry: '重试',
+  menuViewRepo: '查看仓库',
+  menuOpenUser: '打开用户主页',
+  menuCopyLink: '复制仓库链接',
+  menuMarkRead: '标记已读',
+  copyDone: '链接已复制',
+  menuOpenDetail: '打开详情',
   fileNotSupport: '预览文件失败，可能文件类型不支持预览。',
   searchRepos: '搜索仓库',
   searchUser: '搜索用户',

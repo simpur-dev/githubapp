@@ -11,6 +11,12 @@ import { TimeUtil } from '../../base/utils/TimeUtil';
 import { UserImage } from './UserImage';
 import { PressableCard } from './PressableCard';
 
+/** R12 KI-R12-006：长按菜单项模型（label 系统菜单渲染，onPick 回调调用方业务）。 */
+export interface EventMenuItem {
+  label: string;
+  onPick: () => void;
+}
+
 @ComponentV2
 export struct EventItem {
   @Param actionTime: string = '';
@@ -19,8 +25,20 @@ export struct EventItem {
   @Param actionTarget: string = '';
   @Param des: string = '';
   @Param rowId: string = '';
+  /** R12 KI-R12-006：长按快捷菜单项（对齐官方 App 长按交互；label + 回调由调用方给）。 */
+  @Param menuItems: EventMenuItem[] = [];
+  /** R12 KI-R12-006：受控菜单开关（长按置 true，bindMenu 跳变弹出）。 */
+  @Local showMenu: boolean = false;
   @Event onPressItem: () => void = (): void => {};
   @Event onPressUser: () => void = (): void => {};
+
+  /** R12 KI-R12-006：菜单内容（MenuElement[] 数据直给）。 */
+  private rowMenuContent(): MenuElement[] {
+    return this.menuItems.map((item: EventMenuItem): MenuElement => {
+      const element: MenuElement = { value: item.label, action: item.onPick };
+      return element;
+    });
+  }
 
   build(): void {
     // R10 阶段3：整卡按压反馈（蒙层 + 0.98 缩放），行内 .id / onClick 原样保留。
@@ -67,6 +85,16 @@ export struct EventItem {
       .width('100%')
       .alignItems(VerticalAlign.Top);
     }
+    // R12 KI-R12-006：长按快捷菜单（系统 bindContextMenu，LongPress 触发）
+    // R12 KI-R12-006：长按快捷菜单（LongPressGesture 捕获 + bindMenu(isShow) 受控弹出）
+    .gesture(LongPressGesture({ repeat: false, duration: 500 })
+      .onAction((): void => {
+        this.showMenu = false;
+        setTimeout((): void => {
+          this.showMenu = true;
+        }, 60);
+      }))
+    .bindMenu(this.showMenu, this.rowMenuContent())
     .id(this.rowId.length > 0 ? this.rowId : 'event_item_root')
     .width('auto')
     .padding({

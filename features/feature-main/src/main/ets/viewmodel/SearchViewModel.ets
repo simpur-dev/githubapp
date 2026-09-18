@@ -46,6 +46,8 @@ export class SearchViewModel {
   @Trace queryText: string = '';
   @Trace currentTab: SearchTab = SEARCH_TAB_REPO;
   @Trace historyItems: string[] = [];
+  /** R12：搜索联想词（历史条目的前缀匹配；输入为空时不联想）。 */
+  @Trace suggestions: string[] = [];
   @Trace searchFocused: boolean = false;
   @Trace repos: RecommendRepo[] = [];
   @Trace users: SearchUserItem[] = [];
@@ -89,9 +91,28 @@ export class SearchViewModel {
 
   onInputChanged(value: string): void {
     this.queryText = value;
+    this.updateSuggestions(value);
     if (value === null || value.length === 0) {
       this.clearSearch();
     }
+  }
+
+  /** R12：联想词 = 历史条目前缀匹配（大小写不敏感，最多 5 条）。 */
+  private updateSuggestions(input: string): void {
+    const prefix: string = input !== null ? input.trim().toLowerCase() : '';
+    if (prefix.length === 0) {
+      this.suggestions = [];
+      return;
+    }
+    const matched: string[] = [];
+    for (let i: number = 0; i < this.historyItems.length && matched.length < 5; i++) {
+      const item: string = this.historyItems[i];
+      if (item !== null && item !== undefined && item.toLowerCase().startsWith(prefix)
+        && item.toLowerCase() !== prefix) {
+        matched.push(item);
+      }
+    }
+    this.suggestions = matched;
   }
 
   /** 清空输入：回到初始态（旧 store.reset + refreshComplete(false) 语义）。 */
