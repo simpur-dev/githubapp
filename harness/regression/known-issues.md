@@ -101,3 +101,18 @@
 ```
 | KI-XXX | P0/P1/P2/P3 | 一句话现象 + 根因 + 涉及文件（用公开 GitHub 链接或项目相对路径） | M? | 当前临时缓解 | TBD/AI/Owner | YYYY-MM-DD |
 ```
+
+## R12 重构登记（2026-09-18，五 Tab IA + 120fps + 秒开加载）
+
+> 详细根因与验证见 [harness/R12/docs/02-问题排查与修复报告.md](../R12/docs/02-问题排查与修复报告.md)。
+
+| ID | 严重度 | 描述 | 根因 | 状态 | 计划修复 |
+|---|---|---|---|---|---|
+| KI-R12-001 | P2 | 通知 Tab 直连显示"403权限错误" | `GET /notifications` 需 PAT 勾选 Notifications scope（fine-grained token）；R12 起通知 Tab 才首次真实请求该接口 | ✅ 非 App 缺陷；错误态可重试；深链注入数据链路正常 | 用户在 GitHub token 设置勾选通知权限后自然恢复 |
+| KI-R12-002 | P1 | 短列表行高虚胀 + swipeAction 露出按钮错位（双现象同根因） | PressableCard 按压蒙层子节点 `height('100%')` 参与布局，把 Stack→Row→ListItem 高度链撑成列表全高 | ✅ R12 关闭：蒙层改官方 `.overlay()`（不参与布局、尺寸跟随组件），提交 bbec8f1 | — |
+| KI-R12-003 | P3 | 列表快速滚动可能白块（图片重列表） | cachedCount 统一写死 5 预渲染不足 | ✅ R12 关闭：cachedCount 参数化分级（图片重 8/文本 5），提交 6be8a23 | — |
+| KI-R12-004 | P3 | 错误态重试按钮写死英文 "Retry" | 字面量 | ✅ R12 关闭：i18n retry 键 | — |
+| KI-R12-005 | P3 | 通知列表无左滑/批量已读（对齐官方 Inbox 手势缺失） | 历史未实现 | ✅ R12 关闭：ListItem.swipeAction 左滑已读 + Tab 头部/标题栏菜单批量已读双入口，提交 bbec8f1 | — |
+| KI-R12-006 | P3 | 列表行长按快捷菜单缺失（官方 App 有） | 历史未实现 | ⏳ Open：bindMenu 长按菜单，登记 R13 | R13 |
+| KI-R12-007 | P3 | 标题栏滚动模糊（scrollEffectOptions @26）未启用 | 非全屏模型下与原生标题材质叠加效果需逐页实测 | ⏳ Open：登记 R13（避免 R10 全屏实验式反复） | R13 |
+| KI-R12-008 | P2 | 120fps 满帧结论缺真机采集 | 模拟器刷新率与真机 120Hz 面板不同；SP_da 帧率数据需真机 | ⏳ Open：真机项（与 KI-R9-001 同批） | 真机批次 |
